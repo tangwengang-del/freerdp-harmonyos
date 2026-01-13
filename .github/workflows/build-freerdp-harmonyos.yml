@@ -167,6 +167,9 @@ jobs:
           tar xzf openssl-${{ env.OPENSSL_VERSION }}.tar.gz
           cd openssl-${{ env.OPENSSL_VERSION }}
           
+          # Unset CC/CXX to avoid double prefix issue
+          unset CC CXX AR RANLIB STRIP
+          
           # Configure for aarch64 cross-compilation
           ./Configure linux-aarch64 \
             --cross-compile-prefix=aarch64-linux-gnu- \
@@ -191,6 +194,9 @@ jobs:
           wget -q https://ffmpeg.org/releases/ffmpeg-${{ env.FFMPEG_VERSION }}.tar.xz
           tar xJf ffmpeg-${{ env.FFMPEG_VERSION }}.tar.xz
           cd ffmpeg-${{ env.FFMPEG_VERSION }}
+          
+          # Unset CC/CXX to use cross-prefix properly
+          unset CC CXX AR RANLIB STRIP
           
           # Configure for aarch64 cross-compilation
           ./configure \
