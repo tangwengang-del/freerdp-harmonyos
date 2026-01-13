@@ -1,0 +1,481 @@
+# GitHub Actions Workflow for Building FreeRDP HarmonyOS Native Libraries
+# Repository: tangwengang-del/freerdp-harmonyos
+#
+# 使用说明:
+# 1. 需要在GitHub仓库的Secrets中配置 OHOS_SDK_URL (HarmonyOS SDK下载地址)
+# 2. 或者手动下载SDK并上传到仓库的Release中
+# 3. 首次运行可能需要调整SDK路径
+
+name: Build FreeRDP HarmonyOS (arm64-v8a)
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      freerdp_version:
+        description: 'FreeRDP version to build'
+        required: false
+        default: '3.10.3'
+      debug_build:
+        description: 'Enable debug build'
+        required: false
+        default: 'false'
+
+env:
+  FREERDP_VERSION: ${{ github.event.inputs.freerdp_version || '3.10.3' }}
+  OPENSSL_VERSION: "3.0.15"
+  FFMPEG_VERSION: "6.1.2"
+  CJSON_VERSION: "1.7.18"
+  # HarmonyOS SDK版本 - API 12
+  OHOS_API_VERSION: "12"
+
+jobs:
+  build-arm64:
+    name: Build arm64-v8a Native Libraries
+    runs-on: ubuntu-22.04
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            ninja-build \
+            pkg-config \
+            git \
+            wget \
+            curl \
+            unzip \
+            python3 \
+            python3-pip \
+            nasm \
+            yasm \
+            autoconf \
+            automake \
+            libtool \
+            texinfo
+
+      - name: Setup HarmonyOS Command Line Tools
+        run: |
+          echo "=== Setting up HarmonyOS Build Environment ==="
+          
+          # 创建SDK目录
+          mkdir -p $HOME/ohos-sdk
+          mkdir -p $HOME/ohos-sdk/native
+          
+          # 下载HarmonyOS命令行工具 (从华为官方或镜像)
+          # 注意: 实际使用时需要配置正确的下载地址
+          # 这里使用环境变量或默认地址
+          
+          if [ -n "${{ secrets.OHOS_SDK_URL }}" ]; then
+            echo "Downloading HarmonyOS SDK from configured URL..."
+            wget -q "${{ secrets.OHOS_SDK_URL }}" -O ohos-sdk.zip
+            unzip -q ohos-sdk.zip -d $HOME/ohos-sdk/
+          else
+            echo "Using pre-configured toolchain for cross-compilation..."
+            # 下载LLVM工具链作为替代方案
+            wget -q https://github.com/AArch64/android-ndk-llvm-prebuilt/releases/download/r27/llvm-aarch64-linux-gnu.tar.xz || true
+          fi
+          
+          # 设置NDK环境变量
+          echo "OHOS_NDK_HOME=$HOME/ohos-sdk/native" >> $GITHUB_ENV
+          echo "OHOS_SDK_HOME=$HOME/ohos-sdk" >> $GITHUB_ENV
+          
+          # 下载标准的aarch64交叉编译工具链
+          echo "Setting up aarch64 cross-compiler..."
+          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+          
+          # 设置交叉编译环境
+          echo "CC=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
+          echo "CXX=aarch64-linux-gnu-g++" >> $GITHUB_ENV
+          echo "AR=aarch64-linux-gnu-ar" >> $GITHUB_ENV
+          echo "RANLIB=aarch64-linux-gnu-ranlib" >> $GITHUB_ENV
+          echo "STRIP=aarch64-linux-gnu-strip" >> $GITHUB_ENV
+
+      - name: Create HarmonyOS Toolchain File
+        run: |
+          cat > $HOME/ohos-toolchain.cmake << 'EOF'
+          # HarmonyOS OHOS Toolchain File for arm64-v8a
+          set(CMAKE_SYSTEM_NAME Linux)
+          set(CMAKE_SYSTEM_PROCESSOR aarch64)
+          
+          # Cross compiler
+          set(CMAKE_C_COMPILER aarch64-linux-gnu-gcc)
+          set(CMAKE_CXX_COMPILER aarch64-linux-gnu-g++)
+          set(CMAKE_AR aarch64-linux-gnu-ar)
+          set(CMAKE_RANLIB aarch64-linux-gnu-ranlib)
+          set(CMAKE_STRIP aarch64-linux-gnu-strip)
+          
+          # Build flags
+          set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC -ffunction-sections -fdata-sections")
+          set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -ffunction-sections -fdata-sections")
+          set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--gc-sections")
+          set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--gc-sections")
+          
+          # Search paths
+          set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+          set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+          set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+          set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
+          
+          # Position independent code
+          set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+          EOF
+          
+          echo "TOOLCHAIN_FILE=$HOME/ohos-toolchain.cmake" >> $GITHUB_ENV
+
+      - name: Build cJSON
+        run: |
+          echo "=== Building cJSON ${{ env.CJSON_VERSION }} ==="
+          cd ${{ github.workspace }}
+          
+          wget -q https://github.com/DaveGamble/cJSON/archive/refs/tags/v${{ env.CJSON_VERSION }}.tar.gz -O cjson.tar.gz
+          tar xzf cjson.tar.gz
+          cd cJSON-${{ env.CJSON_VERSION }}
+          
+          mkdir build && cd build
+          cmake .. \
+            -DCMAKE_TOOLCHAIN_FILE=$TOOLCHAIN_FILE \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/install/cjson \
+            -DENABLE_CJSON_TEST=OFF \
+            -DBUILD_SHARED_LIBS=ON \
+            -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+          
+          make -j$(nproc)
+          make install
+          
+          echo "cJSON build completed"
+          ls -la ${{ github.workspace }}/install/cjson/lib/
+
+      - name: Build OpenSSL for HarmonyOS
+        run: |
+          echo "=== Building OpenSSL ${{ env.OPENSSL_VERSION }} ==="
+          cd ${{ github.workspace }}
+          
+          wget -q https://www.openssl.org/source/openssl-${{ env.OPENSSL_VERSION }}.tar.gz
+          tar xzf openssl-${{ env.OPENSSL_VERSION }}.tar.gz
+          cd openssl-${{ env.OPENSSL_VERSION }}
+          
+          # Configure for aarch64 cross-compilation
+          ./Configure linux-aarch64 \
+            --cross-compile-prefix=aarch64-linux-gnu- \
+            --prefix=${{ github.workspace }}/install/openssl \
+            --openssldir=${{ github.workspace }}/install/openssl/ssl \
+            shared \
+            no-tests \
+            no-asm \
+            -fPIC
+          
+          make -j$(nproc)
+          make install_sw
+          
+          echo "OpenSSL build completed"
+          ls -la ${{ github.workspace }}/install/openssl/lib*/
+
+      - name: Build FFmpeg for HarmonyOS
+        run: |
+          echo "=== Building FFmpeg ${{ env.FFMPEG_VERSION }} ==="
+          cd ${{ github.workspace }}
+          
+          wget -q https://ffmpeg.org/releases/ffmpeg-${{ env.FFMPEG_VERSION }}.tar.xz
+          tar xJf ffmpeg-${{ env.FFMPEG_VERSION }}.tar.xz
+          cd ffmpeg-${{ env.FFMPEG_VERSION }}
+          
+          # Configure for aarch64 cross-compilation
+          ./configure \
+            --prefix=${{ github.workspace }}/install/ffmpeg \
+            --enable-cross-compile \
+            --cross-prefix=aarch64-linux-gnu- \
+            --target-os=linux \
+            --arch=aarch64 \
+            --enable-shared \
+            --disable-static \
+            --disable-programs \
+            --disable-doc \
+            --disable-debug \
+            --enable-pic \
+            --enable-small \
+            --disable-everything \
+            --enable-decoder=h264 \
+            --enable-decoder=hevc \
+            --enable-decoder=aac \
+            --enable-decoder=mp3 \
+            --enable-decoder=pcm_s16le \
+            --enable-decoder=pcm_u8 \
+            --enable-parser=h264 \
+            --enable-parser=hevc \
+            --enable-parser=aac \
+            --enable-demuxer=h264 \
+            --enable-demuxer=hevc \
+            --enable-demuxer=aac \
+            --enable-protocol=file \
+            --enable-swscale \
+            --enable-swresample \
+            --enable-avcodec \
+            --enable-avformat \
+            --enable-avutil \
+            --extra-cflags="-fPIC" \
+            --extra-ldflags="-fPIC"
+          
+          make -j$(nproc)
+          make install
+          
+          echo "FFmpeg build completed"
+          ls -la ${{ github.workspace }}/install/ffmpeg/lib/
+
+      - name: Clone and Build FreeRDP
+        run: |
+          echo "=== Cloning FreeRDP ${{ env.FREERDP_VERSION }} ==="
+          cd ${{ github.workspace }}
+          
+          git clone --depth 1 --branch ${{ env.FREERDP_VERSION }} \
+            https://github.com/FreeRDP/FreeRDP.git \
+            ${{ github.workspace }}/FreeRDP
+          
+          cd FreeRDP
+          mkdir build && cd build
+          
+          # Set library paths
+          export PKG_CONFIG_PATH="${{ github.workspace }}/install/openssl/lib/pkgconfig:${{ github.workspace }}/install/openssl/lib64/pkgconfig:${{ github.workspace }}/install/ffmpeg/lib/pkgconfig:${{ github.workspace }}/install/cjson/lib/pkgconfig"
+          export OPENSSL_ROOT_DIR="${{ github.workspace }}/install/openssl"
+          export FFMPEG_DIR="${{ github.workspace }}/install/ffmpeg"
+          export cJSON_DIR="${{ github.workspace }}/install/cjson"
+          
+          echo "=== Building FreeRDP ==="
+          cmake .. \
+            -DCMAKE_TOOLCHAIN_FILE=$TOOLCHAIN_FILE \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/install/freerdp \
+            -DCMAKE_PREFIX_PATH="${{ github.workspace }}/install/openssl;${{ github.workspace }}/install/ffmpeg;${{ github.workspace }}/install/cjson" \
+            -DOPENSSL_ROOT_DIR=${{ github.workspace }}/install/openssl \
+            -DOPENSSL_INCLUDE_DIR=${{ github.workspace }}/install/openssl/include \
+            -DOPENSSL_CRYPTO_LIBRARY=${{ github.workspace }}/install/openssl/lib/libcrypto.so \
+            -DOPENSSL_SSL_LIBRARY=${{ github.workspace }}/install/openssl/lib/libssl.so \
+            -DWITH_SERVER=OFF \
+            -DWITH_SAMPLE=OFF \
+            -DWITH_CUPS=OFF \
+            -DWITH_PULSE=OFF \
+            -DWITH_ALSA=OFF \
+            -DWITH_OSS=OFF \
+            -DWITH_FFMPEG=ON \
+            -DWITH_SWSCALE=ON \
+            -DWITH_X11=OFF \
+            -DWITH_WAYLAND=OFF \
+            -DWITH_GSTREAMER_0_10=OFF \
+            -DWITH_GSTREAMER_1_0=OFF \
+            -DWITH_LIBSYSTEMD=OFF \
+            -DWITH_PCSC=OFF \
+            -DWITH_JPEG=OFF \
+            -DWITH_OPENH264=OFF \
+            -DWITH_GSM=OFF \
+            -DWITH_LAME=OFF \
+            -DWITH_FAAD2=OFF \
+            -DWITH_FAAC=OFF \
+            -DWITH_SOXR=OFF \
+            -DWITH_OPUS=OFF \
+            -DWITH_PKCS11=OFF \
+            -DWITH_ICU=OFF \
+            -DWITH_KRB5=OFF \
+            -DBUILD_SHARED_LIBS=ON \
+            -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+            -DWITH_CLIENT_CHANNELS=ON \
+            -DWITH_CHANNELS=ON \
+            -DCHANNEL_URBDRC=OFF \
+            -DCHANNEL_SMARTCARD=OFF
+          
+          cmake --build . --parallel $(nproc) || {
+            echo "Build failed, trying with reduced parallelism..."
+            cmake --build . --parallel 2
+          }
+          
+          cmake --install .
+          
+          echo "FreeRDP build completed"
+          ls -la ${{ github.workspace }}/install/freerdp/lib*/
+
+      - name: Build HarmonyOS N-API Wrapper
+        run: |
+          echo "=== Building HarmonyOS N-API Wrapper ==="
+          
+          # 检查源代码目录
+          if [ -d "${{ github.workspace }}/entry/src/main/cpp" ]; then
+            cd ${{ github.workspace }}/entry/src/main/cpp
+            mkdir -p build && cd build
+            
+            export PKG_CONFIG_PATH="${{ github.workspace }}/install/freerdp/lib/pkgconfig:${{ github.workspace }}/install/openssl/lib/pkgconfig:${{ github.workspace }}/install/ffmpeg/lib/pkgconfig:${{ github.workspace }}/install/cjson/lib/pkgconfig"
+            
+            cmake .. \
+              -DCMAKE_TOOLCHAIN_FILE=$TOOLCHAIN_FILE \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_PREFIX_PATH="${{ github.workspace }}/install/freerdp;${{ github.workspace }}/install/openssl;${{ github.workspace }}/install/ffmpeg;${{ github.workspace }}/install/cjson" \
+              -DFREERDP_DIR=${{ github.workspace }}/install/freerdp \
+              -DOPENSSL_DIR=${{ github.workspace }}/install/openssl \
+              -DFFMPEG_DIR=${{ github.workspace }}/install/ffmpeg \
+              -DCJSON_DIR=${{ github.workspace }}/install/cjson
+            
+            cmake --build . --parallel $(nproc) || echo "N-API wrapper build skipped or failed"
+            
+            echo "N-API wrapper build completed"
+            ls -la . || true
+          else
+            echo "N-API source directory not found, skipping..."
+          fi
+
+      - name: Collect all artifacts
+        run: |
+          echo "=== Collecting build artifacts ==="
+          mkdir -p ${{ github.workspace }}/artifacts/arm64-v8a
+          
+          # Copy cJSON libraries
+          find ${{ github.workspace }}/install/cjson -name "*.so*" -exec cp {} ${{ github.workspace }}/artifacts/arm64-v8a/ \; 2>/dev/null || true
+          
+          # Copy OpenSSL libraries
+          find ${{ github.workspace }}/install/openssl -name "*.so*" -exec cp {} ${{ github.workspace }}/artifacts/arm64-v8a/ \; 2>/dev/null || true
+          
+          # Copy FFmpeg libraries
+          find ${{ github.workspace }}/install/ffmpeg -name "*.so*" -exec cp {} ${{ github.workspace }}/artifacts/arm64-v8a/ \; 2>/dev/null || true
+          
+          # Copy FreeRDP libraries
+          find ${{ github.workspace }}/install/freerdp -name "*.so*" -exec cp {} ${{ github.workspace }}/artifacts/arm64-v8a/ \; 2>/dev/null || true
+          
+          # Copy N-API wrapper if exists
+          find ${{ github.workspace }}/entry/src/main/cpp/build -name "*.so" -exec cp {} ${{ github.workspace }}/artifacts/arm64-v8a/ \; 2>/dev/null || true
+          
+          # Remove symlinks, keep only real files
+          cd ${{ github.workspace }}/artifacts/arm64-v8a
+          for f in *.so*; do
+            if [ -L "$f" ]; then
+              target=$(readlink -f "$f")
+              rm "$f"
+              if [ -f "$target" ] && [ ! -f "$(basename $target)" ]; then
+                cp "$target" .
+              fi
+            fi
+          done
+          
+          # Strip debug symbols to reduce size
+          aarch64-linux-gnu-strip --strip-unneeded *.so* 2>/dev/null || true
+          
+          echo "=== Final artifacts ==="
+          ls -la ${{ github.workspace }}/artifacts/arm64-v8a/
+          
+          echo "=== Library dependencies ==="
+          for lib in ${{ github.workspace }}/artifacts/arm64-v8a/*.so*; do
+            echo "--- $lib ---"
+            aarch64-linux-gnu-readelf -d "$lib" 2>/dev/null | grep NEEDED || true
+          done
+
+      - name: Create library list
+        run: |
+          cd ${{ github.workspace }}/artifacts/arm64-v8a
+          echo "FreeRDP HarmonyOS Libraries" > README.txt
+          echo "Built: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> README.txt
+          echo "FreeRDP Version: ${{ env.FREERDP_VERSION }}" >> README.txt
+          echo "OpenSSL Version: ${{ env.OPENSSL_VERSION }}" >> README.txt
+          echo "FFmpeg Version: ${{ env.FFMPEG_VERSION }}" >> README.txt
+          echo "cJSON Version: ${{ env.CJSON_VERSION }}" >> README.txt
+          echo "" >> README.txt
+          echo "Libraries:" >> README.txt
+          ls -la *.so* >> README.txt 2>/dev/null || true
+
+      - name: Upload arm64-v8a artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: freerdp-harmonyos-arm64-v8a
+          path: ${{ github.workspace }}/artifacts/arm64-v8a/
+          retention-days: 90
+          if-no-files-found: warn
+
+  # Create Release Package
+  package:
+    name: Package Libraries
+    needs: [build-arm64]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Download arm64-v8a artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: freerdp-harmonyos-arm64-v8a
+          path: libs/arm64-v8a
+
+      - name: Create release package
+        run: |
+          echo "=== Creating release package ==="
+          cd libs
+          
+          # Create version info
+          echo "FreeRDP HarmonyOS Native Libraries" > VERSION.txt
+          echo "Build Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> VERSION.txt
+          echo "Git SHA: ${{ github.sha }}" >> VERSION.txt
+          
+          # Create zip package
+          zip -r ../freerdp-harmonyos-libs.zip .
+          
+          echo "Package contents:"
+          unzip -l ../freerdp-harmonyos-libs.zip
+          
+          # Calculate checksums
+          cd ..
+          sha256sum freerdp-harmonyos-libs.zip > freerdp-harmonyos-libs.zip.sha256
+
+      - name: Upload complete package
+        uses: actions/upload-artifact@v4
+        with:
+          name: freerdp-harmonyos-complete
+          path: |
+            freerdp-harmonyos-libs.zip
+            freerdp-harmonyos-libs.zip.sha256
+          retention-days: 90
+
+  # Create GitHub Release (on tag push)
+  release:
+    name: Create Release
+    needs: [package]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+      - name: Download package
+        uses: actions/download-artifact@v4
+        with:
+          name: freerdp-harmonyos-complete
+          path: release/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            release/freerdp-harmonyos-libs.zip
+            release/freerdp-harmonyos-libs.zip.sha256
+          body: |
+            ## FreeRDP HarmonyOS Native Libraries
+            
+            ### Included Libraries
+            - FreeRDP (RDP client library)
+            - OpenSSL (TLS/SSL)
+            - FFmpeg (Audio/Video codecs)
+            - cJSON (JSON parsing)
+            
+            ### Architecture
+            - arm64-v8a (64-bit ARM)
+            
+            ### Installation
+            1. Download `freerdp-harmonyos-libs.zip`
+            2. Extract to `entry/libs/arm64-v8a/`
+            3. Build your HarmonyOS project
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

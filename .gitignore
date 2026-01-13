@@ -1,0 +1,42 @@
+# Build outputs
+build/
+*.hap
+*.app
+
+# IDE
+.idea/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Node modules
+node_modules/
+oh_modules/
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Native library binaries (will be downloaded from GitHub Actions)
+entry/libs/
+*.so
+
+# Cache
+.cache/
+*.cache
+
+# DevEco Studio
+.preview/
+.cxx/
+
+# Android Studio (legacy)
+android/Studio/build/
+android/Studio/freeRDPCore/build/
+android/Studio/aFreeRDP/build/
+android/Studio/*.apk
+android/Studio/local.properties

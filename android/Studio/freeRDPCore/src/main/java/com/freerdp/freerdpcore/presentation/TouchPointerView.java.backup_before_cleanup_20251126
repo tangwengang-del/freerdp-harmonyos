@@ -1,0 +1,610 @@
+/*
+   Android Touch Pointer view - Simplified 3-Zone Version
+   
+   Copyright 2013 Thincast Technologies GmbH, Author: Martin Fleisz
+   Modified 2024: Simplified to 3-zone layout
+
+   This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+   If a copy of the MPL was not distributed with this file, You can obtain one at
+   http://mozilla.org/MPL/2.0/.
+*/
+
+package com.freerdp.freerdpcore.presentation;
+
+import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.Matrix;
+import android.graphics.Paint;
+import android.graphics.Point;
+import android.graphics.RectF;
+import android.os.Handler;
+import android.os.Message;
+import android.util.AttributeSet;
+import android.util.Log;
+import android.view.MotionEvent;
+import android.widget.ImageView;
+
+import com.freerdp.freerdpcore.R;
+import com.freerdp.freerdpcore.utils.GestureDetector;
+
+public class TouchPointerView extends ImageView
+{
+	private static final String TAG = "TouchPointerView";
+
+	// Simplified zones: 0 = left button, 1 = move (center), 2 = right button
+	private static final int POINTER_ACTION_LCLICK = 0;
+	private static final int POINTER_ACTION_MOVE = 1;
+	private static final int POINTER_ACTION_RCLICK = 2;
+
+	private static final int DEFAULT_TOUCH_POINTER_RESTORE_DELAY = 150;
+
+	// Snap indicator types (public for SessionActivity access)
+	public static final int SNAP_NONE = 0;
+	public static final int SNAP_VERTICAL = 1;      // 竖线（调整列宽）
+	public static final int SNAP_HORIZONTAL = 2;    // 横线（调整行高）
+	public static final int SNAP_CROSS = 3;         // 十字（移动）
+	public static final int SNAP_GRID = 4;          // 网格
+	public static final int SNAP_HAND = 5;          // 手型（链接）
+	public static final int SNAP_TEXT = 6;          // 文本I型
+	public static final int SNAP_WAIT = 7;          // 等待
+
+	private RectF pointerRect;
+	private final RectF[] pointerAreaRects = new RectF[3];
+	private Matrix translationMatrix;
+	private boolean pointerMoving = false;
+	private boolean leftButtonDragging = false;
+	private TouchPointerListener listener = null;
+	private SessionView sessionView = null;
+	private final UIHandler uiHandler = new UIHandler();
+	private GestureDetector gestureDetector;
+
+	// Snap indicator related
+	private Paint snapIndicatorPaint;
+	private int snapType = SNAP_NONE;
+
+	public TouchPointerView(Context context)
+	{
+		super(context);
+		initTouchPointer(context);
+	}
+
+	public TouchPointerView(Context context, AttributeSet attrs)
+	{
+		super(context, attrs);
+		initTouchPointer(context);
+	}
+
+	public TouchPointerView(Context context, AttributeSet attrs, int defStyle)
+	{
+		super(context, attrs, defStyle);
+		initTouchPointer(context);
+	}
+
+	private void initTouchPointer(Context context)
+	{
+		gestureDetector =
+		    new GestureDetector(context, new TouchPointerGestureListener(), null, true);
+		gestureDetector.setLongPressTimeout(500);
+		translationMatrix = new Matrix();
+		setScaleType(ScaleType.MATRIX);
+		setImageMatrix(translationMatrix);
+
+	// 动态获取图像尺寸
+	final float width = (float)getDrawable().getIntrinsicWidth();
+	final float height = (float)getDrawable().getIntrinsicHeight();
+
+	// 新的紧凑布局（基于150×140标准比例）
+	// 左键：0-50（50px），中央圆：50-110（60px），右键：110-150（40px）
+	// 按钮Y范围：80-140（箭头区域0-80不可触摸）
+	float leftEnd = width * (50f / 150f);      // 左键区域：0 ~ 50
+	float centerStart = width * (50f / 150f);  // 中央区域：50 ~ 110
+	float centerEnd = width * (110f / 150f);
+	float rightStart = width * (110f / 150f);  // 右键区域：110 ~ 150
+	float buttonTop = height * (80f / 140f);   // 按钮顶部：80
+	float buttonBottom = height;                // 按钮底部：140
+
+	pointerAreaRects[POINTER_ACTION_LCLICK] = new RectF(0, buttonTop, leftEnd, buttonBottom);
+	pointerAreaRects[POINTER_ACTION_MOVE] = new RectF(centerStart, buttonTop, centerEnd, buttonBottom);
+	pointerAreaRects[POINTER_ACTION_RCLICK] = new RectF(rightStart, buttonTop, width, buttonBottom);
+
+	pointerRect = new RectF(0, 0, width, height);
+
+	// 初始化吸附指示器画笔
+	snapIndicatorPaint = new Paint();
+	snapIndicatorPaint.setColor(0xFF00FF00);  // 默认绿色
+	snapIndicatorPaint.setStrokeWidth(4);
+	snapIndicatorPaint.setStyle(Paint.Style.STROKE);
+	snapIndicatorPaint.setAntiAlias(true);
+
+	Log.d(TAG, "Init: Image size=" + width + "x" + height + " (150×140 compact layout)");
+	Log.d(TAG, "Left zone (0-50, 80-140): " + pointerAreaRects[POINTER_ACTION_LCLICK]);
+	Log.d(TAG, "Move zone (50-110, 80-140): " + pointerAreaRects[POINTER_ACTION_MOVE]);
+	Log.d(TAG, "Right zone (110-150, 80-140): " + pointerAreaRects[POINTER_ACTION_RCLICK]);
+	}
+
+	public void setTouchPointerListener(TouchPointerListener listener)
+	{
+		this.listener = listener;
+	}
+
+	public void setSessionView(SessionView sessionView)
+	{
+		this.sessionView = sessionView;
+	}
+
+	public int getPointerWidth()
+	{
+		return getDrawable().getIntrinsicWidth();
+	}
+
+	public int getPointerHeight()
+	{
+		return getDrawable().getIntrinsicHeight();
+	}
+
+	public float[] getPointerPosition()
+	{
+		float[] curPos = new float[2];
+		translationMatrix.mapPoints(curPos);
+		return curPos;
+	}
+
+	private void movePointer(float deltaX, float deltaY)
+	{
+		translationMatrix.postTranslate(deltaX, deltaY);
+		setImageMatrix(translationMatrix);
+		
+		// 每次移动触摸指针时都发送移动事件到远程
+		// 这样Windows能实时更新光标样式（双箭头、手型等）
+		if (listener != null)
+		{
+			Point remoteCoord = getRemoteCoordinate();
+			listener.onTouchPointerMove(remoteCoord);
+			Log.v(TAG, "Pointer moved, remote coord: (" + remoteCoord.x + "," + remoteCoord.y + ")");
+		}
+	}
+
+	private void ensureVisibility(int screen_width, int screen_height)
+	{
+		float[] curPos = new float[2];
+		translationMatrix.mapPoints(curPos);
+
+		if (curPos[0] > (screen_width - pointerRect.width()))
+			curPos[0] = screen_width - pointerRect.width();
+		if (curPos[0] < 0)
+			curPos[0] = 0;
+		if (curPos[1] > (screen_height - pointerRect.height()))
+			curPos[1] = screen_height - pointerRect.height();
+		if (curPos[1] < 0)
+			curPos[1] = 0;
+
+		translationMatrix.setTranslate(curPos[0], curPos[1]);
+		setImageMatrix(translationMatrix);
+	}
+
+	private void displayPointerImageAction(int resId)
+	{
+		setPointerImage(resId);
+		uiHandler.sendEmptyMessageDelayed(0, DEFAULT_TOUCH_POINTER_RESTORE_DELAY);
+	}
+
+	private void setPointerImage(int resId)
+	{
+		setImageResource(resId);
+	}
+
+	private RectF getCurrentPointerArea(int area)
+	{
+		RectF transRect = new RectF(pointerAreaRects[area]);
+		translationMatrix.mapRect(transRect);
+		return transRect;
+	}
+
+	// 获取箭头尖端对应的远程桌面坐标
+	// 这是终极方案：在TouchPointerView内部完成所有坐标转换
+	public Point getRemoteCoordinate()
+	{
+		if (sessionView == null)
+		{
+			Log.w(TAG, "SessionView not set, returning (0,0)");
+			return new Point(0, 0);
+		}
+		
+		// 1. 获取箭头尖端相对于TouchPointerView的坐标
+		float[] pointerPos = getPointerPosition();
+		float tipX = pointerPos[0] + 10;
+		float tipY = pointerPos[1] + 10;
+		
+		// 2. 获取两个View在屏幕上的位置
+		int[] touchPointerLocation = new int[2];
+		getLocationOnScreen(touchPointerLocation);
+		
+		int[] sessionViewLocation = new int[2];
+		sessionView.getLocationOnScreen(sessionViewLocation);
+		
+		// 3. 计算相对于SessionView的坐标
+		float viewX = tipX + (touchPointerLocation[0] - sessionViewLocation[0]);
+		float viewY = tipY + (touchPointerLocation[1] - sessionViewLocation[1]);
+		
+		// 4. 使用逆缩放矩阵转换为远程桌面坐标
+		float[] coordinates = { viewX, viewY };
+		sessionView.getInvScaleMatrix().mapPoints(coordinates);
+		
+		return new Point((int)coordinates[0], (int)coordinates[1]);
+	}
+
+	private boolean pointerAreaTouched(MotionEvent event, int area)
+	{
+		RectF transRect = new RectF(pointerAreaRects[area]);
+		translationMatrix.mapRect(transRect);
+		boolean touched = transRect.contains(event.getX(), event.getY());
+		Log.d(TAG, "Area " + area + " touched=" + touched + " at (" + event.getX() + "," +
+		       event.getY() + ") rect=" + transRect);
+		return touched;
+	}
+
+	private boolean pointerTouched(MotionEvent event)
+	{
+		RectF transRect = new RectF(pointerRect);
+		translationMatrix.mapRect(transRect);
+		return transRect.contains(event.getX(), event.getY());
+	}
+
+	@Override public boolean onTouchEvent(MotionEvent event)
+	{
+		Log.d(TAG, "onTouchEvent: action=" + event.getAction() + " at (" + event.getX() + "," +
+		               event.getY() + ")");
+
+		if (!pointerMoving && !pointerTouched(event))
+		{
+			Log.d(TAG, "Not on pointer, ignoring");
+			return false;
+		}
+
+		return gestureDetector.onTouchEvent(event);
+	}
+
+	@Override protected void onLayout(boolean changed, int left, int top, int right, int bottom)
+	{
+		if (changed)
+			ensureVisibility(right - left, bottom - top);
+	}
+
+	@Override
+	protected void onDraw(Canvas canvas)
+	{
+		super.onDraw(canvas);
+		
+		// 绘制吸附指示器
+		if (snapType != SNAP_NONE)
+		{
+			drawSnapIndicator(canvas);
+		}
+	}
+
+	private void drawSnapIndicator(Canvas canvas)
+	{
+		float[] pointerPos = getPointerPosition();
+		float tipX = pointerPos[0] + 10;
+		float tipY = pointerPos[1] + 10;
+		
+		switch (snapType)
+		{
+			case SNAP_VERTICAL:
+				// 绘制竖线（左右双箭头 - 调整列宽）
+				snapIndicatorPaint.setColor(0xFF00FF00);  // 绿色
+				snapIndicatorPaint.setStrokeWidth(4);
+				canvas.drawLine(tipX - 15, tipY - 30, tipX - 15, tipY + 30, snapIndicatorPaint);
+				canvas.drawLine(tipX + 15, tipY - 30, tipX + 15, tipY + 30, snapIndicatorPaint);
+				break;
+				
+			case SNAP_HORIZONTAL:
+				// 绘制横线（上下双箭头 - 调整行高）
+				snapIndicatorPaint.setColor(0xFF0000FF);  // 蓝色
+				snapIndicatorPaint.setStrokeWidth(4);
+				canvas.drawLine(tipX - 30, tipY - 15, tipX + 30, tipY - 15, snapIndicatorPaint);
+				canvas.drawLine(tipX - 30, tipY + 15, tipX + 30, tipY + 15, snapIndicatorPaint);
+				break;
+				
+			case SNAP_CROSS:
+				// 绘制十字（移动）
+				snapIndicatorPaint.setColor(0xFFFF0000);  // 红色
+				snapIndicatorPaint.setStrokeWidth(4);
+				canvas.drawLine(tipX - 25, tipY, tipX + 25, tipY, snapIndicatorPaint);
+				canvas.drawLine(tipX, tipY - 25, tipX, tipY + 25, snapIndicatorPaint);
+				break;
+				
+			case SNAP_HAND:
+				// 绘制手型指示器（圆圈 + H）
+				snapIndicatorPaint.setColor(0xFFFFAA00);  // 橙色
+				snapIndicatorPaint.setStrokeWidth(3);
+				canvas.drawCircle(tipX, tipY, 20, snapIndicatorPaint);
+				// 绘制 "H" 字母
+				snapIndicatorPaint.setTextSize(24);
+				snapIndicatorPaint.setStyle(Paint.Style.FILL);
+				canvas.drawText("H", tipX - 8, tipY + 8, snapIndicatorPaint);
+				snapIndicatorPaint.setStyle(Paint.Style.STROKE);
+				break;
+				
+			case SNAP_TEXT:
+				// 绘制I型指示器（竖线）
+				snapIndicatorPaint.setColor(0xFF00FFFF);  // 青色
+				snapIndicatorPaint.setStrokeWidth(2);
+				canvas.drawLine(tipX, tipY - 20, tipX, tipY + 20, snapIndicatorPaint);
+				canvas.drawLine(tipX - 5, tipY - 20, tipX + 5, tipY - 20, snapIndicatorPaint);
+				canvas.drawLine(tipX - 5, tipY + 20, tipX + 5, tipY + 20, snapIndicatorPaint);
+				break;
+				
+			case SNAP_WAIT:
+				// 绘制等待指示器（旋转的圆圈）
+				snapIndicatorPaint.setColor(0xFFFFFF00);  // 黄色
+				snapIndicatorPaint.setStrokeWidth(3);
+				canvas.drawArc(tipX - 15, tipY - 15, tipX + 15, tipY + 15, 
+				              0, 270, false, snapIndicatorPaint);
+				break;
+				
+			case SNAP_GRID:
+				// 绘制小圆圈（网格吸附）
+				snapIndicatorPaint.setColor(0xFFFFFF00);  // 黄色
+				snapIndicatorPaint.setStrokeWidth(2);
+				canvas.drawCircle(tipX, tipY, 10, snapIndicatorPaint);
+				break;
+		}
+	}
+
+	// 公共方法供SessionActivity调用
+	public void setSnapIndicator(int type)
+	{
+		if (snapType != type)
+		{
+			snapType = type;
+			invalidate();  // 触发重绘
+		}
+	}
+
+	public void clearSnapIndicator()
+	{
+		if (snapType != SNAP_NONE)
+		{
+			snapType = SNAP_NONE;
+			invalidate();
+		}
+	}
+
+	public void setHandCursor()
+	{
+		setSnapIndicator(SNAP_HAND);
+	}
+
+	public void setTextCursor()
+	{
+		setSnapIndicator(SNAP_TEXT);
+	}
+
+	public void setWaitCursor()
+	{
+		setSnapIndicator(SNAP_WAIT);
+	}
+
+	// touch pointer listener - keep same callbacks for compatibility
+	public interface TouchPointerListener {
+		void onTouchPointerClose();
+
+		void onTouchPointerLeftClick(Point remoteCoord, boolean down);
+
+		void onTouchPointerRightClick(Point remoteCoord, boolean down);
+
+		void onTouchPointerMove(Point remoteCoord);
+
+		void onTouchPointerScroll(boolean down);
+
+		void onTouchPointerToggleKeyboard();
+
+		void onTouchPointerToggleExtKeyboard();
+
+		void onTouchPointerResetScrollZoom();
+	}
+
+	private class UIHandler extends Handler
+	{
+
+		UIHandler()
+		{
+			super();
+		}
+
+		@Override public void handleMessage(Message msg)
+		{
+			setPointerImage(R.drawable.touch_pointer_simple_default);
+		}
+	}
+
+	private class TouchPointerGestureListener extends GestureDetector.SimpleOnGestureListener
+	{
+
+		private MotionEvent prevEvent = null;
+		private boolean leftButtonPressed = false;
+		private boolean hasMoved = false;
+
+		public boolean onDown(MotionEvent e)
+		{
+			Log.d(TAG, "onDown at (" + e.getX() + "," + e.getY() + ")");
+
+			// 左键区域：只记录按下，等待判断是单击还是拖动
+			if (pointerAreaTouched(e, POINTER_ACTION_LCLICK))
+			{
+				prevEvent = MotionEvent.obtain(e);
+				leftButtonPressed = true;
+				hasMoved = false;
+				setPointerImage(R.drawable.touch_pointer_simple_lclick);
+				Log.d(TAG, "Left button pressed (waiting for drag or click)");
+			}
+			// 中央区域：移动指针
+			else if (pointerAreaTouched(e, POINTER_ACTION_MOVE))
+			{
+				prevEvent = MotionEvent.obtain(e);
+				pointerMoving = true;
+				leftButtonDragging = false;
+				setPointerImage(R.drawable.touch_pointer_simple_active);
+				Log.d(TAG, "Move zone activated");
+			}
+			return true;
+		}
+
+		public boolean onUp(MotionEvent e)
+		{
+			Log.d(TAG, "onUp - leftButtonPressed=" + leftButtonPressed + ", hasMoved=" + hasMoved + ", pointerMoving=" + pointerMoving);
+
+			if (prevEvent != null)
+			{
+				prevEvent.recycle();
+				prevEvent = null;
+			}
+
+	// 如果左键按下但没有移动（单击）
+	if (leftButtonPressed && !hasMoved)
+	{
+		if (listener != null)
+		{
+			Point remoteCoord = getRemoteCoordinate();
+			listener.onTouchPointerLeftClick(remoteCoord, true);
+			listener.onTouchPointerLeftClick(remoteCoord, false);
+			Log.d(TAG, "Left button CLICK (down+up), remote: (" + remoteCoord.x + "," + remoteCoord.y + ")");
+		}
+	}
+	// 如果是拖动状态，释放左键
+	else if (leftButtonDragging)
+	{
+		if (listener != null)
+		{
+			Point remoteCoord = getRemoteCoordinate();
+			listener.onTouchPointerLeftClick(remoteCoord, false);
+			Log.d(TAG, "Left button UP after drag, remote: (" + remoteCoord.x + "," + remoteCoord.y + ")");
+		}
+		leftButtonDragging = false;
+	}
+	// 检查是否点击了右键区域
+	else if (!leftButtonPressed && !pointerMoving && pointerAreaTouched(e, POINTER_ACTION_RCLICK))
+	{
+		displayPointerImageAction(R.drawable.touch_pointer_simple_rclick);
+		if (listener != null)
+		{
+			Point remoteCoord = getRemoteCoordinate();
+			listener.onTouchPointerRightClick(remoteCoord, true);
+			listener.onTouchPointerRightClick(remoteCoord, false);
+			Log.d(TAG, "Right button click, remote: (" + remoteCoord.x + "," + remoteCoord.y + ")");
+		}
+	}
+		
+		// 重置所有状态
+		if (pointerMoving)
+		{
+			pointerMoving = false;
+		}
+		
+		leftButtonPressed = false;
+		hasMoved = false;
+		setPointerImage(R.drawable.touch_pointer_simple_default);
+
+		return true;
+	}
+
+	public void onLongPress(MotionEvent e)
+	{
+		Log.d(TAG, "onLongPress");
+
+		if (pointerAreaTouched(e, POINTER_ACTION_MOVE))
+		{
+			setPointerImage(R.drawable.touch_pointer_simple_lclick);
+			pointerMoving = true;
+
+			if (listener != null)
+			{
+				Point remoteCoord = getRemoteCoordinate();
+				listener.onTouchPointerLeftClick(remoteCoord, true);
+				Log.d(TAG, "Long press: left button DOWN, remote: (" + remoteCoord.x + "," + remoteCoord.y + ")");
+			}
+		}
+	}
+
+	public void onLongPressUp(MotionEvent e)
+	{
+		Log.d(TAG, "onLongPressUp");
+
+		if (pointerMoving)
+		{
+			setPointerImage(R.drawable.touch_pointer_simple_default);
+
+			if (listener != null)
+			{
+				Point remoteCoord = getRemoteCoordinate();
+				listener.onTouchPointerLeftClick(remoteCoord, false);
+				Log.d(TAG, "Long press: left button UP, remote: (" + remoteCoord.x + "," + remoteCoord.y + ")");
+			}
+
+			pointerMoving = false;
+		}
+	}
+
+		public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY)
+		{
+		// 如果左键按下且开始移动，触发拖动
+		if (leftButtonPressed && !hasMoved)
+		{
+			hasMoved = true;
+			pointerMoving = true;
+			leftButtonDragging = true;
+			
+			if (listener != null)
+			{
+				Point remoteCoord = getRemoteCoordinate();
+				listener.onTouchPointerLeftClick(remoteCoord, true);
+				Log.d(TAG, "Left button DOWN for drag, remote: (" + remoteCoord.x + "," + remoteCoord.y + ")");
+			}
+		}
+		
+		if (pointerMoving)
+		{
+			movePointer((int)(e2.getX() - prevEvent.getX()),
+			            (int)(e2.getY() - prevEvent.getY()));
+			prevEvent.recycle();
+			prevEvent = MotionEvent.obtain(e2);
+
+			// 移动事件已在movePointer()中发送，此处不再重复发送
+			// 避免重复发送导致Windows无法正确识别拖动操作（如Excel表格线拖动）
+
+			return true;
+		}
+			return false;
+		}
+
+		public boolean onSingleTapUp(MotionEvent e)
+		{
+			Log.d(TAG, "onSingleTapUp at (" + e.getX() + "," + e.getY() + ")");
+
+		// 左键单击已在onUp中处理
+		// 右键单击
+		if (pointerAreaTouched(e, POINTER_ACTION_RCLICK))
+		{
+			displayPointerImageAction(R.drawable.touch_pointer_simple_rclick);
+
+			if (listener != null)
+			{
+				Point remoteCoord = getRemoteCoordinate();
+				listener.onTouchPointerRightClick(remoteCoord, true);
+				listener.onTouchPointerRightClick(remoteCoord, false);
+				Log.d(TAG, "Right button click, remote: (" + remoteCoord.x + "," + remoteCoord.y + ")");
+			}
+		}
+
+			return true;
+		}
+
+		public boolean onDoubleTap(MotionEvent e)
+		{
+			// double click removed by design
+			return true;
+		}
+	}
+}
+ 

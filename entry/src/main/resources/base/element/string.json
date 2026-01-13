@@ -1,0 +1,32 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "FreeRDP 远程桌面客户端"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "远程桌面连接"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "远程桌面"
+    },
+    {
+      "name": "permission_internet_reason",
+      "value": "需要网络权限以连接远程桌面服务器"
+    },
+    {
+      "name": "permission_network_info_reason",
+      "value": "需要获取网络状态以实现断网重连功能"
+    },
+    {
+      "name": "permission_background_reason",
+      "value": "需要后台运行权限以在锁屏时保持音频连接"
+    },
+    {
+      "name": "permission_running_lock_reason",
+      "value": "需要运行锁以防止系统休眠断开连接"
+    }
+  ]
+}
