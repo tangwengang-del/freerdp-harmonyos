@@ -29,6 +29,7 @@ env:
   OPENSSL_VERSION: "3.0.15"
   FFMPEG_VERSION: "6.1.2"
   CJSON_VERSION: "1.7.18"
+  ZLIB_VERSION: "1.3.1"
   # HarmonyOS SDK版本 - API 12
   OHOS_API_VERSION: "12"
 
@@ -133,6 +134,27 @@ jobs:
           EOF
           
           echo "TOOLCHAIN_FILE=$HOME/ohos-toolchain.cmake" >> $GITHUB_ENV
+
+      - name: Build zlib
+        run: |
+          echo "=== Building zlib ${{ env.ZLIB_VERSION }} ==="
+          cd ${{ github.workspace }}
+          
+          wget -q https://zlib.net/zlib-${{ env.ZLIB_VERSION }}.tar.gz
+          tar xzf zlib-${{ env.ZLIB_VERSION }}.tar.gz
+          cd zlib-${{ env.ZLIB_VERSION }}
+          
+          # Cross compile zlib
+          CROSS_PREFIX=aarch64-linux-gnu- \
+          CFLAGS="-fPIC" \
+          ./configure \
+            --prefix=${{ github.workspace }}/install/zlib
+          
+          make -j$(nproc)
+          make install
+          
+          echo "zlib build completed"
+          ls -la ${{ github.workspace }}/install/zlib/lib/
 
       - name: Build cJSON
         run: |
@@ -252,18 +274,22 @@ jobs:
           cd FreeRDP
           mkdir build && cd build
           
-          # Set library paths
-          export PKG_CONFIG_PATH="${{ github.workspace }}/install/openssl/lib/pkgconfig:${{ github.workspace }}/install/openssl/lib64/pkgconfig:${{ github.workspace }}/install/ffmpeg/lib/pkgconfig:${{ github.workspace }}/install/cjson/lib/pkgconfig"
+          # Set library paths including zlib
+          export PKG_CONFIG_PATH="${{ github.workspace }}/install/zlib/lib/pkgconfig:${{ github.workspace }}/install/openssl/lib/pkgconfig:${{ github.workspace }}/install/openssl/lib64/pkgconfig:${{ github.workspace }}/install/ffmpeg/lib/pkgconfig:${{ github.workspace }}/install/cjson/lib/pkgconfig"
           export OPENSSL_ROOT_DIR="${{ github.workspace }}/install/openssl"
           export FFMPEG_DIR="${{ github.workspace }}/install/ffmpeg"
           export cJSON_DIR="${{ github.workspace }}/install/cjson"
+          export ZLIB_ROOT="${{ github.workspace }}/install/zlib"
           
           echo "=== Building FreeRDP ==="
           cmake .. \
             -DCMAKE_TOOLCHAIN_FILE=$TOOLCHAIN_FILE \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/install/freerdp \
-            -DCMAKE_PREFIX_PATH="${{ github.workspace }}/install/openssl;${{ github.workspace }}/install/ffmpeg;${{ github.workspace }}/install/cjson" \
+            -DCMAKE_PREFIX_PATH="${{ github.workspace }}/install/zlib;${{ github.workspace }}/install/openssl;${{ github.workspace }}/install/ffmpeg;${{ github.workspace }}/install/cjson" \
+            -DZLIB_ROOT=${{ github.workspace }}/install/zlib \
+            -DZLIB_INCLUDE_DIR=${{ github.workspace }}/install/zlib/include \
+            -DZLIB_LIBRARY=${{ github.workspace }}/install/zlib/lib/libz.so \
             -DOPENSSL_ROOT_DIR=${{ github.workspace }}/install/openssl \
             -DOPENSSL_INCLUDE_DIR=${{ github.workspace }}/install/openssl/include \
             -DOPENSSL_CRYPTO_LIBRARY=${{ github.workspace }}/install/openssl/lib/libcrypto.so \
@@ -343,6 +369,9 @@ jobs:
           echo "=== Collecting build artifacts ==="
           mkdir -p ${{ github.workspace }}/artifacts/arm64-v8a
           
+          # Copy zlib libraries
+          find ${{ github.workspace }}/install/zlib -name "*.so*" -exec cp {} ${{ github.workspace }}/artifacts/arm64-v8a/ \; 2>/dev/null || true
+          
           # Copy cJSON libraries
           find ${{ github.workspace }}/install/cjson -name "*.so*" -exec cp {} ${{ github.workspace }}/artifacts/arm64-v8a/ \; 2>/dev/null || true
           
@@ -391,6 +420,7 @@ jobs:
           echo "OpenSSL Version: ${{ env.OPENSSL_VERSION }}" >> README.txt
           echo "FFmpeg Version: ${{ env.FFMPEG_VERSION }}" >> README.txt
           echo "cJSON Version: ${{ env.CJSON_VERSION }}" >> README.txt
+          echo "zlib Version: ${{ env.ZLIB_VERSION }}" >> README.txt
           echo "" >> README.txt
           echo "Libraries:" >> README.txt
           ls -la *.so* >> README.txt 2>/dev/null || true
