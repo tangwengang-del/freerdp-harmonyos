@@ -319,6 +319,10 @@ jobs:
             -DWITH_PKCS11=OFF \
             -DWITH_ICU=OFF \
             -DWITH_KRB5=OFF \
+            -DWITH_UNICODE_BUILTIN=ON \
+            -DWITH_INTERNAL_RC4=ON \
+            -DWITH_INTERNAL_MD4=ON \
+            -DWITH_INTERNAL_MD5=ON \
             -DBUILD_SHARED_LIBS=ON \
             -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
             -DWITH_CLIENT_CHANNELS=ON \
