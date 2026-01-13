@@ -22,9 +22,9 @@ oh_modules/
 *.tmp
 *.temp
 
-# Native library binaries (will be downloaded from GitHub Actions)
-entry/libs/
-*.so
+# Native library binaries (keep arm64-v8a, ignore others)
+# entry/libs/ - now tracked
+# *.so - now tracked for arm64-v8a
 
 # Cache
 .cache/
