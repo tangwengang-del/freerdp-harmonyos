@@ -5,8 +5,8 @@
       {
         "name": "default",
         "signingConfig": "default",
-        "targetSdkVersion": "6.0.2(22)",
-        "compatibleSdkVersion": "6.0.2(22)",
+        "targetSdkVersion": "5.0.0(12)",
+        "compatibleSdkVersion": "5.0.0(12)",
         "runtimeOS": "HarmonyOS",
         "buildOption": {
           "strictMode": {
@@ -36,17 +36,7 @@
             "default"
           ]
         }
-      ],
-      "buildOption": {
-        "externalNativeOptions": {
-          "path": "./entry/src/main/cpp/CMakeLists.txt",
-          "arguments": "",
-          "cppFlags": "-O2 -DOHOS_PLATFORM",
-          "abiFilters": [
-            "arm64-v8a"
-          ]
-        }
-      }
+      ]
     }
   ]
 }
