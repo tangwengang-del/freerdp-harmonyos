@@ -1,8 +1,7 @@
 # GitHub Actions Workflow for Building FreeRDP HarmonyOS Native Libraries
 # Repository: tangwengang-del/freerdp-harmonyos
 #
-# 核心策略：使用 OpenHarmony NDK 编译，确保与 HarmonyOS 的 musl libc 兼容
-# 这是解决 "ld-linux-aarch64.so.1" 错误的唯一正确方法
+# 策略：使用 OpenHarmony NDK 编译，确保与 HarmonyOS 的 musl libc 兼容
 
 name: Build FreeRDP for HarmonyOS (OHOS NDK)
 
@@ -22,7 +21,6 @@ env:
   FREERDP_VERSION: ${{ github.event.inputs.freerdp_version || '3.10.3' }}
   OPENSSL_VERSION: "3.0.15"
   ZLIB_VERSION: "1.3.1"
-  # OpenHarmony SDK 版本
   OHOS_SDK_VERSION: "5.0.0-Release"
   OHOS_API_VERSION: "5.0.0.71"
 
@@ -68,7 +66,7 @@ jobs:
           mkdir -p ${SDK_DIR}
           cd ${SDK_DIR}
           
-          echo "Downloading SDK (this may take a few minutes)..."
+          echo "Downloading SDK..."
           curl -L --progress-bar "${SDK_URL}" | tar xz
           
           echo "Extracting Linux native SDK..."
@@ -78,11 +76,13 @@ jobs:
             unzip -q "$f" -d ${SDK_DIR}
           done
           
-          # 设置 NDK 路径
-          NATIVE_DIR="${SDK_DIR}/native-linux-x64-${OHOS_API_VERSION}-Release"
-          if [ ! -d "${NATIVE_DIR}" ]; then
-            # 尝试查找正确的目录名
-            NATIVE_DIR=$(find ${SDK_DIR} -maxdepth 1 -type d -name "native*" | head -1)
+          # 查找 NDK 路径
+          NATIVE_DIR=$(find ${SDK_DIR} -maxdepth 1 -type d -name "native*" | head -1)
+          
+          if [ -z "${NATIVE_DIR}" ]; then
+            echo "ERROR: Could not find native SDK directory"
+            ls -la ${SDK_DIR}/
+            exit 1
           fi
           
           echo "Native SDK directory: ${NATIVE_DIR}"
@@ -90,11 +90,23 @@ jobs:
           
           # 导出环境变量
           echo "OHOS_NDK_HOME=${NATIVE_DIR}" >> $GITHUB_ENV
-          echo "OHOS_TOOLCHAIN_FILE=${NATIVE_DIR}/build/cmake/ohos.toolchain.cmake" >> $GITHUB_ENV
+          
+          # 检查工具链文件路径
+          if [ -f "${NATIVE_DIR}/build/cmake/ohos.toolchain.cmake" ]; then
+            echo "OHOS_TOOLCHAIN_FILE=${NATIVE_DIR}/build/cmake/ohos.toolchain.cmake" >> $GITHUB_ENV
+          else
+            # 尝试其他可能的位置
+            TOOLCHAIN=$(find ${NATIVE_DIR} -name "ohos.toolchain.cmake" 2>/dev/null | head -1)
+            if [ -n "$TOOLCHAIN" ]; then
+              echo "OHOS_TOOLCHAIN_FILE=${TOOLCHAIN}" >> $GITHUB_ENV
+            else
+              echo "WARNING: Could not find ohos.toolchain.cmake"
+              find ${NATIVE_DIR} -name "*.toolchain.cmake" 2>/dev/null || true
+            fi
+          fi
           
           # 添加工具到 PATH
           echo "${NATIVE_DIR}/llvm/bin" >> $GITHUB_PATH
-          echo "${NATIVE_DIR}/build-tools/cmake/bin" >> $GITHUB_PATH
           
           echo "=== OpenHarmony NDK Setup Complete ==="
 
@@ -105,32 +117,103 @@ jobs:
           echo "NDK Home: $OHOS_NDK_HOME"
           echo "Toolchain File: $OHOS_TOOLCHAIN_FILE"
           
-          # 检查工具链文件
-          if [ ! -f "$OHOS_TOOLCHAIN_FILE" ]; then
-            echo "ERROR: Toolchain file not found!"
-            echo "Searching for toolchain files..."
-            find ${OHOS_NDK_HOME} -name "*.cmake" | head -20
-            exit 1
-          fi
+          # 列出 NDK 目录结构
+          echo "=== NDK Directory Structure ==="
+          ls -la ${OHOS_NDK_HOME}/
           
-          echo "Toolchain file contents:"
-          head -50 "$OHOS_TOOLCHAIN_FILE"
+          # 检查 llvm 目录
+          echo "=== LLVM Tools ==="
+          ls -la ${OHOS_NDK_HOME}/llvm/bin/ | head -20
           
           # 验证编译器
-          OHOS_CLANG="${OHOS_NDK_HOME}/llvm/bin/clang"
-          if [ -f "$OHOS_CLANG" ]; then
-            echo "Clang found: $OHOS_CLANG"
-            $OHOS_CLANG --version
-          else
-            echo "Looking for clang..."
-            find ${OHOS_NDK_HOME}/llvm -name "clang*" -type f | head -10
+          if [ -f "${OHOS_NDK_HOME}/llvm/bin/clang" ]; then
+            echo "Clang version:"
+            ${OHOS_NDK_HOME}/llvm/bin/clang --version
           fi
           
-          # 显示 sysroot 内容
-          echo "Sysroot contents:"
-          ls -la ${OHOS_NDK_HOME}/sysroot/ || echo "No sysroot found"
+          # 检查 sysroot
+          echo "=== Sysroot Structure ==="
+          if [ -d "${OHOS_NDK_HOME}/sysroot" ]; then
+            ls -la ${OHOS_NDK_HOME}/sysroot/
+            if [ -d "${OHOS_NDK_HOME}/sysroot/usr/lib" ]; then
+              echo "Target libraries:"
+              ls ${OHOS_NDK_HOME}/sysroot/usr/lib/ | head -20
+            fi
+          fi
+          
+          # 检查工具链文件
+          if [ -f "$OHOS_TOOLCHAIN_FILE" ]; then
+            echo "=== Toolchain File Content ==="
+            head -100 "$OHOS_TOOLCHAIN_FILE"
+          else
+            echo "Searching for cmake files..."
+            find ${OHOS_NDK_HOME} -name "*.cmake" -type f 2>/dev/null | head -30
+          fi
 
-      - name: Build zlib for OHOS
+      - name: Setup OHOS Cross-Compile Environment
+        run: |
+          echo "=== Setting up cross-compile environment ==="
+          
+          # 设置编译器路径
+          OHOS_CLANG="${OHOS_NDK_HOME}/llvm/bin/clang"
+          OHOS_CLANGXX="${OHOS_NDK_HOME}/llvm/bin/clang++"
+          OHOS_AR="${OHOS_NDK_HOME}/llvm/bin/llvm-ar"
+          OHOS_RANLIB="${OHOS_NDK_HOME}/llvm/bin/llvm-ranlib"
+          OHOS_STRIP="${OHOS_NDK_HOME}/llvm/bin/llvm-strip"
+          
+          # 查找正确的 sysroot
+          if [ -d "${OHOS_NDK_HOME}/sysroot" ]; then
+            OHOS_SYSROOT="${OHOS_NDK_HOME}/sysroot"
+          else
+            OHOS_SYSROOT=$(find ${OHOS_NDK_HOME} -type d -name "sysroot" | head -1)
+          fi
+          
+          echo "OHOS_SYSROOT=${OHOS_SYSROOT}" >> $GITHUB_ENV
+          
+          # 设置目标三元组
+          OHOS_TARGET="aarch64-linux-ohos"
+          echo "OHOS_TARGET=${OHOS_TARGET}" >> $GITHUB_ENV
+          
+          # 创建编译器包装脚本
+          mkdir -p ${HOME}/ohos-tools
+          
+          cat > ${HOME}/ohos-tools/ohos-clang << EOF
+          #!/bin/bash
+          exec ${OHOS_CLANG} --target=${OHOS_TARGET} --sysroot=${OHOS_SYSROOT} "\$@"
+          EOF
+          chmod +x ${HOME}/ohos-tools/ohos-clang
+          
+          cat > ${HOME}/ohos-tools/ohos-clang++ << EOF
+          #!/bin/bash
+          exec ${OHOS_CLANGXX} --target=${OHOS_TARGET} --sysroot=${OHOS_SYSROOT} "\$@"
+          EOF
+          chmod +x ${HOME}/ohos-tools/ohos-clang++
+          
+          # 导出为环境变量
+          echo "OHOS_CC=${HOME}/ohos-tools/ohos-clang" >> $GITHUB_ENV
+          echo "OHOS_CXX=${HOME}/ohos-tools/ohos-clang++" >> $GITHUB_ENV
+          echo "OHOS_AR=${OHOS_AR}" >> $GITHUB_ENV
+          echo "OHOS_RANLIB=${OHOS_RANLIB}" >> $GITHUB_ENV
+          echo "OHOS_STRIP=${OHOS_STRIP}" >> $GITHUB_ENV
+          
+          # 测试编译器
+          echo "Testing OHOS cross-compiler..."
+          echo 'int main() { return 0; }' > /tmp/test.c
+          ${HOME}/ohos-tools/ohos-clang -c /tmp/test.c -o /tmp/test.o && echo "Compiler test passed!" || {
+            echo "Compiler test failed, checking sysroot..."
+            ls -la ${OHOS_SYSROOT}/ 2>/dev/null || echo "Sysroot not found"
+            # 尝试不同的 target
+            for target in aarch64-linux-ohos arm64-v8a-linux-ohos aarch64-unknown-linux-ohos; do
+              echo "Trying target: $target"
+              ${OHOS_CLANG} --target=$target --sysroot=${OHOS_SYSROOT} -c /tmp/test.c -o /tmp/test.o 2>/dev/null && {
+                echo "Found working target: $target"
+                echo "OHOS_TARGET=$target" >> $GITHUB_ENV
+                break
+              }
+            done
+          }
+
+      - name: Build zlib for OHOS (configure-based)
         run: |
           echo "=== Building zlib $ZLIB_VERSION for OpenHarmony ==="
           cd ${{ github.workspace }}
@@ -139,21 +222,24 @@ jobs:
           tar xzf zlib-${ZLIB_VERSION}.tar.gz
           cd zlib-${ZLIB_VERSION}
           
-          mkdir build && cd build
+          # 使用 configure 方式构建 (更兼容)
+          export CC="$OHOS_CC"
+          export AR="$OHOS_AR"
+          export RANLIB="$OHOS_RANLIB"
+          export CFLAGS="-fPIC -O2"
           
-          cmake .. \
-            -DCMAKE_TOOLCHAIN_FILE=$OHOS_TOOLCHAIN_FILE \
-            -DOHOS_ARCH=arm64-v8a \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/install/zlib \
-            -DBUILD_SHARED_LIBS=OFF \
-            -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+          ./configure \
+            --prefix=${{ github.workspace }}/install/zlib \
+            --static
           
-          cmake --build . --parallel $(nproc)
-          cmake --install .
+          make -j$(nproc)
+          make install
           
           echo "zlib build completed"
           ls -la ${{ github.workspace }}/install/zlib/lib/
+          
+          # 验证生成的库
+          file ${{ github.workspace }}/install/zlib/lib/libz.a
 
       - name: Build OpenSSL for OHOS
         run: |
@@ -164,40 +250,30 @@ jobs:
           tar xzf openssl-${OPENSSL_VERSION}.tar.gz
           cd openssl-${OPENSSL_VERSION}
           
-          # OpenHarmony 使用 clang，需要特殊配置
-          # 设置交叉编译环境
-          export CC="${OHOS_NDK_HOME}/llvm/bin/clang"
-          export CXX="${OHOS_NDK_HOME}/llvm/bin/clang++"
-          export AR="${OHOS_NDK_HOME}/llvm/bin/llvm-ar"
-          export RANLIB="${OHOS_NDK_HOME}/llvm/bin/llvm-ranlib"
-          export STRIP="${OHOS_NDK_HOME}/llvm/bin/llvm-strip"
+          # 配置 OpenSSL
+          export CC="$OHOS_CC"
+          export CXX="$OHOS_CXX"
+          export AR="$OHOS_AR"
+          export RANLIB="$OHOS_RANLIB"
           
-          # 获取 sysroot 路径
-          OHOS_SYSROOT="${OHOS_NDK_HOME}/sysroot"
-          
-          # 配置 OpenSSL for OpenHarmony/aarch64
           ./Configure linux-aarch64 \
             --prefix=${{ github.workspace }}/install/openssl \
             --openssldir=${{ github.workspace }}/install/openssl/ssl \
-            --sysroot=${OHOS_SYSROOT} \
             no-shared \
             no-tests \
             no-asm \
             -fPIC \
-            -Os \
-            --cross-compile-prefix=""
-          
-          # 修复 Makefile 中的编译器路径
-          sed -i "s|^CC=.*|CC=${CC}|g" Makefile
-          sed -i "s|^CXX=.*|CXX=${CXX}|g" Makefile
-          sed -i "s|^AR=.*|AR=${AR}|g" Makefile
-          sed -i "s|^RANLIB=.*|RANLIB=${RANLIB}|g" Makefile
+            -O2
           
           make -j$(nproc) || make -j2
           make install_sw
           
           echo "OpenSSL build completed"
           ls -la ${{ github.workspace }}/install/openssl/lib*/
+          
+          # 验证
+          file ${{ github.workspace }}/install/openssl/lib*/libssl.a || \
+          file ${{ github.workspace }}/install/openssl/lib/libssl.a
 
       - name: Clone FreeRDP
         run: |
@@ -205,9 +281,34 @@ jobs:
           git clone --depth 1 --branch ${FREERDP_VERSION} \
             https://github.com/FreeRDP/FreeRDP.git \
             ${{ github.workspace }}/FreeRDP
+
+      - name: Create OHOS CMake Toolchain
+        run: |
+          # 创建自定义工具链文件
+          cat > ${{ github.workspace }}/ohos-toolchain.cmake << EOF
+          # OpenHarmony Cross-Compilation Toolchain
+          set(CMAKE_SYSTEM_NAME Linux)
+          set(CMAKE_SYSTEM_PROCESSOR aarch64)
           
-          echo "FreeRDP source cloned"
-          ls -la ${{ github.workspace }}/FreeRDP/
+          set(CMAKE_C_COMPILER "$OHOS_CC")
+          set(CMAKE_CXX_COMPILER "$OHOS_CXX")
+          set(CMAKE_AR "$OHOS_AR" CACHE FILEPATH "Archiver")
+          set(CMAKE_RANLIB "$OHOS_RANLIB" CACHE FILEPATH "Ranlib")
+          set(CMAKE_STRIP "$OHOS_STRIP" CACHE FILEPATH "Strip")
+          
+          set(CMAKE_C_FLAGS "\${CMAKE_C_FLAGS} -fPIC -O2" CACHE STRING "C Flags")
+          set(CMAKE_CXX_FLAGS "\${CMAKE_CXX_FLAGS} -fPIC -O2" CACHE STRING "CXX Flags")
+          
+          set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+          set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+          set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+          set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
+          
+          set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+          EOF
+          
+          echo "Created toolchain file:"
+          cat ${{ github.workspace }}/ohos-toolchain.cmake
 
       - name: Build FreeRDP for OHOS
         run: |
@@ -222,11 +323,8 @@ jobs:
             OPENSSL_LIB_DIR="${{ github.workspace }}/install/openssl/lib"
           fi
           
-          echo "OpenSSL lib dir: ${OPENSSL_LIB_DIR}"
-          
           cmake .. \
-            -DCMAKE_TOOLCHAIN_FILE=$OHOS_TOOLCHAIN_FILE \
-            -DOHOS_ARCH=arm64-v8a \
+            -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/ohos-toolchain.cmake \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/install/freerdp \
             -DCMAKE_PREFIX_PATH="${{ github.workspace }}/install/zlib;${{ github.workspace }}/install/openssl" \
@@ -274,22 +372,12 @@ jobs:
             -DWITH_CLIENT_SDL=OFF \
             -DWITH_MANPAGES=OFF \
             -DBUILD_SHARED_LIBS=ON \
-            -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
             -DWITH_CLIENT_CHANNELS=ON \
             -DWITH_CHANNELS=ON \
             -DCHANNEL_URBDRC=OFF \
-            -DCHANNEL_SMARTCARD=OFF \
-            -DCMAKE_C_FLAGS="-fPIC" \
-            -DCMAKE_CXX_FLAGS="-fPIC"
+            -DCHANNEL_SMARTCARD=OFF
           
-          cmake --build . --parallel $(nproc) || {
-            echo "Build failed with full parallelism, retrying with reduced parallelism..."
-            cmake --build . --parallel 2 || {
-              echo "Build still failing, trying single-threaded..."
-              cmake --build . --parallel 1
-            }
-          }
-          
+          cmake --build . --parallel $(nproc) || cmake --build . --parallel 2
           cmake --install .
           
           echo "FreeRDP build completed"
@@ -316,25 +404,17 @@ jobs:
             fi
           done
           
-          # 使用 OHOS 工具链剥离调试符号
-          OHOS_STRIP="${OHOS_NDK_HOME}/llvm/bin/llvm-strip"
-          if [ -f "$OHOS_STRIP" ]; then
-            $OHOS_STRIP --strip-unneeded *.so* 2>/dev/null || true
-          fi
+          # 剥离调试符号
+          $OHOS_STRIP --strip-unneeded *.so* 2>/dev/null || true
           
-          echo "=== Verifying library compatibility ==="
-          OHOS_READELF="${OHOS_NDK_HOME}/llvm/bin/llvm-readelf"
+          echo "=== Verifying libraries ==="
           for lib in *.so*; do
             if [ -f "$lib" ]; then
               echo "--- $lib ---"
-              file "$lib" || true
-              if [ -f "$OHOS_READELF" ]; then
-                $OHOS_READELF -d "$lib" 2>/dev/null | grep -E "(NEEDED|INTERP)" || true
-              fi
+              file "$lib"
             fi
           done
           
-          echo ""
           echo "=== Final artifacts ==="
           ls -la
 
@@ -349,15 +429,14 @@ jobs:
           OpenSSL Version: $OPENSSL_VERSION (statically linked)
           zlib Version: $ZLIB_VERSION (statically linked)
           
-          Toolchain: OpenHarmony NDK (OHOS SDK ${OHOS_SDK_VERSION})
+          Toolchain: OpenHarmony NDK
           Target: arm64-v8a (aarch64, musl libc compatible)
           
-          IMPORTANT: These libraries are compiled with OpenHarmony NDK
-          and are compatible with HarmonyOS's musl libc runtime.
+          These libraries are compiled for HarmonyOS compatibility.
           
           Libraries:
           EOF
-          ls -la *.so* >> README.txt 2>/dev/null || echo "No .so files found" >> README.txt
+          ls -la *.so* >> README.txt 2>/dev/null || echo "No .so files" >> README.txt
 
       - name: Upload arm64-v8a artifacts
         uses: actions/upload-artifact@v4
@@ -367,7 +446,6 @@ jobs:
           retention-days: 90
           if-no-files-found: warn
 
-  # 打包发布
   package:
     name: Package Libraries
     needs: [build-ohos-arm64]
@@ -382,7 +460,6 @@ jobs:
 
       - name: Create release package
         run: |
-          echo "=== Creating release package ==="
           cd libs
           
           cat > VERSION.txt << EOF
@@ -390,14 +467,9 @@ jobs:
           Build Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
           Git SHA: ${{ github.sha }}
           Toolchain: OpenHarmony NDK (musl libc compatible)
-          Target: HarmonyOS arm64-v8a
           EOF
           
           zip -r ../freerdp-harmonyos-libs.zip .
-          
-          echo "Package contents:"
-          unzip -l ../freerdp-harmonyos-libs.zip
-          
           cd ..
           sha256sum freerdp-harmonyos-libs.zip > freerdp-harmonyos-libs.zip.sha256
 
@@ -410,7 +482,6 @@ jobs:
             freerdp-harmonyos-libs.zip.sha256
           retention-days: 90
 
-  # GitHub Release (on tag push)
   release:
     name: Create Release
     needs: [package]
@@ -433,22 +504,15 @@ jobs:
           body: |
             ## FreeRDP HarmonyOS Native Libraries
             
-            ### Built with OpenHarmony NDK
-            These libraries are compiled using the official OpenHarmony NDK toolchain,
-            ensuring full compatibility with HarmonyOS's musl libc runtime.
+            Built with OpenHarmony NDK for HarmonyOS compatibility.
             
-            ### Included Libraries
-            - FreeRDP (RDP client library)
-            - OpenSSL (statically linked)
-            - zlib (statically linked)
+            ### Included
+            - FreeRDP
+            - OpenSSL (static)
+            - zlib (static)
             
             ### Architecture
-            - arm64-v8a (64-bit ARM, musl libc compatible)
-            
-            ### Installation
-            1. Download `freerdp-harmonyos-libs.zip`
-            2. Extract to `entry/libs/arm64-v8a/`
-            3. Build your HarmonyOS project with DevEco Studio
+            - arm64-v8a
           draft: false
           prerelease: false
         env:
