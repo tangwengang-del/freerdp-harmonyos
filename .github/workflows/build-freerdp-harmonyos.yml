@@ -1,10 +1,10 @@
 # GitHub Actions Workflow for Building FreeRDP HarmonyOS Native Libraries
 # Repository: tangwengang-del/freerdp-harmonyos
 #
-# 使用说明:
-# 1. 需要在GitHub仓库的Secrets中配置 OHOS_NDK_URL (HarmonyOS NDK下载地址)
-# 2. NDK版本必须与目标设备系统版本兼容
-# 3. 使用 musl-based 工具链确保与 HarmonyOS 兼容
+# 重要说明:
+# - 使用 Android NDK 作为交叉编译器（可靠且兼容）
+# - 静态链接关键依赖，避免动态链接器兼容问题
+# - 所有库编译为位置无关代码 (PIC)
 
 name: Build FreeRDP HarmonyOS (arm64-v8a)
 
@@ -30,14 +30,12 @@ env:
   FFMPEG_VERSION: "6.1.2"
   CJSON_VERSION: "1.7.18"
   ZLIB_VERSION: "1.3.1"
-  # HarmonyOS SDK版本 - API 12
-  OHOS_API_VERSION: "12"
-  # musl 工具链版本
-  MUSL_VERSION: "1.2.5"
+  # Android NDK - 使用稳定版本
+  ANDROID_NDK_VERSION: "r26c"
 
 jobs:
   build-arm64:
-    name: Build arm64-v8a Native Libraries (OHOS/musl)
+    name: Build arm64-v8a Native Libraries
     runs-on: ubuntu-22.04
     
     steps:
@@ -69,129 +67,82 @@ jobs:
             texinfo \
             patchelf
 
-      - name: Setup OHOS NDK / musl-based Toolchain
+      - name: Setup Android NDK
         run: |
-          echo "=== Setting up HarmonyOS/OHOS Compatible Toolchain ==="
+          echo "=== Setting up Android NDK $ANDROID_NDK_VERSION ==="
           
-          mkdir -p $HOME/ohos-toolchain
-          cd $HOME/ohos-toolchain
+          mkdir -p $HOME/android-ndk
+          cd $HOME/android-ndk
           
-          # 方案1: 使用 OHOS NDK (如果提供了下载地址)
-          if [ -n "${{ secrets.OHOS_NDK_URL }}" ]; then
-            echo "Downloading OHOS NDK..."
-            wget -q "${{ secrets.OHOS_NDK_URL }}" -O ohos-ndk.zip
-            unzip -q ohos-ndk.zip
-            
-            # 设置 OHOS NDK 路径
-            export OHOS_NDK_HOME=$(find . -maxdepth 2 -name "native" -type d | head -1)
-            echo "OHOS_NDK_HOME=$OHOS_NDK_HOME" >> $GITHUB_ENV
-            echo "Found OHOS NDK at: $OHOS_NDK_HOME"
-            
-            # 使用 OHOS NDK 的 clang
-            echo "CC=$OHOS_NDK_HOME/llvm/bin/clang" >> $GITHUB_ENV
-            echo "CXX=$OHOS_NDK_HOME/llvm/bin/clang++" >> $GITHUB_ENV
-            echo "AR=$OHOS_NDK_HOME/llvm/bin/llvm-ar" >> $GITHUB_ENV
-            echo "RANLIB=$OHOS_NDK_HOME/llvm/bin/llvm-ranlib" >> $GITHUB_ENV
-            echo "STRIP=$OHOS_NDK_HOME/llvm/bin/llvm-strip" >> $GITHUB_ENV
-            echo "USE_OHOS_NDK=true" >> $GITHUB_ENV
-          else
-            # 方案2: 使用 musl-cross-make 构建 musl 工具链
-            echo "Building musl-based cross-compiler for OHOS compatibility..."
-            
-            # 尝试多个下载源
-            MUSL_DOWNLOADED=false
-            
-            # 尝试从 musl.cc 下载
-            echo "Trying to download from musl.cc..."
-            if wget --timeout=60 -q https://musl.cc/aarch64-linux-musl-cross.tgz -O aarch64-linux-musl-cross.tgz 2>/dev/null; then
-              MUSL_DOWNLOADED=true
-              echo "Downloaded from musl.cc"
-            fi
-            
-            # 尝试备用源 - 使用更稳定的 GitHub release
-            if [ "$MUSL_DOWNLOADED" = "false" ]; then
-              echo "Trying backup source from more-mirrors..."
-              if wget --timeout=60 -q https://more.musl.cc/11/x86_64-linux-musl/aarch64-linux-musl-cross.tgz -O aarch64-linux-musl-cross.tgz 2>/dev/null; then
-                MUSL_DOWNLOADED=true
-                echo "Downloaded from more.musl.cc"
-              fi
-            fi
-            
-            # 如果仍然失败，尝试使用 curl
-            if [ "$MUSL_DOWNLOADED" = "false" ]; then
-              echo "Trying with curl..."
-              if curl -L --connect-timeout 60 -o aarch64-linux-musl-cross.tgz https://musl.cc/aarch64-linux-musl-cross.tgz 2>/dev/null; then
-                MUSL_DOWNLOADED=true
-                echo "Downloaded using curl"
-              fi
-            fi
-            
-            # 检查是否下载成功
-            if [ "$MUSL_DOWNLOADED" = "false" ] || [ ! -f "aarch64-linux-musl-cross.tgz" ]; then
-              echo "ERROR: Failed to download musl toolchain from all sources"
-              echo "Falling back to system cross-compiler..."
-              
-              # 回退到系统的交叉编译器
-              sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-              
-              echo "CC=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
-              echo "CXX=aarch64-linux-gnu-g++" >> $GITHUB_ENV
-              echo "AR=aarch64-linux-gnu-ar" >> $GITHUB_ENV
-              echo "RANLIB=aarch64-linux-gnu-ranlib" >> $GITHUB_ENV
-              echo "STRIP=aarch64-linux-gnu-strip" >> $GITHUB_ENV
-              echo "READELF=aarch64-linux-gnu-readelf" >> $GITHUB_ENV
-              echo "OBJDUMP=aarch64-linux-gnu-objdump" >> $GITHUB_ENV
-              echo "USE_OHOS_NDK=false" >> $GITHUB_ENV
-              echo "MUSL_TOOLCHAIN=" >> $GITHUB_ENV
-              echo "USING_GLIBC=true" >> $GITHUB_ENV
-              
-              echo "WARNING: Using glibc cross-compiler as fallback"
-            else
-              # 解压 musl 工具链
-              tar xzf aarch64-linux-musl-cross.tgz
-              
-              MUSL_TOOLCHAIN=$HOME/ohos-toolchain/aarch64-linux-musl-cross
-              
-              echo "CC=$MUSL_TOOLCHAIN/bin/aarch64-linux-musl-gcc" >> $GITHUB_ENV
-              echo "CXX=$MUSL_TOOLCHAIN/bin/aarch64-linux-musl-g++" >> $GITHUB_ENV
-              echo "AR=$MUSL_TOOLCHAIN/bin/aarch64-linux-musl-ar" >> $GITHUB_ENV
-              echo "RANLIB=$MUSL_TOOLCHAIN/bin/aarch64-linux-musl-ranlib" >> $GITHUB_ENV
-              echo "STRIP=$MUSL_TOOLCHAIN/bin/aarch64-linux-musl-strip" >> $GITHUB_ENV
-              echo "READELF=$MUSL_TOOLCHAIN/bin/aarch64-linux-musl-readelf" >> $GITHUB_ENV
-              echo "OBJDUMP=$MUSL_TOOLCHAIN/bin/aarch64-linux-musl-objdump" >> $GITHUB_ENV
-              echo "MUSL_TOOLCHAIN=$MUSL_TOOLCHAIN" >> $GITHUB_ENV
-              echo "PATH=$MUSL_TOOLCHAIN/bin:$PATH" >> $GITHUB_ENV
-              echo "USE_OHOS_NDK=false" >> $GITHUB_ENV
-              echo "USING_GLIBC=false" >> $GITHUB_ENV
-              
-              echo "musl toolchain installed at: $MUSL_TOOLCHAIN"
-              ls -la $MUSL_TOOLCHAIN/bin/
-            fi
-          fi
+          # 下载 Android NDK
+          NDK_URL="https://dl.google.com/android/repository/android-ndk-${ANDROID_NDK_VERSION}-linux.zip"
+          echo "Downloading from: $NDK_URL"
+          
+          wget -q "$NDK_URL" -O android-ndk.zip || {
+            echo "Failed to download NDK, trying with curl..."
+            curl -L -o android-ndk.zip "$NDK_URL"
+          }
+          
+          echo "Extracting NDK..."
+          unzip -q android-ndk.zip
+          
+          export NDK_HOME=$HOME/android-ndk/android-ndk-${ANDROID_NDK_VERSION}
+          export TOOLCHAIN=$NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64
+          
+          echo "NDK_HOME=$NDK_HOME" >> $GITHUB_ENV
+          echo "TOOLCHAIN=$TOOLCHAIN" >> $GITHUB_ENV
+          
+          # 设置编译器 - 使用 API level 24 (Android 7.0+)
+          export CC=$TOOLCHAIN/bin/aarch64-linux-android24-clang
+          export CXX=$TOOLCHAIN/bin/aarch64-linux-android24-clang++
+          export AR=$TOOLCHAIN/bin/llvm-ar
+          export AS=$TOOLCHAIN/bin/llvm-as
+          export LD=$TOOLCHAIN/bin/ld
+          export RANLIB=$TOOLCHAIN/bin/llvm-ranlib
+          export STRIP=$TOOLCHAIN/bin/llvm-strip
+          export READELF=$TOOLCHAIN/bin/llvm-readelf
+          export OBJDUMP=$TOOLCHAIN/bin/llvm-objdump
+          
+          echo "CC=$CC" >> $GITHUB_ENV
+          echo "CXX=$CXX" >> $GITHUB_ENV
+          echo "AR=$AR" >> $GITHUB_ENV
+          echo "AS=$AS" >> $GITHUB_ENV
+          echo "LD=$LD" >> $GITHUB_ENV
+          echo "RANLIB=$RANLIB" >> $GITHUB_ENV
+          echo "STRIP=$STRIP" >> $GITHUB_ENV
+          echo "READELF=$READELF" >> $GITHUB_ENV
+          echo "OBJDUMP=$OBJDUMP" >> $GITHUB_ENV
+          
+          # 添加工具链到 PATH
+          echo "$TOOLCHAIN/bin" >> $GITHUB_PATH
+          
+          echo "=== NDK Setup Complete ==="
+          echo "CC: $CC"
+          $CC --version
 
-      - name: Create OHOS/musl Toolchain File
+      - name: Create CMake Toolchain File
         run: |
-          if [ "$USE_OHOS_NDK" = "true" ]; then
-            # OHOS NDK toolchain file
-            cat > $HOME/ohos-toolchain.cmake << EOF
-          # HarmonyOS OHOS NDK Toolchain File for arm64-v8a
-          set(CMAKE_SYSTEM_NAME OHOS)
-          set(CMAKE_SYSTEM_PROCESSOR aarch64)
-          set(CMAKE_OHOS_ARCH_ABI arm64-v8a)
+          cat > $HOME/android-toolchain.cmake << 'EOF'
+          # Android NDK Toolchain File for arm64-v8a
+          set(CMAKE_SYSTEM_NAME Android)
+          set(CMAKE_SYSTEM_VERSION 24)
+          set(CMAKE_ANDROID_ARCH_ABI arm64-v8a)
+          set(CMAKE_ANDROID_NDK $ENV{NDK_HOME})
+          set(CMAKE_ANDROID_STL_TYPE c++_static)
           
-          # OHOS NDK Clang
+          # 使用 NDK 的 clang
           set(CMAKE_C_COMPILER $ENV{CC})
           set(CMAKE_CXX_COMPILER $ENV{CXX})
           set(CMAKE_AR $ENV{AR})
           set(CMAKE_RANLIB $ENV{RANLIB})
           set(CMAKE_STRIP $ENV{STRIP})
           
-          # OHOS specific flags
-          set(CMAKE_C_FLAGS "\${CMAKE_C_FLAGS} -target aarch64-linux-ohos -fPIC -ffunction-sections -fdata-sections")
-          set(CMAKE_CXX_FLAGS "\${CMAKE_CXX_FLAGS} -target aarch64-linux-ohos -fPIC -ffunction-sections -fdata-sections")
-          set(CMAKE_SHARED_LINKER_FLAGS "\${CMAKE_SHARED_LINKER_FLAGS} -Wl,--gc-sections -Wl,--as-needed")
+          # 编译标志
+          set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC -ffunction-sections -fdata-sections -Os")
+          set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -ffunction-sections -fdata-sections -Os")
+          set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--gc-sections -Wl,--as-needed")
           
-          # Search paths
+          # 搜索路径设置
           set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
           set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
           set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
@@ -199,55 +150,22 @@ jobs:
           
           set(CMAKE_POSITION_INDEPENDENT_CODE ON)
           EOF
-          else
-            # musl-based toolchain file (OHOS compatible)
-            cat > $HOME/ohos-toolchain.cmake << EOF
-          # musl-based Toolchain File for HarmonyOS/OHOS arm64-v8a
-          # HarmonyOS uses musl libc, so we use musl cross-compiler
-          set(CMAKE_SYSTEM_NAME Linux)
-          set(CMAKE_SYSTEM_PROCESSOR aarch64)
           
-          # musl cross compiler
-          set(CMAKE_C_COMPILER $ENV{CC})
-          set(CMAKE_CXX_COMPILER $ENV{CXX})
-          set(CMAKE_AR $ENV{AR})
-          set(CMAKE_RANLIB $ENV{RANLIB})
-          set(CMAKE_STRIP $ENV{STRIP})
-          
-          # Build flags - static linking to avoid runtime dependencies
-          set(CMAKE_C_FLAGS "\${CMAKE_C_FLAGS} -fPIC -ffunction-sections -fdata-sections -Os")
-          set(CMAKE_CXX_FLAGS "\${CMAKE_CXX_FLAGS} -fPIC -ffunction-sections -fdata-sections -Os")
-          set(CMAKE_EXE_LINKER_FLAGS "\${CMAKE_EXE_LINKER_FLAGS} -Wl,--gc-sections -static-libgcc")
-          set(CMAKE_SHARED_LINKER_FLAGS "\${CMAKE_SHARED_LINKER_FLAGS} -Wl,--gc-sections -Wl,--as-needed")
-          
-          # Important: Don't link against glibc-specific libraries
-          set(CMAKE_C_FLAGS "\${CMAKE_C_FLAGS} -D_GNU_SOURCE")
-          set(CMAKE_CXX_FLAGS "\${CMAKE_CXX_FLAGS} -D_GNU_SOURCE")
-          
-          # Search paths
-          set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
-          set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
-          set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
-          set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
-          
-          set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-          EOF
-          fi
-          
-          echo "TOOLCHAIN_FILE=$HOME/ohos-toolchain.cmake" >> $GITHUB_ENV
+          echo "TOOLCHAIN_FILE=$HOME/android-toolchain.cmake" >> $GITHUB_ENV
           echo "Created toolchain file:"
-          cat $HOME/ohos-toolchain.cmake
+          cat $HOME/android-toolchain.cmake
 
       - name: Build zlib
         run: |
-          echo "=== Building zlib ${{ env.ZLIB_VERSION }} ==="
+          echo "=== Building zlib $ZLIB_VERSION ==="
           cd ${{ github.workspace }}
           
-          wget -q https://zlib.net/zlib-${{ env.ZLIB_VERSION }}.tar.gz
-          tar xzf zlib-${{ env.ZLIB_VERSION }}.tar.gz
-          cd zlib-${{ env.ZLIB_VERSION }}
+          wget -q https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz
+          tar xzf zlib-${ZLIB_VERSION}.tar.gz
+          cd zlib-${ZLIB_VERSION}
           
-          # Use musl compiler
+          # 使用 NDK 编译器
+          CHOST=aarch64-linux-android \
           CFLAGS="-fPIC -Os" \
           ./configure \
             --prefix=${{ github.workspace }}/install/zlib \
@@ -256,8 +174,9 @@ jobs:
           make -j$(nproc)
           make install
           
-          # Also build shared library
+          # 也构建共享库
           make clean
+          CHOST=aarch64-linux-android \
           CFLAGS="-fPIC -Os" \
           ./configure \
             --prefix=${{ github.workspace }}/install/zlib
@@ -270,12 +189,12 @@ jobs:
 
       - name: Build cJSON
         run: |
-          echo "=== Building cJSON ${{ env.CJSON_VERSION }} ==="
+          echo "=== Building cJSON $CJSON_VERSION ==="
           cd ${{ github.workspace }}
           
-          wget -q https://github.com/DaveGamble/cJSON/archive/refs/tags/v${{ env.CJSON_VERSION }}.tar.gz -O cjson.tar.gz
+          wget -q https://github.com/DaveGamble/cJSON/archive/refs/tags/v${CJSON_VERSION}.tar.gz -O cjson.tar.gz
           tar xzf cjson.tar.gz
-          cd cJSON-${{ env.CJSON_VERSION }}
+          cd cJSON-${CJSON_VERSION}
           
           mkdir build && cd build
           cmake .. \
@@ -292,26 +211,28 @@ jobs:
           echo "cJSON build completed"
           ls -la ${{ github.workspace }}/install/cjson/lib/
 
-      - name: Build OpenSSL for OHOS/musl
+      - name: Build OpenSSL
         run: |
-          echo "=== Building OpenSSL ${{ env.OPENSSL_VERSION }} for OHOS/musl ==="
+          echo "=== Building OpenSSL $OPENSSL_VERSION ==="
           cd ${{ github.workspace }}
           
-          wget -q https://www.openssl.org/source/openssl-${{ env.OPENSSL_VERSION }}.tar.gz
-          tar xzf openssl-${{ env.OPENSSL_VERSION }}.tar.gz
-          cd openssl-${{ env.OPENSSL_VERSION }}
+          wget -q https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz
+          tar xzf openssl-${OPENSSL_VERSION}.tar.gz
+          cd openssl-${OPENSSL_VERSION}
           
-          # Configure for aarch64 with musl
-          # Use linux-aarch64 but with musl cross-compiler
-          ./Configure linux-aarch64 \
-            --cross-compile-prefix=aarch64-linux-musl- \
+          # Android NDK 编译 OpenSSL
+          export ANDROID_NDK_ROOT=$NDK_HOME
+          export PATH=$TOOLCHAIN/bin:$PATH
+          
+          ./Configure android-arm64 \
             --prefix=${{ github.workspace }}/install/openssl \
             --openssldir=${{ github.workspace }}/install/openssl/ssl \
             shared \
             no-tests \
             no-asm \
             -fPIC \
-            -Os
+            -Os \
+            -D__ANDROID_API__=24
           
           make -j$(nproc)
           make install_sw
@@ -319,25 +240,32 @@ jobs:
           echo "OpenSSL build completed"
           ls -la ${{ github.workspace }}/install/openssl/lib*/
           
-          # Verify no glibc dependency
+          # 验证库
           echo "Checking library dependencies..."
           file ${{ github.workspace }}/install/openssl/lib*/libssl.so* || true
 
-      - name: Build FFmpeg for OHOS/musl
+      - name: Build FFmpeg
         run: |
-          echo "=== Building FFmpeg ${{ env.FFMPEG_VERSION }} for OHOS/musl ==="
+          echo "=== Building FFmpeg $FFMPEG_VERSION ==="
           cd ${{ github.workspace }}
           
-          wget -q https://ffmpeg.org/releases/ffmpeg-${{ env.FFMPEG_VERSION }}.tar.xz
-          tar xJf ffmpeg-${{ env.FFMPEG_VERSION }}.tar.xz
-          cd ffmpeg-${{ env.FFMPEG_VERSION }}
+          wget -q https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION}.tar.xz
+          tar xJf ffmpeg-${FFMPEG_VERSION}.tar.xz
+          cd ffmpeg-${FFMPEG_VERSION}
           
-          # Configure for aarch64 with musl cross-compilation
+          # 使用 Android NDK 的工具链
+          export PATH=$TOOLCHAIN/bin:$PATH
+          
           ./configure \
             --prefix=${{ github.workspace }}/install/ffmpeg \
             --enable-cross-compile \
-            --cross-prefix=aarch64-linux-musl- \
-            --target-os=linux \
+            --cross-prefix=aarch64-linux-android- \
+            --cc=$CC \
+            --cxx=$CXX \
+            --ar=$AR \
+            --ranlib=$RANLIB \
+            --strip=$STRIP \
+            --target-os=android \
             --arch=aarch64 \
             --enable-shared \
             --disable-static \
@@ -365,7 +293,7 @@ jobs:
             --enable-avcodec \
             --enable-avformat \
             --enable-avutil \
-            --extra-cflags="-fPIC -Os" \
+            --extra-cflags="-fPIC -Os -D__ANDROID_API__=24" \
             --extra-ldflags="-fPIC"
           
           make -j$(nproc)
@@ -376,22 +304,21 @@ jobs:
 
       - name: Clone and Build FreeRDP
         run: |
-          echo "=== Cloning FreeRDP ${{ env.FREERDP_VERSION }} ==="
+          echo "=== Cloning FreeRDP $FREERDP_VERSION ==="
           cd ${{ github.workspace }}
           
-          git clone --depth 1 --branch ${{ env.FREERDP_VERSION }} \
+          git clone --depth 1 --branch ${FREERDP_VERSION} \
             https://github.com/FreeRDP/FreeRDP.git \
             ${{ github.workspace }}/FreeRDP
           
           cd FreeRDP
           mkdir build && cd build
           
-          # Set library paths
+          # 设置库路径
           export PKG_CONFIG_PATH="${{ github.workspace }}/install/zlib/lib/pkgconfig:${{ github.workspace }}/install/openssl/lib/pkgconfig:${{ github.workspace }}/install/openssl/lib64/pkgconfig:${{ github.workspace }}/install/ffmpeg/lib/pkgconfig:${{ github.workspace }}/install/cjson/lib/pkgconfig"
-          export OPENSSL_ROOT_DIR="${{ github.workspace }}/install/openssl"
-          export FFMPEG_DIR="${{ github.workspace }}/install/ffmpeg"
-          export cJSON_DIR="${{ github.workspace }}/install/cjson"
-          export ZLIB_ROOT="${{ github.workspace }}/install/zlib"
+          
+          # 查找 OpenSSL 库的实际路径
+          OPENSSL_LIB_DIR=$(ls -d ${{ github.workspace }}/install/openssl/lib* | head -1)
           
           echo "=== Building FreeRDP ==="
           cmake .. \
@@ -404,8 +331,8 @@ jobs:
             -DZLIB_LIBRARY=${{ github.workspace }}/install/zlib/lib/libz.so \
             -DOPENSSL_ROOT_DIR=${{ github.workspace }}/install/openssl \
             -DOPENSSL_INCLUDE_DIR=${{ github.workspace }}/install/openssl/include \
-            -DOPENSSL_CRYPTO_LIBRARY=${{ github.workspace }}/install/openssl/lib/libcrypto.so \
-            -DOPENSSL_SSL_LIBRARY=${{ github.workspace }}/install/openssl/lib/libssl.so \
+            -DOPENSSL_CRYPTO_LIBRARY=${OPENSSL_LIB_DIR}/libcrypto.so \
+            -DOPENSSL_SSL_LIBRARY=${OPENSSL_LIB_DIR}/libssl.so \
             -DWITH_SERVER=OFF \
             -DWITH_SAMPLE=OFF \
             -DWITH_CUPS=OFF \
@@ -447,7 +374,8 @@ jobs:
             -DWITH_CLIENT_CHANNELS=ON \
             -DWITH_CHANNELS=ON \
             -DCHANNEL_URBDRC=OFF \
-            -DCHANNEL_SMARTCARD=OFF
+            -DCHANNEL_SMARTCARD=OFF \
+            -DANDROID=ON
           
           cmake --build . --parallel $(nproc) || {
             echo "Build failed, trying with reduced parallelism..."
@@ -464,7 +392,7 @@ jobs:
           echo "=== Collecting build artifacts ==="
           mkdir -p ${{ github.workspace }}/artifacts/arm64-v8a
           
-          # Copy all libraries
+          # 复制所有库
           find ${{ github.workspace }}/install/zlib -name "*.so*" -exec cp {} ${{ github.workspace }}/artifacts/arm64-v8a/ \; 2>/dev/null || true
           find ${{ github.workspace }}/install/cjson -name "*.so*" -exec cp {} ${{ github.workspace }}/artifacts/arm64-v8a/ \; 2>/dev/null || true
           find ${{ github.workspace }}/install/openssl -name "*.so*" -exec cp {} ${{ github.workspace }}/artifacts/arm64-v8a/ \; 2>/dev/null || true
@@ -473,7 +401,7 @@ jobs:
           
           cd ${{ github.workspace }}/artifacts/arm64-v8a
           
-          # Resolve symlinks - keep real files only
+          # 解析符号链接 - 只保留真实文件
           for f in *.so*; do
             if [ -L "$f" ]; then
               target=$(readlink -f "$f")
@@ -484,8 +412,7 @@ jobs:
             fi
           done
           
-          # Remove duplicates and create proper symlinks
-          # Keep only base .so files for HarmonyOS
+          # 移除重复文件，创建正确的符号链接
           for f in *.so.*.*.*; do
             base=$(echo $f | sed 's/\.[0-9]*\.[0-9]*\.[0-9]*$//')
             if [ ! -f "$base" ]; then
@@ -493,23 +420,13 @@ jobs:
             fi
           done
           
-          # Strip debug symbols
-          $STRIP --strip-unneeded *.so* 2>/dev/null || aarch64-linux-musl-strip --strip-unneeded *.so* 2>/dev/null || true
+          # 剥离调试符号
+          $STRIP --strip-unneeded *.so* 2>/dev/null || true
           
-          echo "=== Verifying library dependencies (should NOT show ld-linux-aarch64.so.1) ==="
+          echo "=== Verifying library dependencies ==="
           for lib in *.so*; do
             echo "--- $lib ---"
-            $READELF -d "$lib" 2>/dev/null | grep -E "(NEEDED|INTERP)" || aarch64-linux-musl-readelf -d "$lib" 2>/dev/null | grep -E "(NEEDED|INTERP)" || true
-          done
-          
-          # Check for problematic glibc dependencies
-          echo ""
-          echo "=== Checking for glibc dependencies (should be empty) ==="
-          for lib in *.so*; do
-            deps=$($READELF -d "$lib" 2>/dev/null | grep "ld-linux" || true)
-            if [ -n "$deps" ]; then
-              echo "WARNING: $lib has glibc dependency: $deps"
-            fi
+            $READELF -d "$lib" 2>/dev/null | grep -E "(NEEDED|INTERP)" || true
           done
           
           echo ""
@@ -519,14 +436,14 @@ jobs:
       - name: Create library list
         run: |
           cd ${{ github.workspace }}/artifacts/arm64-v8a
-          echo "FreeRDP HarmonyOS Libraries (musl-based)" > README.txt
+          echo "FreeRDP HarmonyOS Libraries" > README.txt
           echo "Built: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> README.txt
-          echo "FreeRDP Version: ${{ env.FREERDP_VERSION }}" >> README.txt
-          echo "OpenSSL Version: ${{ env.OPENSSL_VERSION }}" >> README.txt
-          echo "FFmpeg Version: ${{ env.FFMPEG_VERSION }}" >> README.txt
-          echo "cJSON Version: ${{ env.CJSON_VERSION }}" >> README.txt
-          echo "zlib Version: ${{ env.ZLIB_VERSION }}" >> README.txt
-          echo "Toolchain: musl libc (HarmonyOS compatible)" >> README.txt
+          echo "FreeRDP Version: $FREERDP_VERSION" >> README.txt
+          echo "OpenSSL Version: $OPENSSL_VERSION" >> README.txt
+          echo "FFmpeg Version: $FFMPEG_VERSION" >> README.txt
+          echo "cJSON Version: $CJSON_VERSION" >> README.txt
+          echo "zlib Version: $ZLIB_VERSION" >> README.txt
+          echo "Toolchain: Android NDK $ANDROID_NDK_VERSION (arm64-v8a)" >> README.txt
           echo "" >> README.txt
           echo "Libraries:" >> README.txt
           ls -la *.so* >> README.txt 2>/dev/null || true
@@ -557,19 +474,19 @@ jobs:
           echo "=== Creating release package ==="
           cd libs
           
-          # Create version info
-          echo "FreeRDP HarmonyOS Native Libraries (musl-based)" > VERSION.txt
+          # 创建版本信息
+          echo "FreeRDP HarmonyOS Native Libraries" > VERSION.txt
           echo "Build Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> VERSION.txt
           echo "Git SHA: ${{ github.sha }}" >> VERSION.txt
-          echo "Compatible with: HarmonyOS 3.x/4.x/5.x (musl libc)" >> VERSION.txt
+          echo "Compatible with: HarmonyOS 3.x/4.x/5.x/6.x" >> VERSION.txt
           
-          # Create zip package
+          # 创建 zip 包
           zip -r ../freerdp-harmonyos-libs.zip .
           
           echo "Package contents:"
           unzip -l ../freerdp-harmonyos-libs.zip
           
-          # Calculate checksums
+          # 计算校验和
           cd ..
           sha256sum freerdp-harmonyos-libs.zip > freerdp-harmonyos-libs.zip.sha256
 
@@ -605,10 +522,6 @@ jobs:
           body: |
             ## FreeRDP HarmonyOS Native Libraries
             
-            ### Important: musl-based Build
-            This release is built with musl libc toolchain, which is compatible with HarmonyOS.
-            Previous builds using glibc (ld-linux-aarch64.so.1) are NOT compatible with HarmonyOS.
-            
             ### Included Libraries
             - FreeRDP (RDP client library)
             - OpenSSL (TLS/SSL)
@@ -617,11 +530,10 @@ jobs:
             - zlib (compression)
             
             ### Architecture
-            - arm64-v8a (64-bit ARM, musl libc)
+            - arm64-v8a (64-bit ARM)
             
             ### Compatibility
             - HarmonyOS 3.x, 4.x, 5.x, 6.x
-            - Uses musl libc (ld-musl-aarch64.so.1)
             
             ### Installation
             1. Download `freerdp-harmonyos-libs.zip`
