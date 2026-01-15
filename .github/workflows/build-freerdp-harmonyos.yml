@@ -98,25 +98,75 @@ jobs:
             # 方案2: 使用 musl-cross-make 构建 musl 工具链
             echo "Building musl-based cross-compiler for OHOS compatibility..."
             
-            # 下载预编译的 musl 交叉编译工具链
-            wget -q https://musl.cc/aarch64-linux-musl-cross.tgz
-            tar xzf aarch64-linux-musl-cross.tgz
+            # 尝试多个下载源
+            MUSL_DOWNLOADED=false
             
-            MUSL_TOOLCHAIN=$HOME/ohos-toolchain/aarch64-linux-musl-cross
+            # 尝试从 musl.cc 下载
+            echo "Trying to download from musl.cc..."
+            if wget --timeout=60 -q https://musl.cc/aarch64-linux-musl-cross.tgz -O aarch64-linux-musl-cross.tgz 2>/dev/null; then
+              MUSL_DOWNLOADED=true
+              echo "Downloaded from musl.cc"
+            fi
             
-            echo "CC=$MUSL_TOOLCHAIN/bin/aarch64-linux-musl-gcc" >> $GITHUB_ENV
-            echo "CXX=$MUSL_TOOLCHAIN/bin/aarch64-linux-musl-g++" >> $GITHUB_ENV
-            echo "AR=$MUSL_TOOLCHAIN/bin/aarch64-linux-musl-ar" >> $GITHUB_ENV
-            echo "RANLIB=$MUSL_TOOLCHAIN/bin/aarch64-linux-musl-ranlib" >> $GITHUB_ENV
-            echo "STRIP=$MUSL_TOOLCHAIN/bin/aarch64-linux-musl-strip" >> $GITHUB_ENV
-            echo "READELF=$MUSL_TOOLCHAIN/bin/aarch64-linux-musl-readelf" >> $GITHUB_ENV
-            echo "OBJDUMP=$MUSL_TOOLCHAIN/bin/aarch64-linux-musl-objdump" >> $GITHUB_ENV
-            echo "MUSL_TOOLCHAIN=$MUSL_TOOLCHAIN" >> $GITHUB_ENV
-            echo "PATH=$MUSL_TOOLCHAIN/bin:$PATH" >> $GITHUB_ENV
-            echo "USE_OHOS_NDK=false" >> $GITHUB_ENV
+            # 尝试备用源 - 使用更稳定的 GitHub release
+            if [ "$MUSL_DOWNLOADED" = "false" ]; then
+              echo "Trying backup source from more-mirrors..."
+              if wget --timeout=60 -q https://more.musl.cc/11/x86_64-linux-musl/aarch64-linux-musl-cross.tgz -O aarch64-linux-musl-cross.tgz 2>/dev/null; then
+                MUSL_DOWNLOADED=true
+                echo "Downloaded from more.musl.cc"
+              fi
+            fi
             
-            echo "musl toolchain installed at: $MUSL_TOOLCHAIN"
-            ls -la $MUSL_TOOLCHAIN/bin/
+            # 如果仍然失败，尝试使用 curl
+            if [ "$MUSL_DOWNLOADED" = "false" ]; then
+              echo "Trying with curl..."
+              if curl -L --connect-timeout 60 -o aarch64-linux-musl-cross.tgz https://musl.cc/aarch64-linux-musl-cross.tgz 2>/dev/null; then
+                MUSL_DOWNLOADED=true
+                echo "Downloaded using curl"
+              fi
+            fi
+            
+            # 检查是否下载成功
+            if [ "$MUSL_DOWNLOADED" = "false" ] || [ ! -f "aarch64-linux-musl-cross.tgz" ]; then
+              echo "ERROR: Failed to download musl toolchain from all sources"
+              echo "Falling back to system cross-compiler..."
+              
+              # 回退到系统的交叉编译器
+              sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+              
+              echo "CC=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
+              echo "CXX=aarch64-linux-gnu-g++" >> $GITHUB_ENV
+              echo "AR=aarch64-linux-gnu-ar" >> $GITHUB_ENV
+              echo "RANLIB=aarch64-linux-gnu-ranlib" >> $GITHUB_ENV
+              echo "STRIP=aarch64-linux-gnu-strip" >> $GITHUB_ENV
+              echo "READELF=aarch64-linux-gnu-readelf" >> $GITHUB_ENV
+              echo "OBJDUMP=aarch64-linux-gnu-objdump" >> $GITHUB_ENV
+              echo "USE_OHOS_NDK=false" >> $GITHUB_ENV
+              echo "MUSL_TOOLCHAIN=" >> $GITHUB_ENV
+              echo "USING_GLIBC=true" >> $GITHUB_ENV
+              
+              echo "WARNING: Using glibc cross-compiler as fallback"
+            else
+              # 解压 musl 工具链
+              tar xzf aarch64-linux-musl-cross.tgz
+              
+              MUSL_TOOLCHAIN=$HOME/ohos-toolchain/aarch64-linux-musl-cross
+              
+              echo "CC=$MUSL_TOOLCHAIN/bin/aarch64-linux-musl-gcc" >> $GITHUB_ENV
+              echo "CXX=$MUSL_TOOLCHAIN/bin/aarch64-linux-musl-g++" >> $GITHUB_ENV
+              echo "AR=$MUSL_TOOLCHAIN/bin/aarch64-linux-musl-ar" >> $GITHUB_ENV
+              echo "RANLIB=$MUSL_TOOLCHAIN/bin/aarch64-linux-musl-ranlib" >> $GITHUB_ENV
+              echo "STRIP=$MUSL_TOOLCHAIN/bin/aarch64-linux-musl-strip" >> $GITHUB_ENV
+              echo "READELF=$MUSL_TOOLCHAIN/bin/aarch64-linux-musl-readelf" >> $GITHUB_ENV
+              echo "OBJDUMP=$MUSL_TOOLCHAIN/bin/aarch64-linux-musl-objdump" >> $GITHUB_ENV
+              echo "MUSL_TOOLCHAIN=$MUSL_TOOLCHAIN" >> $GITHUB_ENV
+              echo "PATH=$MUSL_TOOLCHAIN/bin:$PATH" >> $GITHUB_ENV
+              echo "USE_OHOS_NDK=false" >> $GITHUB_ENV
+              echo "USING_GLIBC=false" >> $GITHUB_ENV
+              
+              echo "musl toolchain installed at: $MUSL_TOOLCHAIN"
+              ls -la $MUSL_TOOLCHAIN/bin/
+            fi
           fi
 
       - name: Create OHOS/musl Toolchain File
