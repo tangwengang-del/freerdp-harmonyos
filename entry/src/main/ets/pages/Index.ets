@@ -26,6 +26,8 @@ struct Index {
   @State quickConnectUser: string = '';
   @State quickConnectPassword: string = '';
   @State showQuickConnect: boolean = false;
+  @State showNativeError: boolean = false;
+  @State nativeErrorMessage: string = '';
   
   private context = getContext(this) as common.UIAbilityContext;
   private preferencesHelper: preferences.Preferences | null = null;
@@ -34,9 +36,17 @@ struct Index {
     console.info(`${TAG}: aboutToAppear`);
     this.loadBookmarks();
     
-    // Show FreeRDP version
-    const version = LibFreeRDP.getVersion();
-    console.info(`${TAG}: FreeRDP version: ${version}`);
+    // Check if native library is loaded
+    if (!LibFreeRDP.isNativeLoaded()) {
+      const error = LibFreeRDP.getLoadError();
+      this.nativeErrorMessage = error ?? '未知错误';
+      this.showNativeError = true;
+      console.error(`${TAG}: Native library not loaded: ${this.nativeErrorMessage}`);
+    } else {
+      // Show FreeRDP version
+      const version = LibFreeRDP.getVersion();
+      console.info(`${TAG}: FreeRDP version: ${version}`);
+    }
   }
 
   /**
@@ -95,6 +105,12 @@ struct Index {
    * Connect to a bookmark
    */
   connectToBookmark(bookmark: BookmarkBase): void {
+    // Check native library first
+    if (!LibFreeRDP.isNativeLoaded()) {
+      this.showNativeError = true;
+      return;
+    }
+    
     console.info(`${TAG}: Connecting to ${bookmark.hostname}:${bookmark.port}`);
     
     router.pushUrl({
@@ -109,6 +125,13 @@ struct Index {
    * Quick connect
    */
   quickConnect(): void {
+    // Check native library first
+    if (!LibFreeRDP.isNativeLoaded()) {
+      this.showQuickConnect = false;
+      this.showNativeError = true;
+      return;
+    }
+    
     if (!this.quickConnectHost) {
       promptAction.showToast({ message: '请输入主机地址' });
       return;
@@ -217,7 +240,7 @@ struct Index {
         })
         
         Button({ type: ButtonType.Circle }) {
-          Image($r('sys.media.ohos_ic_public_delete'))
+          Image($r('sys.media.ohos_ic_public_cancel'))
             .width(20)
             .height(20)
             .fillColor('#F44336')
@@ -249,6 +272,67 @@ struct Index {
     .onClick(() => {
       this.connectToBookmark(bookmark);
     })
+  }
+
+  @Builder
+  NativeErrorDialog() {
+    Column() {
+      Text('原生库加载失败')
+        .fontSize(24)
+        .fontWeight(FontWeight.Bold)
+        .fontColor('#F44336')
+        .margin({ bottom: 16 })
+      
+      Text('RDP 功能暂时不可用')
+        .fontSize(18)
+        .fontColor('#FFFFFF')
+        .margin({ bottom: 16 })
+      
+      Text('原因：HarmonyOS 需要使用 musl libc 编译的原生库，当前库使用 glibc 编译。')
+        .fontSize(14)
+        .fontColor('#AAAAAA')
+        .textAlign(TextAlign.Center)
+        .margin({ bottom: 12 })
+      
+      Text('错误详情：')
+        .fontSize(14)
+        .fontColor('#888888')
+        .margin({ bottom: 4 })
+      
+      Text(this.nativeErrorMessage)
+        .fontSize(12)
+        .fontColor('#FF9800')
+        .textAlign(TextAlign.Center)
+        .maxLines(5)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+        .padding(12)
+        .backgroundColor('#2D2D2D')
+        .borderRadius(8)
+        .margin({ bottom: 24 })
+      
+      Text('解决方案：')
+        .fontSize(14)
+        .fontColor('#888888')
+        .margin({ bottom: 8 })
+      
+      Text('1. 使用 HarmonyOS/OHOS NDK 重新编译原生库\n2. 或等待开发者提供兼容版本')
+        .fontSize(12)
+        .fontColor('#AAAAAA')
+        .textAlign(TextAlign.Start)
+        .margin({ bottom: 24 })
+      
+      Button('我知道了')
+        .width('100%')
+        .height(48)
+        .backgroundColor('#424242')
+        .onClick(() => {
+          this.showNativeError = false;
+        })
+    }
+    .width('90%')
+    .padding(24)
+    .backgroundColor('#1E1E1E')
+    .borderRadius(16)
   }
 
   @Builder
@@ -346,7 +430,7 @@ struct Index {
           Blank()
           
           Button({ type: ButtonType.Circle }) {
-            Image($r('sys.media.ohos_ic_public_settings'))
+            Image($r('sys.media.ohos_ic_public_more'))
               .width(24)
               .height(24)
               .fillColor('#FFFFFF')
@@ -360,7 +444,7 @@ struct Index {
           })
           
           Button({ type: ButtonType.Circle }) {
-            Image($r('sys.media.ohos_ic_public_help'))
+            Image($r('sys.media.ohos_ic_public_ok'))
               .width(24)
               .height(24)
               .fillColor('#FFFFFF')
@@ -403,7 +487,7 @@ struct Index {
           .justifyContent(FlexAlign.Center)
         } else if (this.bookmarks.length === 0) {
           Column() {
-            Image($r('sys.media.ohos_ic_public_folder_empty'))
+            Image($r('sys.media.ohos_ic_public_arrow_down'))
               .width(80)
               .height(80)
               .fillColor('#666666')
@@ -467,6 +551,17 @@ struct Index {
         .onClick(() => {
           this.showQuickConnect = false;
         })
+      }
+      
+      // Native error dialog overlay
+      if (this.showNativeError) {
+        Column() {
+          this.NativeErrorDialog()
+        }
+        .width('100%')
+        .height('100%')
+        .backgroundColor('#80000000')
+        .justifyContent(FlexAlign.Center)
       }
     }
     .width('100%')
