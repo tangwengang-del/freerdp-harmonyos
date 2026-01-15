@@ -16,7 +16,8 @@ on:
         default: '3.10.3'
 
 env:
-  FREERDP_VERSION: ${{ github.event.inputs.freerdp_version || '3.10.3' }}
+  # 使用 FreeRDP 3.5.1 - 更稳定的版本
+  FREERDP_VERSION: ${{ github.event.inputs.freerdp_version || '3.5.1' }}
   OPENSSL_VERSION: "3.0.15"
   ZLIB_VERSION: "1.3.1"
   OHOS_SDK_VERSION: "5.0.0-Release"
@@ -190,6 +191,7 @@ jobs:
           echo "Toolchain file:"
           cat /tmp/ohos-toolchain.cmake
           
+          # 最小化配置，关闭所有非必需功能
           cmake .. \
             -DCMAKE_TOOLCHAIN_FILE=/tmp/ohos-toolchain.cmake \
             -DCMAKE_BUILD_TYPE=Release \
@@ -200,24 +202,58 @@ jobs:
             -DOPENSSL_INCLUDE_DIR=${{ github.workspace }}/install/openssl/include \
             -DOPENSSL_CRYPTO_LIBRARY=${OPENSSL_LIB}/libcrypto.a \
             -DOPENSSL_SSL_LIBRARY=${OPENSSL_LIB}/libssl.a \
-            -DWITH_SERVER=OFF -DWITH_SAMPLE=OFF -DWITH_CUPS=OFF \
-            -DWITH_PULSE=OFF -DWITH_ALSA=OFF -DWITH_OSS=OFF \
-            -DWITH_FFMPEG=OFF -DWITH_SWSCALE=OFF \
-            -DWITH_X11=OFF -DWITH_WAYLAND=OFF \
-            -DWITH_GSTREAMER_0_10=OFF -DWITH_GSTREAMER_1_0=OFF \
-            -DWITH_LIBSYSTEMD=OFF -DWITH_PCSC=OFF \
-            -DWITH_JPEG=OFF -DWITH_OPENH264=OFF \
-            -DWITH_GSM=OFF -DWITH_LAME=OFF -DWITH_FAAD2=OFF -DWITH_FAAC=OFF \
-            -DWITH_SOXR=OFF -DWITH_OPUS=OFF -DWITH_PKCS11=OFF \
-            -DWITH_ICU=OFF -DWITH_KRB5=OFF \
+            -DWITH_SERVER=OFF \
+            -DWITH_SAMPLE=OFF \
+            -DWITH_CUPS=OFF \
+            -DWITH_PULSE=OFF \
+            -DWITH_ALSA=OFF \
+            -DWITH_OSS=OFF \
+            -DWITH_FFMPEG=OFF \
+            -DWITH_SWSCALE=OFF \
+            -DWITH_X11=OFF \
+            -DWITH_WAYLAND=OFF \
+            -DWITH_GSTREAMER_0_10=OFF \
+            -DWITH_GSTREAMER_1_0=OFF \
+            -DWITH_LIBSYSTEMD=OFF \
+            -DWITH_PCSC=OFF \
+            -DWITH_JPEG=OFF \
+            -DWITH_OPENH264=OFF \
+            -DWITH_GSM=OFF \
+            -DWITH_LAME=OFF \
+            -DWITH_FAAD2=OFF \
+            -DWITH_FAAC=OFF \
+            -DWITH_SOXR=OFF \
+            -DWITH_OPUS=OFF \
+            -DWITH_PKCS11=OFF \
+            -DWITH_ICU=OFF \
+            -DWITH_KRB5=OFF \
             -DWITH_UNICODE_BUILTIN=ON \
-            -DWITH_INTERNAL_RC4=ON -DWITH_INTERNAL_MD4=ON -DWITH_INTERNAL_MD5=ON \
-            -DWITH_FUSE=OFF -DWITH_CLIENT_INTERFACE=OFF \
-            -DWITH_PROXY=OFF -DWITH_SHADOW=OFF \
-            -DWITH_CLIENT=OFF -DWITH_CLIENT_SDL=OFF -DWITH_MANPAGES=OFF \
+            -DWITH_INTERNAL_RC4=ON \
+            -DWITH_INTERNAL_MD4=ON \
+            -DWITH_INTERNAL_MD5=ON \
+            -DWITH_FUSE=OFF \
+            -DWITH_CLIENT_INTERFACE=OFF \
+            -DWITH_PROXY=OFF \
+            -DWITH_SHADOW=OFF \
+            -DWITH_CLIENT=OFF \
+            -DWITH_CLIENT_SDL=OFF \
+            -DWITH_MANPAGES=OFF \
             -DBUILD_SHARED_LIBS=ON \
-            -DWITH_CLIENT_CHANNELS=ON -DWITH_CHANNELS=ON \
-            -DCHANNEL_URBDRC=OFF -DCHANNEL_SMARTCARD=OFF \
+            -DWITH_CHANNELS=ON \
+            -DWITH_CLIENT_CHANNELS=OFF \
+            -DCHANNEL_URBDRC=OFF \
+            -DCHANNEL_SMARTCARD=OFF \
+            -DCHANNEL_CLIPRDR=ON \
+            -DCHANNEL_RDPDR=OFF \
+            -DCHANNEL_RDPSND=OFF \
+            -DCHANNEL_DRDYNVC=ON \
+            -DCHANNEL_DISP=ON \
+            -DCHANNEL_RDPGFX=ON \
+            -DCHANNEL_RDPEI=OFF \
+            -DCHANNEL_GEOMETRY=OFF \
+            -DCHANNEL_VIDEO=OFF \
+            -DWITH_WINPR_TOOLS=OFF \
+            -DWITH_BINARY_VERSIONING=OFF \
             2>&1 | tee cmake_output.log
           
           cmake --build . --parallel $(nproc) 2>&1 | tee build_output.log || {
