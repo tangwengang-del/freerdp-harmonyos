@@ -231,8 +231,8 @@ jobs:
           set(CMAKE_AR "${OHOS_AR}" CACHE FILEPATH "Archiver")
           set(CMAKE_RANLIB "${OHOS_RANLIB}" CACHE FILEPATH "Ranlib")
           set(CMAKE_STRIP "${OHOS_STRIP}" CACHE FILEPATH "Strip")
-          set(CMAKE_C_FLAGS_INIT "-fPIC -O2 -D__OHOS__=1 -DANDROID=1")
-          set(CMAKE_CXX_FLAGS_INIT "-fPIC -O2 -D__OHOS__=1 -DANDROID=1")
+          set(CMAKE_C_FLAGS_INIT "-fPIC -O2 -D__OHOS__=1")
+          set(CMAKE_CXX_FLAGS_INIT "-fPIC -O2 -D__OHOS__=1")
           set(CMAKE_SHARED_LINKER_FLAGS_INIT "-Wl,--allow-shlib-undefined")
           set(CMAKE_EXE_LINKER_FLAGS_INIT "-Wl,--allow-shlib-undefined")
           set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
@@ -305,12 +305,8 @@ jobs:
             -DWITH_PROGRESS_BAR=OFF \
             -DWITH_SIMD=OFF \
             -DWITH_NEON=OFF \
-            -DWITH_CLIENT_COMMON=ON \
+            -DWITH_CLIENT_COMMON=OFF \
             -DWITH_SERVER=OFF \
-            -DANDROID=ON \
-            -DANDROID_ABI=arm64-v8a \
-            -DANDROID_STL=c++_shared \
-            -DWITH_CLIENT_COMMON=ON \
             -DWITH_CUPS=OFF \
             -DWITH_PCSC=OFF \
             -DWITH_LIBSYSTEMD=OFF \
