@@ -1,5 +1,9 @@
 # CMakeLists.txt for FreeRDP HarmonyOS Native Library
 # This builds the N-API wrapper for FreeRDP on HarmonyOS
+#
+# IMPORTANT: All pre-compiled .so libraries in libs/arm64-v8a MUST be compiled
+# with OHOS NDK (musl libc). Libraries compiled with standard Linux toolchain
+# (glibc) will fail at runtime with "ld-linux-aarch64.so.1 not found" error.
 
 cmake_minimum_required(VERSION 3.16)
 project(freerdp_harmonyos)
@@ -16,7 +20,6 @@ if(NOT DEFINED FREERDP_DIR)
     set(FREERDP_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../libs")
 endif()
 
-# OpenSSL is already linked into FreeRDP libraries, no need to find_package
 # Pre-compiled libraries are in libs/arm64-v8a directory
 set(LIBS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../libs/arm64-v8a")
 
@@ -49,26 +52,23 @@ set(NATIVE_SOURCES
 add_library(freerdp_harmonyos SHARED ${NATIVE_SOURCES})
 
 # Link libraries
+# Note: FreeRDP core libraries (freerdp3, winpr3) have OpenSSL statically linked
+# if built with the updated workflow. Otherwise, ssl and crypto are needed.
 target_link_libraries(freerdp_harmonyos
     # HarmonyOS N-API
     ace_napi.z
     hilog_ndk.z
     
-    # FreeRDP libraries
-    # freerdp-client3 在 OHOS/musl 上无法编译，使用兼容层替代
-    # 兼容层: freerdp_client_compat.c
+    # FreeRDP core libraries (compiled with OHOS NDK)
+    # freerdp-client3 not available on OHOS/musl, using compatibility layer
     freerdp3
     winpr3
     
-    # OpenSSL (pre-compiled in libs directory)
-    ssl
-    crypto
-    
-    # FFmpeg (optional, for H.264)
-    avcodec
-    avutil
-    swscale
-    swresample
+    # OpenSSL - only if FreeRDP was built with shared OpenSSL
+    # These libraries MUST be compiled with OHOS NDK (musl libc)
+    # Uncomment if you have musl-compatible OpenSSL .so files:
+    # ssl
+    # crypto
 )
 
 # Set output properties
@@ -78,6 +78,7 @@ set_target_properties(freerdp_harmonyos PROPERTIES
 )
 
 # Compiler flags
+# Note: WITH_FFMPEG disabled as FFmpeg libraries need to be compiled with OHOS NDK
 target_compile_options(freerdp_harmonyos PRIVATE
     -Wall
     -Wextra
@@ -85,7 +86,7 @@ target_compile_options(freerdp_harmonyos PRIVATE
     -fPIC
     -DOHOS_PLATFORM
     -DWITH_OPENSSL
-    -DWITH_FFMPEG
+    # -DWITH_FFMPEG  # Disabled until FFmpeg is compiled with OHOS NDK
 )
 
 # Export symbols for N-API
