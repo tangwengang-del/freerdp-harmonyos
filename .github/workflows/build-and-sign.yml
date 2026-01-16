@@ -1,0 +1,104 @@
+name: Build and Sign HarmonyOS App
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Install dependencies
+      run: |
+        npm install
+        
+    - name: Check signing configuration
+      run: |
+        Write-Host "检查签名配置..." -ForegroundColor Yellow
+        if (Test-Path ".signing") {
+          $files = Get-ChildItem ".signing" -File
+          Write-Host "签名目录文件:" -ForegroundColor Cyan
+          $files | ForEach-Object { Write-Host "  - $($_.Name)" }
+        } else {
+          Write-Host "警告: 未找到签名目录" -ForegroundColor Yellow
+        }
+      shell: pwsh
+      
+    - name: Setup signing files from secrets
+      if: ${{ secrets.SIGNING_P12 != '' }}
+      run: |
+        New-Item -ItemType Directory -Path ".signing" -Force
+        
+        # 从secrets解码并保存签名文件
+        if ("${{ secrets.SIGNING_P12 }}" -ne "") {
+          [System.Convert]::FromBase64String("${{ secrets.SIGNING_P12 }}") | Set-Content -Path ".signing/debug.p12" -Encoding Byte
+          Write-Host "已配置 debug.p12" -ForegroundColor Green
+        }
+        
+        if ("${{ secrets.SIGNING_CER }}" -ne "") {
+          [System.Convert]::FromBase64String("${{ secrets.SIGNING_CER }}") | Set-Content -Path ".signing/debug.cer" -Encoding Byte
+          Write-Host "已配置 debug.cer" -ForegroundColor Green
+        }
+        
+        if ("${{ secrets.SIGNING_P7B }}" -ne "") {
+          [System.Convert]::FromBase64String("${{ secrets.SIGNING_P7B }}") | Set-Content -Path ".signing/debug.p7b" -Encoding Byte
+          Write-Host "已配置 debug.p7b" -ForegroundColor Green
+        }
+      shell: pwsh
+      
+    - name: Build HAP
+      run: |
+        if (Test-Path "hvigorw.bat") {
+          Write-Host "开始构建HAP..." -ForegroundColor Cyan
+          .\hvigorw.bat assembleHap --mode debug
+        } else {
+          Write-Host "错误: 未找到 hvigorw.bat" -ForegroundColor Red
+          exit 1
+        }
+      shell: pwsh
+      
+    - name: Find and list HAP files
+      run: |
+        $hapFiles = Get-ChildItem -Path "." -Filter "*.hap" -Recurse -ErrorAction SilentlyContinue
+        if ($hapFiles) {
+          Write-Host "生成的HAP文件:" -ForegroundColor Green
+          foreach ($hap in $hapFiles) {
+            Write-Host "  - $($hap.FullName)" -ForegroundColor White
+            $size = [math]::Round($hap.Length / 1MB, 2)
+            Write-Host "    大小: ${size}MB" -ForegroundColor Gray
+          }
+        } else {
+          Write-Host "未找到HAP文件" -ForegroundColor Yellow
+        }
+      shell: pwsh
+      
+    - name: Upload HAP artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: harmonyos-app
+        path: |
+          entry/build/default/outputs/**/*.hap
+        if-no-files-found: warn
+        retention-days: 30
+        
+    - name: Upload build logs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-logs
+        path: |
+          .hvigor/outputs/logs/**/*
+        if-no-files-found: ignore
+        retention-days: 7

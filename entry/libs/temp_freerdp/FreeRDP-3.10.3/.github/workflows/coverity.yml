@@ -1,0 +1,59 @@
+
+name: Coverity
+
+on:
+  schedule:
+  - cron: "0 0 * * *"
+  workflow_dispatch:
+    branches: [ master, stable* ]
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    if: ${{ github.repository_owner == 'FreeRDP' }}
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install apt dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+         devscripts \
+         ninja-build \
+         equivs \
+         ccache \
+         clang
+        sudo mk-build-deps --install packaging/deb/freerdp-nightly/control
+
+    - name: Download Coverity build tool
+      run: |
+        wget -c -N https://scan.coverity.com/download/linux64 --post-data "token=${{ secrets.COVERITY_SCAN_TOKEN }}&project=FreeRDP" -O coverity_tool.tar.gz
+        mkdir coverity_tool
+        tar xzf coverity_tool.tar.gz --strip 1 -C coverity_tool
+
+    - name: Build with Coverity build tool
+      run: |
+        export PATH=`pwd`/coverity_tool/bin:$PATH
+        export CC=/usr/bin/clang
+        export CXX=/usr/bin/clang++
+        cov-configure --template --compiler clang --comptype clangcc
+        # in source build is used to help coverity to determine relative file path
+        cmake \
+              -GNinja \
+              -C ci/cmake-preloads/config-coverity.txt \
+              -DCOVERITY_BUILD=ON \
+              -Bcov-build \
+              -S.
+        cov-build --dir cov-int cmake --build cov-build
+
+    - name: Submit build result to Coverity Scan
+      run: |
+        tar czvf cov.tar.gz cov-int
+        curl --form token=${{ secrets.COVERITY_SCAN_TOKEN }} \
+          --form email=team+coverity@freerdp.com \
+          --form file=@cov.tar.gz \
+          --form version="Commit $GITHUB_SHA" \
+          --form description="Build submitted via CI" \
+          https://scan.coverity.com/builds?project=FreeRDP

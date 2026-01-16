@@ -1,0 +1,191 @@
+#ifndef FREERDP_CONFIG_H
+#define FREERDP_CONFIG_H
+
+#include <winpr/config.h>
+
+/* Include files */
+/* #undef FREERDP_HAVE_VALGRIND_MEMCHECK_H */
+
+/* Features */
+/* #undef SWRESAMPLE_FOUND */
+/* #undef AVRESAMPLE_FOUND */
+
+/* Options */
+/* #undef WITH_OPAQUE_SETTINGS */
+
+/* #undef WITH_ADD_PLUGIN_TO_RPATH */
+/* #undef WITH_PROFILER */
+/* #undef WITH_GPROF */
+/* #undef WITH_SIMD */
+/* #undef WITH_AVX2 */
+/* #undef WITH_CUPS */
+/* #undef WITH_JPEG */
+/* #undef WITH_WIN8 */
+/* #undef WITH_AAD */
+/* #undef WITH_CAIRO */
+#define WITH_SWSCALE 1
+
+/* #undef WITH_RDPSND_DSOUND */
+/* #undef WITH_WINMM */
+/* #undef WITH_MACAUDIO */
+/* #undef WITH_OSS */
+/* #undef WITH_ALSA */
+/* #undef WITH_PULSE */
+/* #undef WITH_IOSAUDIO */
+/* #undef WITH_OPENSLES */
+/* #undef WITH_GSM */
+/* #undef WITH_LAME */
+/* #undef WITH_OPUS */
+/* #undef WITH_FAAD2 */
+/* #undef WITH_FAAC */
+/* #undef WITH_SOXR */
+#define WITH_GFX_H264 1
+/* #undef WITH_OPENH264 */
+/* #undef WITH_OPENH264_LOADING */
+#define WITH_VIDEO_FFMPEG 1
+/* #undef WITH_DSP_EXPERIMENTAL */
+#define WITH_DSP_FFMPEG 1
+/* #undef WITH_OPENCL */
+/* #undef WITH_MEDIA_FOUNDATION */
+/* #undef WITH_MEDIACODEC */
+
+/* #undef WITH_VAAPI */
+
+#define WITH_CHANNELS 1
+#define WITH_CLIENT_CHANNELS 1
+/* #undef WITH_SERVER_CHANNELS */
+
+/* #undef WITH_CHANNEL_GFXREDIR */
+/* #undef WITH_CHANNEL_RDPAPPLIST */
+
+/* Plugins */
+/* #undef WITH_RDPDR */
+
+/* Channels */
+#define CHANNEL_AINPUT 1
+#define CHANNEL_AINPUT_CLIENT 1
+/* #undef CHANNEL_AINPUT_SERVER */
+/* #undef CHANNEL_AUDIN */
+/* #undef CHANNEL_AUDIN_CLIENT */
+/* #undef CHANNEL_AUDIN_SERVER */
+#define CHANNEL_CLIPRDR 1
+#define CHANNEL_CLIPRDR_CLIENT 1
+/* #undef CHANNEL_CLIPRDR_SERVER */
+#define CHANNEL_DISP 1
+#define CHANNEL_DISP_CLIENT 1
+/* #undef CHANNEL_DISP_SERVER */
+#define CHANNEL_DRDYNVC 1
+#define CHANNEL_DRDYNVC_CLIENT 1
+/* #undef CHANNEL_DRDYNVC_SERVER */
+/* #undef CHANNEL_DRIVE */
+/* #undef CHANNEL_DRIVE_CLIENT */
+/* #undef CHANNEL_DRIVE_SERVER */
+/* #undef CHANNEL_ECHO */
+/* #undef CHANNEL_ECHO_CLIENT */
+/* #undef CHANNEL_ECHO_SERVER */
+/* #undef CHANNEL_ENCOMSP */
+/* #undef CHANNEL_ENCOMSP_CLIENT */
+/* #undef CHANNEL_ENCOMSP_SERVER */
+#define CHANNEL_GEOMETRY 1
+#define CHANNEL_GEOMETRY_CLIENT 1
+/* #undef CHANNEL_GEOMETRY_SERVER */
+/* #undef CHANNEL_GFXREDIR */
+/* #undef CHANNEL_GFXREDIR_CLIENT */
+/* #undef CHANNEL_GFXREDIR_SERVER */
+/* #undef CHANNEL_LOCATION */
+/* #undef CHANNEL_LOCATION_CLIENT */
+/* #undef CHANNEL_LOCATION_SERVER */
+/* #undef CHANNEL_PARALLEL */
+/* #undef CHANNEL_PARALLEL_CLIENT */
+/* #undef CHANNEL_PARALLEL_SERVER */
+/* #undef CHANNEL_PRINTER */
+/* #undef CHANNEL_PRINTER_CLIENT */
+/* #undef CHANNEL_PRINTER_SERVER */
+/* #undef CHANNEL_RAIL */
+/* #undef CHANNEL_RAIL_CLIENT */
+/* #undef CHANNEL_RAIL_SERVER */
+/* #undef CHANNEL_RDPAPPLIST */
+/* #undef CHANNEL_RDPAPPLIST_CLIENT */
+/* #undef CHANNEL_RDPAPPLIST_SERVER */
+/* #undef CHANNEL_RDPDR */
+/* #undef CHANNEL_RDPDR_CLIENT */
+/* #undef CHANNEL_RDPDR_SERVER */
+/* #undef CHANNEL_RDPECAM */
+/* #undef CHANNEL_RDPECAM_CLIENT */
+/* #undef CHANNEL_RDPECAM_SERVER */
+#define CHANNEL_RDPEI 1
+#define CHANNEL_RDPEI_CLIENT 1
+/* #undef CHANNEL_RDPEI_SERVER */
+#define CHANNEL_RDPGFX 1
+#define CHANNEL_RDPGFX_CLIENT 1
+/* #undef CHANNEL_RDPGFX_SERVER */
+/* #undef CHANNEL_RDPEMSC */
+/* #undef CHANNEL_RDPEMSC_CLIENT */
+/* #undef CHANNEL_RDPEMSC_SERVER */
+/* #undef CHANNEL_RDPSND */
+/* #undef CHANNEL_RDPSND_CLIENT */
+/* #undef CHANNEL_RDPSND_SERVER */
+/* #undef CHANNEL_REMDESK */
+/* #undef CHANNEL_REMDESK_CLIENT */
+/* #undef CHANNEL_REMDESK_SERVER */
+/* #undef CHANNEL_SERIAL */
+/* #undef CHANNEL_SERIAL_CLIENT */
+/* #undef CHANNEL_SERIAL_SERVER */
+/* #undef CHANNEL_SMARTCARD */
+/* #undef CHANNEL_SMARTCARD_CLIENT */
+/* #undef CHANNEL_SMARTCARD_SERVER */
+/* #undef CHANNEL_SSHAGENT */
+/* #undef CHANNEL_SSHAGENT_CLIENT */
+/* #undef CHANNEL_SSHAGENT_SERVER */
+/* #undef CHANNEL_TELEMETRY */
+/* #undef CHANNEL_TELEMETRY_CLIENT */
+/* #undef CHANNEL_TELEMETRY_SERVER */
+/* #undef CHANNEL_TSMF */
+/* #undef CHANNEL_TSMF_CLIENT */
+/* #undef CHANNEL_TSMF_SERVER */
+/* #undef CHANNEL_URBDRC */
+/* #undef CHANNEL_URBDRC_CLIENT */
+/* #undef CHANNEL_URBDRC_SERVER */
+#define CHANNEL_VIDEO 1
+#define CHANNEL_VIDEO_CLIENT 1
+/* #undef CHANNEL_VIDEO_SERVER */
+
+/* Debug */
+/* #undef WITH_DEBUG_CERTIFICATE */
+/* #undef WITH_DEBUG_CAPABILITIES */
+/* #undef WITH_DEBUG_CHANNELS */
+/* #undef WITH_DEBUG_CLIPRDR */
+/* #undef WITH_DEBUG_CODECS */
+/* #undef WITH_DEBUG_RDPGFX */
+/* #undef WITH_DEBUG_DVC */
+/* #undef WITH_DEBUG_TSMF */
+/* #undef WITH_DEBUG_KBD */
+/* #undef WITH_DEBUG_LICENSE */
+/* #undef WITH_DEBUG_NEGO */
+/* #undef WITH_DEBUG_NLA */
+/* #undef WITH_DEBUG_TSG */
+/* #undef WITH_DEBUG_RAIL */
+/* #undef WITH_DEBUG_RDP */
+/* #undef WITH_DEBUG_REDIR */
+/* #undef WITH_DEBUG_RDPDR */
+/* #undef WITH_DEBUG_RFX */
+/* #undef WITH_DEBUG_SCARD */
+/* #undef WITH_DEBUG_SND */
+/* #undef WITH_DEBUG_SVC */
+/* #undef WITH_DEBUG_RDPEI */
+/* #undef WITH_DEBUG_TIMEZONE */
+/* #undef WITH_DEBUG_URBDRC */
+/* #undef WITH_DEBUG_TRANSPORT */
+/* #undef WITH_DEBUG_WND */
+/* #undef WITH_DEBUG_X11 */
+/* #undef WITH_DEBUG_X11_LOCAL_MOVESIZE */
+/* #undef WITH_DEBUG_XV */
+/* #undef WITH_DEBUG_RINGBUFFER */
+
+/* Proxy */
+/* #undef WITH_PROXY_MODULES */
+/* #undef WITH_PROXY_EMULATE_SMARTCARD */
+
+/* #undef HAVE_AF_VSOCK_H */
+
+#endif /* FREERDP_CONFIG_H */

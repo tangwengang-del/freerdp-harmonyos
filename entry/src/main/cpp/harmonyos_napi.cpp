@@ -472,6 +472,179 @@ static napi_value FreerdpHasH264(napi_env env, napi_callback_info info) {
     return result;
 }
 
+// ==================== Background Mode & Audio Priority ====================
+
+// freerdpEnterBackgroundMode(instance: number): boolean
+static napi_value FreerdpEnterBackgroundMode(napi_env env, napi_callback_info info) {
+    size_t argc = 1;
+    napi_value args[1];
+    napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+    
+    int64_t instance = GetInt64(env, args[0]);
+    bool success = freerdp_harmonyos_enter_background_mode(instance);
+    
+    napi_value result;
+    napi_get_boolean(env, success, &result);
+    return result;
+}
+
+// freerdpExitBackgroundMode(instance: number): boolean
+static napi_value FreerdpExitBackgroundMode(napi_env env, napi_callback_info info) {
+    size_t argc = 1;
+    napi_value args[1];
+    napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+    
+    int64_t instance = GetInt64(env, args[0]);
+    bool success = freerdp_harmonyos_exit_background_mode(instance);
+    
+    napi_value result;
+    napi_get_boolean(env, success, &result);
+    return result;
+}
+
+// freerdpConfigureAudio(instance: number, playback: boolean, capture: boolean, quality: number): boolean
+static napi_value FreerdpConfigureAudio(napi_env env, napi_callback_info info) {
+    size_t argc = 4;
+    napi_value args[4];
+    napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+    
+    int64_t instance = GetInt64(env, args[0]);
+    bool playback = GetBool(env, args[1]);
+    bool capture = GetBool(env, args[2]);
+    int32_t quality = GetInt32(env, args[3]);
+    
+    bool success = freerdp_harmonyos_configure_audio(instance, playback, capture, quality);
+    
+    napi_value result;
+    napi_get_boolean(env, success, &result);
+    return result;
+}
+
+// freerdpSetAutoReconnect(instance: number, enabled: boolean, maxRetries: number, delayMs: number): boolean
+static napi_value FreerdpSetAutoReconnect(napi_env env, napi_callback_info info) {
+    size_t argc = 4;
+    napi_value args[4];
+    napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+    
+    int64_t instance = GetInt64(env, args[0]);
+    bool enabled = GetBool(env, args[1]);
+    int32_t maxRetries = GetInt32(env, args[2]);
+    int32_t delayMs = GetInt32(env, args[3]);
+    
+    bool success = freerdp_harmonyos_set_auto_reconnect(instance, enabled, maxRetries, delayMs);
+    
+    napi_value result;
+    napi_get_boolean(env, success, &result);
+    return result;
+}
+
+// freerdpGetConnectionHealth(instance: number): number
+static napi_value FreerdpGetConnectionHealth(napi_env env, napi_callback_info info) {
+    size_t argc = 1;
+    napi_value args[1];
+    napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+    
+    int64_t instance = GetInt64(env, args[0]);
+    int32_t health = freerdp_harmonyos_get_connection_health(instance);
+    
+    napi_value result;
+    napi_create_int32(env, health, &result);
+    return result;
+}
+
+// ==================== Screen Refresh ====================
+
+// freerdpRequestRefresh(instance: number): boolean
+static napi_value FreerdpRequestRefresh(napi_env env, napi_callback_info info) {
+    size_t argc = 1;
+    napi_value args[1];
+    napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+    
+    int64_t instance = GetInt64(env, args[0]);
+    bool success = freerdp_harmonyos_request_refresh(instance);
+    
+    napi_value result;
+    napi_get_boolean(env, success, &result);
+    return result;
+}
+
+// freerdpRequestRefreshRect(instance: number, x: number, y: number, width: number, height: number): boolean
+static napi_value FreerdpRequestRefreshRect(napi_env env, napi_callback_info info) {
+    size_t argc = 5;
+    napi_value args[5];
+    napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+    
+    int64_t instance = GetInt64(env, args[0]);
+    int32_t x = GetInt32(env, args[1]);
+    int32_t y = GetInt32(env, args[2]);
+    int32_t width = GetInt32(env, args[3]);
+    int32_t height = GetInt32(env, args[4]);
+    
+    bool success = freerdp_harmonyos_request_refresh_rect(instance, x, y, width, height);
+    
+    napi_value result;
+    napi_get_boolean(env, success, &result);
+    return result;
+}
+
+// ==================== Connection Stability ====================
+
+// freerdpIsInBackgroundMode(instance: number): boolean
+static napi_value FreerdpIsInBackgroundMode(napi_env env, napi_callback_info info) {
+    size_t argc = 1;
+    napi_value args[1];
+    napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+    
+    int64_t instance = GetInt64(env, args[0]);
+    bool isBackground = freerdp_harmonyos_is_in_background_mode(instance);
+    
+    napi_value result;
+    napi_get_boolean(env, isBackground, &result);
+    return result;
+}
+
+// freerdpSendKeepalive(instance: number): boolean
+static napi_value FreerdpSendKeepalive(napi_env env, napi_callback_info info) {
+    size_t argc = 1;
+    napi_value args[1];
+    napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+    
+    int64_t instance = GetInt64(env, args[0]);
+    bool success = freerdp_harmonyos_send_keepalive(instance);
+    
+    napi_value result;
+    napi_get_boolean(env, success, &result);
+    return result;
+}
+
+// freerdpGetIdleTime(instance: number): number
+static napi_value FreerdpGetIdleTime(napi_env env, napi_callback_info info) {
+    size_t argc = 1;
+    napi_value args[1];
+    napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+    
+    int64_t instance = GetInt64(env, args[0]);
+    uint64_t idleTime = freerdp_harmonyos_get_idle_time(instance);
+    
+    napi_value result;
+    napi_create_int64(env, (int64_t)idleTime, &result);
+    return result;
+}
+
+// freerdpCheckConnectionStatus(instance: number): number
+static napi_value FreerdpCheckConnectionStatus(napi_env env, napi_callback_info info) {
+    size_t argc = 1;
+    napi_value args[1];
+    napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+    
+    int64_t instance = GetInt64(env, args[0]);
+    int32_t status = freerdp_harmonyos_check_connection_status(instance);
+    
+    napi_value result;
+    napi_create_int32(env, status, &result);
+    return result;
+}
+
 // freerdpIsConnected(instance: number): boolean
 static napi_value FreerdpIsConnected(napi_env env, napi_callback_info info) {
     size_t argc = 1;
@@ -678,6 +851,23 @@ static napi_value Init(napi_env env, napi_value exports) {
         { "freerdpGetVersion", nullptr, FreerdpGetVersion, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "freerdpHasH264", nullptr, FreerdpHasH264, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "freerdpIsConnected", nullptr, FreerdpIsConnected, nullptr, nullptr, nullptr, napi_default, nullptr },
+        
+        // Background mode & audio priority
+        { "freerdpEnterBackgroundMode", nullptr, FreerdpEnterBackgroundMode, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "freerdpExitBackgroundMode", nullptr, FreerdpExitBackgroundMode, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "freerdpConfigureAudio", nullptr, FreerdpConfigureAudio, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "freerdpSetAutoReconnect", nullptr, FreerdpSetAutoReconnect, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "freerdpGetConnectionHealth", nullptr, FreerdpGetConnectionHealth, nullptr, nullptr, nullptr, napi_default, nullptr },
+        
+        // Screen refresh
+        { "freerdpRequestRefresh", nullptr, FreerdpRequestRefresh, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "freerdpRequestRefreshRect", nullptr, FreerdpRequestRefreshRect, nullptr, nullptr, nullptr, napi_default, nullptr },
+        
+        // Connection stability
+        { "freerdpIsInBackgroundMode", nullptr, FreerdpIsInBackgroundMode, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "freerdpSendKeepalive", nullptr, FreerdpSendKeepalive, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "freerdpGetIdleTime", nullptr, FreerdpGetIdleTime, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "freerdpCheckConnectionStatus", nullptr, FreerdpCheckConnectionStatus, nullptr, nullptr, nullptr, napi_default, nullptr },
         
         // Callback setters
         { "setOnConnectionSuccess", nullptr, SetOnConnectionSuccess, nullptr, nullptr, nullptr, napi_default, nullptr },

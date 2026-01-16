@@ -500,6 +500,188 @@ export class LibFreeRDP {
     // TODO: Add heartbeat verification
     return true;
   }
+
+  // ==================== Background Mode & Audio Priority ====================
+
+  /**
+   * Enter background mode (stop graphics, continue audio)
+   * Use when app goes to background or screen is locked
+   */
+  static enterBackgroundMode(inst: number): boolean {
+    if (inst === 0) {
+      return false;
+    }
+    try {
+      return freerdpNative.freerdpEnterBackgroundMode(inst);
+    } catch (e) {
+      console.error(`${LibFreeRDP.TAG}: enterBackgroundMode error:`, e);
+      return false;
+    }
+  }
+
+  /**
+   * Exit background mode (resume graphics)
+   * Use when app comes to foreground or screen is unlocked
+   */
+  static exitBackgroundMode(inst: number): boolean {
+    if (inst === 0) {
+      return false;
+    }
+    try {
+      return freerdpNative.freerdpExitBackgroundMode(inst);
+    } catch (e) {
+      console.error(`${LibFreeRDP.TAG}: exitBackgroundMode error:`, e);
+      return false;
+    }
+  }
+
+  /**
+   * Configure audio settings
+   * @param playback Enable audio playback
+   * @param capture Enable audio capture (microphone)
+   * @param quality Audio quality: 0=dynamic, 1=medium, 2=high
+   */
+  static configureAudio(inst: number, playback: boolean, capture: boolean, quality: number): boolean {
+    if (inst === 0) {
+      return false;
+    }
+    try {
+      return freerdpNative.freerdpConfigureAudio(inst, playback, capture, quality);
+    } catch (e) {
+      console.error(`${LibFreeRDP.TAG}: configureAudio error:`, e);
+      return false;
+    }
+  }
+
+  /**
+   * Configure auto-reconnect settings
+   * @param enabled Enable auto-reconnect
+   * @param maxRetries Maximum reconnect attempts
+   * @param delayMs Initial delay between attempts
+   */
+  static setAutoReconnect(inst: number, enabled: boolean, maxRetries: number, delayMs: number): boolean {
+    if (inst === 0) {
+      return false;
+    }
+    try {
+      return freerdpNative.freerdpSetAutoReconnect(inst, enabled, maxRetries, delayMs);
+    } catch (e) {
+      console.error(`${LibFreeRDP.TAG}: setAutoReconnect error:`, e);
+      return false;
+    }
+  }
+
+  /**
+   * Get connection health status
+   * Returns: -1=invalid, 0=disconnected, 1=degraded, 2=healthy
+   */
+  static getConnectionHealth(inst: number): number {
+    if (inst === 0) {
+      return -1;
+    }
+    try {
+      return freerdpNative.freerdpGetConnectionHealth(inst);
+    } catch (e) {
+      console.error(`${LibFreeRDP.TAG}: getConnectionHealth error:`, e);
+      return -1;
+    }
+  }
+
+  // ==================== Screen Refresh ====================
+
+  /**
+   * Request full screen refresh
+   * Use after unlock/foreground to prevent static screen
+   */
+  static requestRefresh(inst: number): boolean {
+    if (inst === 0) {
+      return false;
+    }
+    try {
+      return freerdpNative.freerdpRequestRefresh(inst);
+    } catch (e) {
+      console.error(`${LibFreeRDP.TAG}: requestRefresh error:`, e);
+      return false;
+    }
+  }
+
+  /**
+   * Request partial screen refresh for specific area
+   */
+  static requestRefreshRect(inst: number, x: number, y: number, width: number, height: number): boolean {
+    if (inst === 0) {
+      return false;
+    }
+    try {
+      return freerdpNative.freerdpRequestRefreshRect(inst, x, y, width, height);
+    } catch (e) {
+      console.error(`${LibFreeRDP.TAG}: requestRefreshRect error:`, e);
+      return false;
+    }
+  }
+
+  // ==================== Connection Stability ====================
+
+  /**
+   * Check if in background mode
+   */
+  static isInBackgroundMode(inst: number): boolean {
+    if (inst === 0) {
+      return false;
+    }
+    try {
+      return freerdpNative.freerdpIsInBackgroundMode(inst);
+    } catch (e) {
+      console.error(`${LibFreeRDP.TAG}: isInBackgroundMode error:`, e);
+      return false;
+    }
+  }
+
+  /**
+   * Send keepalive to maintain connection
+   */
+  static sendKeepalive(inst: number): boolean {
+    if (inst === 0) {
+      return false;
+    }
+    try {
+      return freerdpNative.freerdpSendKeepalive(inst);
+    } catch (e) {
+      console.error(`${LibFreeRDP.TAG}: sendKeepalive error:`, e);
+      return false;
+    }
+  }
+
+  /**
+   * Get idle time since last network activity (milliseconds)
+   */
+  static getIdleTime(inst: number): number {
+    if (inst === 0) {
+      return 0;
+    }
+    try {
+      return freerdpNative.freerdpGetIdleTime(inst);
+    } catch (e) {
+      console.error(`${LibFreeRDP.TAG}: getIdleTime error:`, e);
+      return 0;
+    }
+  }
+
+  /**
+   * Check detailed connection status
+   * Returns: -1=invalid, 0=disconnecting, 1=network_timeout, 2=event_failed, 10=background, 100=foreground
+   */
+  static checkConnectionStatus(inst: number): number {
+    if (inst === 0) {
+      return -1;
+    }
+    try {
+      return freerdpNative.freerdpCheckConnectionStatus(inst);
+    } catch (e) {
+      console.error(`${LibFreeRDP.TAG}: checkConnectionStatus error:`, e);
+      return -1;
+    }
+  }
 }
 
 export default LibFreeRDP;
