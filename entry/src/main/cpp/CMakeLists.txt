@@ -54,8 +54,10 @@ target_link_libraries(freerdp_harmonyos
     ace_napi.z
     hilog_ndk.z
     
-    # FreeRDP libraries (3.5.1 for OHOS/musl libc compatibility)
-    # Note: freerdp-client3 不可用于OHOS - 使用兼容层替代
+    # FreeRDP libraries
+    # 如果 freerdp-client3 可用，优先使用原生库
+    # 否则使用兼容层 (freerdp_client_compat.c)
+    $<$<TARGET_EXISTS:freerdp-client3>:freerdp-client3>
     freerdp3
     winpr3
     
