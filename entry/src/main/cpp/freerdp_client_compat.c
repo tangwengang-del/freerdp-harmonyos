@@ -4,6 +4,11 @@
  * This file provides implementations for freerdp-client functions
  * that are not available when building without WITH_CLIENT_COMMON.
  * 
+ * Features:
+ * - Context management
+ * - Auto-reconnect support
+ * - RDPSND audio channel support
+ * 
  * Based on FreeRDP client/common/client.c
  */
 
@@ -18,9 +23,28 @@
 #include <winpr/synch.h>
 #include <winpr/file.h>
 #include <winpr/path.h>
+#include <winpr/thread.h>
+#include <winpr/wlog.h>
 
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+
+/* Reconnection settings */
+#define RECONNECT_MAX_RETRIES 5
+#define RECONNECT_INITIAL_DELAY_MS 1000
+#define RECONNECT_MAX_DELAY_MS 30000
+
+/* Extended context for reconnection support */
+typedef struct {
+    BOOL reconnectEnabled;
+    UINT32 reconnectMaxRetries;
+    UINT32 reconnectDelayMs;
+    UINT32 reconnectCount;
+    BOOL isReconnecting;
+    HANDLE reconnectThread;
+    BOOL stopReconnect;
+} ClientReconnectContext;
 
 /* Simple context creation without the full client library */
 rdpContext* freerdp_client_context_new(const RDP_CLIENT_ENTRY_POINTS* pEntryPoints)
@@ -245,4 +269,249 @@ void freerdp_client_OnChannelDisconnectedEventHandler(void* context,
     /* Placeholder - handled by application */
     (void)context;
     (void)e;
+}
+
+/*
+ * ============================================================================
+ * Auto-Reconnect Support
+ * ============================================================================
+ */
+
+/* Get reconnect context from rdpContext */
+static ClientReconnectContext* get_reconnect_context(rdpContext* context)
+{
+    if (!context || !context->instance)
+        return NULL;
+    
+    /* Store in instance's unused field or allocate separately */
+    return (ClientReconnectContext*)context->custom;
+}
+
+/* Initialize reconnect support */
+BOOL freerdp_client_reconnect_init(rdpContext* context, UINT32 maxRetries, UINT32 delayMs)
+{
+    ClientReconnectContext* rctx;
+    
+    if (!context)
+        return FALSE;
+    
+    rctx = (ClientReconnectContext*)calloc(1, sizeof(ClientReconnectContext));
+    if (!rctx)
+        return FALSE;
+    
+    rctx->reconnectEnabled = TRUE;
+    rctx->reconnectMaxRetries = maxRetries > 0 ? maxRetries : RECONNECT_MAX_RETRIES;
+    rctx->reconnectDelayMs = delayMs > 0 ? delayMs : RECONNECT_INITIAL_DELAY_MS;
+    rctx->reconnectCount = 0;
+    rctx->isReconnecting = FALSE;
+    rctx->stopReconnect = FALSE;
+    rctx->reconnectThread = NULL;
+    
+    context->custom = rctx;
+    
+    return TRUE;
+}
+
+/* Cleanup reconnect support */
+void freerdp_client_reconnect_cleanup(rdpContext* context)
+{
+    ClientReconnectContext* rctx = get_reconnect_context(context);
+    
+    if (rctx)
+    {
+        rctx->stopReconnect = TRUE;
+        
+        if (rctx->reconnectThread)
+        {
+            WaitForSingleObject(rctx->reconnectThread, 5000);
+            CloseHandle(rctx->reconnectThread);
+        }
+        
+        free(rctx);
+        context->custom = NULL;
+    }
+}
+
+/* Attempt a single reconnection */
+static BOOL attempt_reconnect(rdpContext* context)
+{
+    freerdp* instance;
+    rdpSettings* settings;
+    
+    if (!context || !context->instance)
+        return FALSE;
+    
+    instance = context->instance;
+    settings = context->settings;
+    
+    /* Disconnect first if connected */
+    if (freerdp_is_connected(instance))
+    {
+        freerdp_disconnect(instance);
+    }
+    
+    /* Small delay before reconnecting */
+    usleep(100000);  /* 100ms */
+    
+    /* Attempt to reconnect */
+    if (!freerdp_connect(instance))
+    {
+        return FALSE;
+    }
+    
+    return TRUE;
+}
+
+/* Perform reconnection with exponential backoff */
+BOOL freerdp_client_auto_reconnect(rdpContext* context)
+{
+    ClientReconnectContext* rctx;
+    UINT32 delay;
+    UINT32 retries;
+    
+    if (!context)
+        return FALSE;
+    
+    rctx = get_reconnect_context(context);
+    if (!rctx || !rctx->reconnectEnabled)
+    {
+        /* Reconnect not configured, try once */
+        return attempt_reconnect(context);
+    }
+    
+    if (rctx->isReconnecting)
+    {
+        /* Already reconnecting */
+        return FALSE;
+    }
+    
+    rctx->isReconnecting = TRUE;
+    delay = rctx->reconnectDelayMs;
+    
+    for (retries = 0; retries < rctx->reconnectMaxRetries && !rctx->stopReconnect; retries++)
+    {
+        rctx->reconnectCount = retries + 1;
+        
+        /* Log reconnection attempt */
+        WLog_INFO("OHOS_RDP", "Reconnect attempt %u/%u (delay: %ums)", 
+                  retries + 1, rctx->reconnectMaxRetries, delay);
+        
+        /* Wait before retry */
+        if (retries > 0)
+        {
+            usleep(delay * 1000);
+            
+            /* Exponential backoff with max limit */
+            delay = delay * 2;
+            if (delay > RECONNECT_MAX_DELAY_MS)
+                delay = RECONNECT_MAX_DELAY_MS;
+        }
+        
+        /* Attempt reconnection */
+        if (attempt_reconnect(context))
+        {
+            WLog_INFO("OHOS_RDP", "Reconnection successful after %u attempts", retries + 1);
+            rctx->isReconnecting = FALSE;
+            rctx->reconnectCount = 0;
+            return TRUE;
+        }
+    }
+    
+    WLog_ERR("OHOS_RDP", "Reconnection failed after %u attempts", retries);
+    rctx->isReconnecting = FALSE;
+    return FALSE;
+}
+
+/* Check if reconnection is in progress */
+BOOL freerdp_client_is_reconnecting(rdpContext* context)
+{
+    ClientReconnectContext* rctx = get_reconnect_context(context);
+    return rctx ? rctx->isReconnecting : FALSE;
+}
+
+/* Get current reconnect attempt count */
+UINT32 freerdp_client_get_reconnect_count(rdpContext* context)
+{
+    ClientReconnectContext* rctx = get_reconnect_context(context);
+    return rctx ? rctx->reconnectCount : 0;
+}
+
+/* Stop ongoing reconnection */
+void freerdp_client_stop_reconnect(rdpContext* context)
+{
+    ClientReconnectContext* rctx = get_reconnect_context(context);
+    if (rctx)
+    {
+        rctx->stopReconnect = TRUE;
+    }
+}
+
+/* Enable/disable auto-reconnect */
+void freerdp_client_set_reconnect_enabled(rdpContext* context, BOOL enabled)
+{
+    ClientReconnectContext* rctx = get_reconnect_context(context);
+    if (rctx)
+    {
+        rctx->reconnectEnabled = enabled;
+    }
+}
+
+/*
+ * ============================================================================
+ * Audio (RDPSND) Support Helpers
+ * ============================================================================
+ */
+
+/* Configure audio settings for RDPSND */
+BOOL freerdp_client_configure_audio(rdpSettings* settings, BOOL playback, BOOL capture)
+{
+    if (!settings)
+        return FALSE;
+    
+    /* Enable audio playback */
+    if (playback)
+    {
+        freerdp_settings_set_bool(settings, FreeRDP_AudioPlayback, TRUE);
+        freerdp_settings_set_bool(settings, FreeRDP_RemoteConsoleAudio, FALSE);
+    }
+    
+    /* Enable audio capture (microphone) */
+    if (capture)
+    {
+        freerdp_settings_set_bool(settings, FreeRDP_AudioCapture, TRUE);
+    }
+    
+    return TRUE;
+}
+
+/* Set audio quality mode */
+BOOL freerdp_client_set_audio_quality(rdpSettings* settings, int qualityMode)
+{
+    if (!settings)
+        return FALSE;
+    
+    /* Quality modes:
+     * 0 = Dynamic (auto-adjust based on bandwidth)
+     * 1 = Medium 
+     * 2 = High
+     */
+    switch (qualityMode)
+    {
+        case 0: /* Dynamic */
+            freerdp_settings_set_uint32(settings, FreeRDP_ConnectionType, 
+                                        CONNECTION_TYPE_AUTODETECT);
+            break;
+        case 1: /* Medium */
+            freerdp_settings_set_uint32(settings, FreeRDP_ConnectionType, 
+                                        CONNECTION_TYPE_BROADBAND_LOW);
+            break;
+        case 2: /* High */
+            freerdp_settings_set_uint32(settings, FreeRDP_ConnectionType, 
+                                        CONNECTION_TYPE_LAN);
+            break;
+        default:
+            return FALSE;
+    }
+    
+    return TRUE;
 }
