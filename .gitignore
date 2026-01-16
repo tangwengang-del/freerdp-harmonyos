@@ -56,3 +56,6 @@ android/Studio/local.properties
 # Keep signing directory README
 !.signing/README.md
 !.signing/签名文件说明.txt
+
+# Chat logs (sensitive)
+聊天记录/
