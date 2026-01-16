@@ -307,6 +307,7 @@ jobs:
             -DWITH_NEON=OFF \
             -DWITH_CLIENT_COMMON=ON \
             -DWITH_SERVER=OFF \
+            -DANDROID=ON \
             -DCHANNEL_AUDIN=OFF \
             -DCHANNEL_ENCOMSP=OFF \
             -DCHANNEL_RAIL=OFF \
