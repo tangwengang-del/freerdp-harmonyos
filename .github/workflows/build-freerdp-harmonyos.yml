@@ -311,7 +311,7 @@ jobs:
             -DWITH_PCSC=OFF \
             -DWITH_LIBSYSTEMD=OFF \
             -DWITH_KEYBOARD_LAYOUT_FROM_FILE=OFF \
-            -DCHANNEL_AUDIN=OFF \
+            -DCHANNEL_AUDIN=ON \
             -DCHANNEL_ENCOMSP=OFF \
             -DCHANNEL_RAIL=OFF \
             -DCHANNEL_REMDESK=OFF \
@@ -320,7 +320,8 @@ jobs:
             -DCHANNEL_SMARTCARD=OFF \
             -DCHANNEL_CLIPRDR=ON \
             -DCHANNEL_RDPDR=OFF \
-            -DCHANNEL_RDPSND=OFF \
+            -DCHANNEL_RDPSND=ON \
+            -DCHANNEL_RDPSND_CLIENT=ON \
             -DCHANNEL_DRDYNVC=ON \
             -DCHANNEL_DISP=ON \
             -DCHANNEL_RDPGFX=ON \
