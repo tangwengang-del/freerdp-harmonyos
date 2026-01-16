@@ -53,7 +53,7 @@ target_link_libraries(freerdp_harmonyos
     ace_napi.z
     hilog_ndk.z
     
-    # FreeRDP libraries
+    # FreeRDP libraries (3.5.1 for OHOS/musl libc compatibility)
     freerdp3
     freerdp-client3
     winpr3
