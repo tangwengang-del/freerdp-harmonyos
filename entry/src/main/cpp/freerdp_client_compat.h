@@ -75,6 +75,55 @@ BOOL freerdp_client_configure_audio(rdpSettings* settings, BOOL playback, BOOL c
 /* Set audio quality mode (0=dynamic, 1=medium, 2=high) */
 BOOL freerdp_client_set_audio_quality(rdpSettings* settings, int qualityMode);
 
+/*
+ * Connection Stability & Monitoring
+ */
+
+/* Callback function types */
+typedef void (*pOnConnectionLostCallback)(void* context, int errorCode);
+typedef void (*pOnReconnectingCallback)(void* context, int attempt, int maxAttempts);
+typedef void (*pOnReconnectedCallback)(void* context);
+
+/* Initialize connection monitoring with heartbeat */
+BOOL freerdp_client_init_connection_monitor(rdpContext* context, 
+                                             UINT32 heartbeatIntervalMs,
+                                             UINT32 connectionTimeoutMs);
+
+/* Set connection event callbacks */
+void freerdp_client_set_connection_callbacks(rdpContext* context,
+                                              pOnConnectionLostCallback onLost,
+                                              pOnReconnectingCallback onReconnecting,
+                                              pOnReconnectedCallback onReconnected,
+                                              void* callbackContext);
+
+/* Update connection state */
+void freerdp_client_set_connected(rdpContext* context, BOOL connected);
+
+/* Check if connection is alive */
+BOOL freerdp_client_check_connection_alive(rdpContext* context);
+
+/* Update activity timestamp (call on any data received) */
+void freerdp_client_update_activity(rdpContext* context);
+
+/* Handle connection lost event (triggers auto-reconnect if enabled) */
+BOOL freerdp_client_on_connection_lost(rdpContext* context, int errorCode);
+
+/*
+ * Background/Lockscreen Mode - Audio Only
+ */
+
+/* Enter background mode (only audio, no graphics) - for lockscreen/minimize */
+BOOL freerdp_client_enter_background_mode(rdpContext* context);
+
+/* Exit background mode (resume graphics) - for unlock/restore */
+BOOL freerdp_client_exit_background_mode(rdpContext* context);
+
+/* Check if in background mode */
+BOOL freerdp_client_is_in_background(rdpContext* context);
+
+/* Check if audio only mode is active */
+BOOL freerdp_client_is_audio_only(rdpContext* context);
+
 #ifdef __cplusplus
 }
 #endif
