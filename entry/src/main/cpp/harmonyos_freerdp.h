@@ -170,6 +170,19 @@ const char* freerdp_harmonyos_get_version(void);
 bool freerdp_harmonyos_has_h264(void);
 bool freerdp_harmonyos_is_connected(int64_t instance);
 
+/* Background Mode & Audio Priority */
+bool freerdp_harmonyos_enter_background_mode(int64_t instance);
+bool freerdp_harmonyos_exit_background_mode(int64_t instance);
+bool freerdp_harmonyos_configure_audio(int64_t instance, bool playback, bool capture, int quality);
+bool freerdp_harmonyos_set_auto_reconnect(int64_t instance, bool enabled, int maxRetries, int delayMs);
+int freerdp_harmonyos_get_connection_health(int64_t instance);
+
+/* Connection health status values */
+#define CONNECTION_HEALTH_INVALID     -1
+#define CONNECTION_HEALTH_DISCONNECTED 0
+#define CONNECTION_HEALTH_DEGRADED     1
+#define CONNECTION_HEALTH_HEALTHY      2
+
 #ifdef __cplusplus
 }
 #endif

@@ -10,6 +10,7 @@
  */
 
 #include "harmonyos_freerdp.h"
+#include "freerdp_client_compat.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -487,39 +488,92 @@ static int harmonyos_freerdp_run(freerdp* instance) {
     return status;
 }
 
-/* Thread function */
+/* Auto-reconnect callback for logging */
+static void internal_on_reconnecting(void* ctx, int attempt, int maxAttempts) {
+    LOGI("Auto-reconnect attempt %d/%d", attempt, maxAttempts);
+}
+
+/* Thread function with auto-reconnect support */
 static DWORD WINAPI harmonyos_thread_func(LPVOID param) {
     DWORD status = ERROR_BAD_ARGUMENTS;
     freerdp* instance = (freerdp*)param;
+    rdpContext* context;
+    BOOL shouldReconnect = FALSE;
+    int reconnectAttempts = 0;
+    const int MAX_RECONNECT_ATTEMPTS = 5;
+    
     LOGD("Start...");
 
     WINPR_ASSERT(instance);
     WINPR_ASSERT(instance->context);
+    
+    context = instance->context;
 
-    if (freerdp_client_start(instance->context) != CHANNEL_RC_OK)
+    if (freerdp_client_start(context) != CHANNEL_RC_OK)
         goto fail;
 
-    LOGD("Connect...");
+reconnect_loop:
+    LOGD("Connect... (attempt %d)", reconnectAttempts + 1);
 
-    if (!freerdp_connect(instance))
+    if (!freerdp_connect(instance)) {
         status = GetLastError();
-    else {
+        LOGE("Connection failed with error: %08X", status);
+        
+        /* Check if we should try to reconnect */
+        if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+            reconnectAttempts++;
+            LOGI("Will retry connection in %d seconds... (%d/%d)", 
+                 reconnectAttempts * 2, reconnectAttempts, MAX_RECONNECT_ATTEMPTS);
+            
+            /* Exponential backoff */
+            Sleep(reconnectAttempts * 2000);
+            
+            if (!freerdp_shall_disconnect_context(context)) {
+                goto reconnect_loop;
+            }
+        }
+    } else {
+        /* Connection successful */
+        reconnectAttempts = 0;
+        freerdp_client_set_connected(context, TRUE);
+        
         status = harmonyos_freerdp_run(instance);
-        LOGD("Disconnect...");
+        LOGD("Run loop exited with status: %08X", status);
+        
+        freerdp_client_set_connected(context, FALSE);
 
-        if (!freerdp_disconnect(instance))
-            status = GetLastError();
+        /* Check if disconnection was unexpected */
+        shouldReconnect = (status != CHANNEL_RC_OK) && 
+                          !freerdp_shall_disconnect_context(context) &&
+                          (reconnectAttempts < MAX_RECONNECT_ATTEMPTS);
+
+        if (!freerdp_disconnect(instance)) {
+            LOGE("Disconnect failed");
+        }
+
+        if (shouldReconnect) {
+            reconnectAttempts++;
+            LOGI("Connection lost, attempting reconnect... (%d/%d)", 
+                 reconnectAttempts, MAX_RECONNECT_ATTEMPTS);
+            
+            /* Wait before reconnecting */
+            Sleep(reconnectAttempts * 2000);
+            
+            if (!freerdp_shall_disconnect_context(context)) {
+                goto reconnect_loop;
+            }
+        }
     }
 
     LOGD("Stop...");
 
-    if (freerdp_client_stop(instance->context) != CHANNEL_RC_OK)
+    if (freerdp_client_stop(context) != CHANNEL_RC_OK)
         goto fail;
 
 fail:
     LOGD("Session ended with %08X", status);
 
-    if (status == CHANNEL_RC_OK) {
+    if (status == CHANNEL_RC_OK || reconnectAttempts == 0) {
         if (g_onDisconnected) {
             g_onDisconnected((int64_t)(uintptr_t)instance);
         }
@@ -913,4 +967,182 @@ bool freerdp_harmonyos_is_connected(int64_t instance) {
     
     /* FreeRDP 3.x doesn't have freerdp_is_connected, check via shall_disconnect */
     return !freerdp_shall_disconnect_context(inst->context);
+}
+
+/* ==================== Background Mode & Audio Priority ==================== */
+
+bool freerdp_harmonyos_enter_background_mode(int64_t instance) {
+    freerdp* inst = (freerdp*)(uintptr_t)instance;
+    
+    if (!inst || !inst->context) {
+        LOGE("enter_background_mode: Invalid instance");
+        return false;
+    }
+    
+    rdpContext* context = inst->context;
+    rdpSettings* settings = context->settings;
+    rdpUpdate* update = context->update;
+    
+    if (!settings || !update) {
+        LOGE("enter_background_mode: Invalid settings or update");
+        return false;
+    }
+    
+    LOGI("Entering background mode - audio only");
+    
+    /* Disable graphics decoding to save CPU/bandwidth */
+    freerdp_settings_set_bool(settings, FreeRDP_DeactivateClientDecoding, TRUE);
+    
+    /* Send SuppressOutput PDU to tell server to stop sending graphics */
+    RECTANGLE_16 rect = { 0 };
+    rect.left = 0;
+    rect.top = 0;
+    rect.right = (UINT16)freerdp_settings_get_uint32(settings, FreeRDP_DesktopWidth);
+    rect.bottom = (UINT16)freerdp_settings_get_uint32(settings, FreeRDP_DesktopHeight);
+    
+    if (update->SuppressOutput) {
+        /* FALSE = suppress display updates (only audio continues) */
+        if (!update->SuppressOutput(context, FALSE, &rect)) {
+            LOGW("SuppressOutput PDU failed, but continuing");
+        }
+    }
+    
+    LOGI("Background mode active - graphics suppressed, audio continues");
+    return true;
+}
+
+bool freerdp_harmonyos_exit_background_mode(int64_t instance) {
+    freerdp* inst = (freerdp*)(uintptr_t)instance;
+    
+    if (!inst || !inst->context) {
+        LOGE("exit_background_mode: Invalid instance");
+        return false;
+    }
+    
+    rdpContext* context = inst->context;
+    rdpSettings* settings = context->settings;
+    rdpUpdate* update = context->update;
+    
+    if (!settings || !update) {
+        LOGE("exit_background_mode: Invalid settings or update");
+        return false;
+    }
+    
+    LOGI("Exiting background mode - resuming graphics");
+    
+    /* Re-enable graphics decoding */
+    freerdp_settings_set_bool(settings, FreeRDP_DeactivateClientDecoding, FALSE);
+    
+    /* Send SuppressOutput PDU to tell server to resume graphics */
+    RECTANGLE_16 rect = { 0 };
+    rect.left = 0;
+    rect.top = 0;
+    rect.right = (UINT16)freerdp_settings_get_uint32(settings, FreeRDP_DesktopWidth);
+    rect.bottom = (UINT16)freerdp_settings_get_uint32(settings, FreeRDP_DesktopHeight);
+    
+    if (update->SuppressOutput) {
+        /* TRUE = allow display updates */
+        if (!update->SuppressOutput(context, TRUE, &rect)) {
+            LOGW("SuppressOutput resume PDU failed");
+        }
+    }
+    
+    LOGI("Background mode exited - graphics resumed");
+    return true;
+}
+
+bool freerdp_harmonyos_configure_audio(int64_t instance, bool playback, bool capture, int quality) {
+    freerdp* inst = (freerdp*)(uintptr_t)instance;
+    
+    if (!inst || !inst->context) {
+        LOGE("configure_audio: Invalid instance");
+        return false;
+    }
+    
+    rdpSettings* settings = inst->context->settings;
+    if (!settings) {
+        LOGE("configure_audio: Invalid settings");
+        return false;
+    }
+    
+    /* Enable audio playback */
+    if (playback) {
+        freerdp_settings_set_bool(settings, FreeRDP_AudioPlayback, TRUE);
+        freerdp_settings_set_bool(settings, FreeRDP_RemoteConsoleAudio, FALSE);
+        LOGI("Audio playback enabled");
+    }
+    
+    /* Enable audio capture (microphone) */
+    if (capture) {
+        freerdp_settings_set_bool(settings, FreeRDP_AudioCapture, TRUE);
+        LOGI("Audio capture enabled");
+    }
+    
+    /* Set quality based on connection type */
+    switch (quality) {
+        case 0: /* Dynamic */
+            freerdp_settings_set_uint32(settings, FreeRDP_ConnectionType, CONNECTION_TYPE_AUTODETECT);
+            LOGI("Audio quality: Dynamic");
+            break;
+        case 1: /* Medium */
+            freerdp_settings_set_uint32(settings, FreeRDP_ConnectionType, CONNECTION_TYPE_BROADBAND_LOW);
+            LOGI("Audio quality: Medium");
+            break;
+        case 2: /* High */
+            freerdp_settings_set_uint32(settings, FreeRDP_ConnectionType, CONNECTION_TYPE_LAN);
+            LOGI("Audio quality: High");
+            break;
+        default:
+            LOGW("Unknown audio quality mode: %d", quality);
+            break;
+    }
+    
+    return true;
+}
+
+bool freerdp_harmonyos_set_auto_reconnect(int64_t instance, bool enabled, int maxRetries, int delayMs) {
+    freerdp* inst = (freerdp*)(uintptr_t)instance;
+    
+    if (!inst || !inst->context) {
+        LOGE("set_auto_reconnect: Invalid instance");
+        return false;
+    }
+    
+    rdpSettings* settings = inst->context->settings;
+    if (!settings) {
+        LOGE("set_auto_reconnect: Invalid settings");
+        return false;
+    }
+    
+    /* Configure FreeRDP auto-reconnect settings */
+    freerdp_settings_set_bool(settings, FreeRDP_AutoReconnectionEnabled, enabled);
+    
+    if (enabled && maxRetries > 0) {
+        freerdp_settings_set_uint32(settings, FreeRDP_AutoReconnectMaxRetries, (UINT32)maxRetries);
+        LOGI("Auto-reconnect enabled: maxRetries=%d, delayMs=%d", maxRetries, delayMs);
+    } else {
+        LOGI("Auto-reconnect disabled");
+    }
+    
+    return true;
+}
+
+/* Get connection health status */
+int freerdp_harmonyos_get_connection_health(int64_t instance) {
+    freerdp* inst = (freerdp*)(uintptr_t)instance;
+    
+    if (!inst || !inst->context)
+        return -1; /* Invalid */
+    
+    if (freerdp_shall_disconnect_context(inst->context))
+        return 0; /* Disconnected */
+    
+    /* Check if we can get event handles - indicates healthy connection */
+    HANDLE handles[8];
+    DWORD count = freerdp_get_event_handles(inst->context, handles, 8);
+    
+    if (count == 0)
+        return 1; /* Connected but degraded */
+    
+    return 2; /* Healthy */
 }
