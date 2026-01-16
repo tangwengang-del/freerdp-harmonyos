@@ -183,11 +183,25 @@ bool freerdp_harmonyos_request_refresh_rect(int64_t instance, int x, int y, int 
 bool freerdp_harmonyos_get_frame_buffer(int64_t instance, uint8_t** buffer, 
                                          int* width, int* height, int* stride);
 
+/* Connection stability monitoring */
+bool freerdp_harmonyos_is_in_background_mode(int64_t instance);
+bool freerdp_harmonyos_send_keepalive(int64_t instance);
+uint64_t freerdp_harmonyos_get_idle_time(int64_t instance);
+int freerdp_harmonyos_check_connection_status(int64_t instance);
+
 /* Connection health status values */
 #define CONNECTION_HEALTH_INVALID     -1
 #define CONNECTION_HEALTH_DISCONNECTED 0
 #define CONNECTION_HEALTH_DEGRADED     1
 #define CONNECTION_HEALTH_HEALTHY      2
+
+/* Detailed connection status values for check_connection_status */
+#define CONNECTION_STATUS_INVALID           -1
+#define CONNECTION_STATUS_DISCONNECTING      0
+#define CONNECTION_STATUS_NETWORK_TIMEOUT    1
+#define CONNECTION_STATUS_EVENT_FAILED       2
+#define CONNECTION_STATUS_BACKGROUND        10
+#define CONNECTION_STATUS_FOREGROUND       100
 
 #ifdef __cplusplus
 }

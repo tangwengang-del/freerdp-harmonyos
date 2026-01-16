@@ -437,7 +437,27 @@ static DWORD harmonyos_verify_changed_certificate_ex(freerdp* instance, const ch
                                            issuer, new_fingerprint, flags);
 }
 
-/* Main run loop */
+/* Background mode state tracking */
+static volatile BOOL g_isInBackgroundMode = FALSE;
+static volatile UINT64 g_lastNetworkActivityTime = 0;
+static const DWORD BACKGROUND_KEEPALIVE_INTERVAL_MS = 30000; /* 30 seconds */
+static const DWORD NETWORK_TIMEOUT_MS = 60000; /* 60 seconds without activity = timeout */
+
+/* Update network activity timestamp */
+static void update_network_activity(void) {
+    g_lastNetworkActivityTime = GetTickCount64();
+}
+
+/* Check if network is still alive based on activity */
+static BOOL is_network_alive(void) {
+    if (g_lastNetworkActivityTime == 0)
+        return TRUE; /* Not initialized yet */
+    
+    UINT64 elapsed = GetTickCount64() - g_lastNetworkActivityTime;
+    return elapsed < NETWORK_TIMEOUT_MS;
+}
+
+/* Main run loop with background mode support */
 static int harmonyos_freerdp_run(freerdp* instance) {
     DWORD count;
     DWORD status = WAIT_FAILED;
@@ -445,8 +465,12 @@ static int harmonyos_freerdp_run(freerdp* instance) {
     HANDLE inputEvent = NULL;
     const rdpSettings* settings = instance->context->settings;
     rdpContext* context = instance->context;
+    DWORD waitTimeout;
+    DWORD consecutiveTimeouts = 0;
+    const DWORD MAX_CONSECUTIVE_TIMEOUTS = 10;
 
     inputEvent = harmonyos_get_handle(instance);
+    update_network_activity(); /* Initialize activity timestamp */
 
     while (!freerdp_shall_disconnect_context(instance->context)) {
         DWORD tmp;
@@ -461,11 +485,46 @@ static int harmonyos_freerdp_run(freerdp* instance) {
         }
 
         count += tmp;
-        status = WaitForMultipleObjects(count, handles, FALSE, INFINITE);
+        
+        /* In background mode, use timeout to periodically check connection health */
+        if (g_isInBackgroundMode) {
+            waitTimeout = BACKGROUND_KEEPALIVE_INTERVAL_MS;
+        } else {
+            waitTimeout = INFINITE;
+        }
+        
+        status = WaitForMultipleObjects(count, handles, FALSE, waitTimeout);
 
         if (status == WAIT_FAILED) {
             LOGE("WaitForMultipleObjects failed with %u [%08lX]", status, GetLastError());
             break;
+        }
+        
+        if (status == WAIT_TIMEOUT) {
+            /* Timeout in background mode - check connection health */
+            if (g_isInBackgroundMode) {
+                consecutiveTimeouts++;
+                LOGD("Background keepalive check (%d/%d)", consecutiveTimeouts, MAX_CONSECUTIVE_TIMEOUTS);
+                
+                /* Check if network is still alive */
+                if (!is_network_alive()) {
+                    LOGW("Network timeout detected in background mode");
+                    break;
+                }
+                
+                /* Too many consecutive timeouts might indicate connection issue */
+                if (consecutiveTimeouts >= MAX_CONSECUTIVE_TIMEOUTS) {
+                    LOGW("Too many consecutive timeouts, checking connection...");
+                    /* Reset counter but don't break - let FreeRDP handle it */
+                    consecutiveTimeouts = 0;
+                }
+                
+                continue; /* Continue waiting */
+            }
+        } else {
+            /* Reset timeout counter on activity */
+            consecutiveTimeouts = 0;
+            update_network_activity();
         }
 
         if (!freerdp_check_event_handles(context)) {
@@ -990,6 +1049,9 @@ bool freerdp_harmonyos_enter_background_mode(int64_t instance) {
     
     LOGI("Entering background mode - audio only");
     
+    /* Set background mode flag for run loop */
+    g_isInBackgroundMode = TRUE;
+    
     /* Disable graphics decoding to save CPU/bandwidth */
     freerdp_settings_set_bool(settings, FreeRDP_DeactivateClientDecoding, TRUE);
     
@@ -1007,7 +1069,7 @@ bool freerdp_harmonyos_enter_background_mode(int64_t instance) {
         }
     }
     
-    LOGI("Background mode active - graphics suppressed, audio continues");
+    LOGI("Background mode active - graphics suppressed, audio continues, keepalive enabled");
     return true;
 }
 
@@ -1030,7 +1092,10 @@ bool freerdp_harmonyos_exit_background_mode(int64_t instance) {
     
     LOGI("Exiting background mode - resuming graphics with full refresh");
     
-    /* Re-enable graphics decoding FIRST */
+    /* Clear background mode flag FIRST */
+    g_isInBackgroundMode = FALSE;
+    
+    /* Re-enable graphics decoding */
     freerdp_settings_set_bool(settings, FreeRDP_DeactivateClientDecoding, FALSE);
     
     /* Get full screen dimensions */
@@ -1326,4 +1391,79 @@ bool freerdp_harmonyos_get_frame_buffer(int64_t instance, uint8_t** buffer,
     if (stride) *stride = (int)gdi->stride;
     
     return true;
+}
+
+/* Check if currently in background mode */
+bool freerdp_harmonyos_is_in_background_mode(int64_t instance) {
+    WINPR_UNUSED(instance);
+    return g_isInBackgroundMode ? true : false;
+}
+
+/* Send a keepalive/heartbeat to maintain connection in background */
+bool freerdp_harmonyos_send_keepalive(int64_t instance) {
+    freerdp* inst = (freerdp*)(uintptr_t)instance;
+    
+    if (!inst || !inst->context) {
+        LOGE("send_keepalive: Invalid instance");
+        return false;
+    }
+    
+    rdpContext* context = inst->context;
+    rdpInput* input = context->input;
+    
+    if (!input) {
+        LOGE("send_keepalive: Invalid input");
+        return false;
+    }
+    
+    /* Send a synchronize event as heartbeat - this doesn't affect the session */
+    if (!freerdp_input_send_synchronize_event(input, 0)) {
+        LOGW("Keepalive synchronize event failed");
+        return false;
+    }
+    
+    update_network_activity();
+    LOGD("Keepalive sent");
+    return true;
+}
+
+/* Get time since last network activity in milliseconds */
+uint64_t freerdp_harmonyos_get_idle_time(int64_t instance) {
+    WINPR_UNUSED(instance);
+    
+    if (g_lastNetworkActivityTime == 0)
+        return 0;
+    
+    return GetTickCount64() - g_lastNetworkActivityTime;
+}
+
+/* Force check connection health and return detailed status */
+int freerdp_harmonyos_check_connection_status(int64_t instance) {
+    freerdp* inst = (freerdp*)(uintptr_t)instance;
+    
+    if (!inst || !inst->context)
+        return -1; /* Invalid instance */
+    
+    rdpContext* context = inst->context;
+    
+    /* Check if disconnect was requested */
+    if (freerdp_shall_disconnect_context(context))
+        return 0; /* Disconnecting */
+    
+    /* Check network activity */
+    if (!is_network_alive())
+        return 1; /* Network timeout */
+    
+    /* Check if we can get event handles */
+    HANDLE handles[8];
+    DWORD count = freerdp_get_event_handles(context, handles, 8);
+    
+    if (count == 0)
+        return 2; /* Event handles failed */
+    
+    /* Check if in background mode */
+    if (g_isInBackgroundMode)
+        return 10; /* Connected, background mode */
+    
+    return 100; /* Connected, foreground mode */
 }
