@@ -42,6 +42,7 @@ set(NATIVE_SOURCES
     harmonyos_cliprdr.c
     harmonyos_jni_callback.c
     harmonyos_jni_utils.c
+    freerdp_client_compat.c
 )
 
 # Create shared library
@@ -54,8 +55,8 @@ target_link_libraries(freerdp_harmonyos
     hilog_ndk.z
     
     # FreeRDP libraries (3.5.1 for OHOS/musl libc compatibility)
+    # Note: freerdp-client3 removed - using core API directly for OHOS compatibility
     freerdp3
-    freerdp-client3
     winpr3
     
     # OpenSSL (pre-compiled in libs directory)
