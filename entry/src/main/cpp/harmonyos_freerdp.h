@@ -20,6 +20,7 @@ extern "C" {
 
 /* FreeRDP includes */
 #include <freerdp/freerdp.h>
+#include <freerdp/client.h>  /* Core client functions: freerdp_client_context_new, etc. */
 #include <freerdp/client/rdpei.h>
 #include <freerdp/client/rdpgfx.h>
 #include <freerdp/client/cliprdr.h>
@@ -37,6 +38,7 @@ extern "C" {
 #include <freerdp/utils/signal.h>
 
 #include <winpr/assert.h>
+#include <winpr/ssl.h>  /* For winpr_InitializeSSL */
 
 /* HarmonyOS context extension */
 typedef struct {

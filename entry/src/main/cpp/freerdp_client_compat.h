@@ -1,6 +1,12 @@
 /*
  * FreeRDP Client Compatibility Layer for HarmonyOS
  * Header file
+ * 
+ * 当使用官方 freerdp-client 库时 (WITH_CLIENT_COMMON=ON)，
+ * 核心函数由官方库提供，此文件只提供扩展功能。
+ * 
+ * 当不使用官方库时 (WITH_CLIENT_COMMON=OFF)，
+ * 此文件提供简化的兼容实现。
  */
 
 #ifndef FREERDP_CLIENT_COMPAT_H
@@ -15,30 +21,23 @@ extern "C" {
 #endif
 
 /*
- * Core client context functions (replacement for freerdp-client library)
+ * 核心客户端函数声明
+ * 
+ * 这些函数由官方 freerdp-client 库提供（当 WITH_CLIENT_COMMON=ON 时）
+ * 我们只声明它们，不重新实现
+ * 
+ * 注意：freerdp/client.h 已经声明了这些函数，这里不需要重复声明
  */
 
-/* Create a new client context */
-rdpContext* freerdp_client_context_new(const RDP_CLIENT_ENTRY_POINTS* pEntryPoints);
-
-/* Free client context */
-void freerdp_client_context_free(rdpContext* context);
-
-/* Start client (initialize channels) */
-int freerdp_client_start(rdpContext* context);
-
-/* Stop client (cleanup channels) */
-int freerdp_client_stop(rdpContext* context);
-
-/* Parse command line settings */
-int freerdp_client_settings_parse_command_line(rdpSettings* settings, int argc, 
-                                                char** argv, BOOL allowUnknown);
-
-/* Channel event handlers */
-void freerdp_client_OnChannelConnectedEventHandler(void* context, 
-                                                    const ChannelConnectedEventArgs* e);
-void freerdp_client_OnChannelDisconnectedEventHandler(void* context,
-                                                       const ChannelDisconnectedEventArgs* e);
+/* 以下函数已在 freerdp/client.h 中声明：
+ * - freerdp_client_context_new
+ * - freerdp_client_context_free
+ * - freerdp_client_start
+ * - freerdp_client_stop
+ * - freerdp_client_settings_parse_command_line
+ * - freerdp_client_OnChannelConnectedEventHandler
+ * - freerdp_client_OnChannelDisconnectedEventHandler
+ */
 
 /*
  * Auto-Reconnect Support

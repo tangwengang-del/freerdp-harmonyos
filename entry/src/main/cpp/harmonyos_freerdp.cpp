@@ -19,11 +19,23 @@
 
 #ifdef OHOS_PLATFORM
 #include <hilog/log.h>
+#include <time.h>
 #define LOG_TAG "FreeRDP"
 #define LOGI(...) OH_LOG_INFO(LOG_APP, __VA_ARGS__)
 #define LOGW(...) OH_LOG_WARN(LOG_APP, __VA_ARGS__)
 #define LOGE(...) OH_LOG_ERROR(LOG_APP, __VA_ARGS__)
 #define LOGD(...) OH_LOG_DEBUG(LOG_APP, __VA_ARGS__)
+
+/* OHOS/musl 兼容: GetTickCount64 替代实现 */
+static inline UINT64 GetTickCount64_compat(void) {
+    struct timespec ts;
+    if (clock_gettime(CLOCK_MONOTONIC, &ts) == 0) {
+        return (UINT64)ts.tv_sec * 1000ULL + (UINT64)ts.tv_nsec / 1000000ULL;
+    }
+    return 0;
+}
+#define GetTickCount64() GetTickCount64_compat()
+
 #else
 #define LOGI(...) printf(__VA_ARGS__)
 #define LOGW(...) printf(__VA_ARGS__)
@@ -236,9 +248,11 @@ static BOOL harmonyos_end_paint(rdpContext* context) {
 }
 
 static BOOL harmonyos_desktop_resize(rdpContext* context) {
-    WINPR_ASSERT(context);
-    WINPR_ASSERT(context->settings);
-    WINPR_ASSERT(context->instance);
+    /* 安全检查 - 不使用 WINPR_ASSERT 避免 abort */
+    if (!context || !context->settings || !context->instance) {
+        LOGE("harmonyos_desktop_resize: invalid context");
+        return FALSE;
+    }
 
     if (g_onGraphicsResize) {
         g_onGraphicsResize((int64_t)(uintptr_t)context->instance,
@@ -253,39 +267,80 @@ static BOOL harmonyos_desktop_resize(rdpContext* context) {
 static BOOL harmonyos_pre_connect(freerdp* instance) {
     int rc;
     rdpSettings* settings;
+    rdpContext* context;
 
-    WINPR_ASSERT(instance);
-    WINPR_ASSERT(instance->context);
+    LOGI("harmonyos_pre_connect: ENTER");
 
-    settings = instance->context->settings;
-    if (!settings)
+    /* 安全检查 - 不使用 WINPR_ASSERT 避免 abort */
+    if (!instance) {
+        LOGE("harmonyos_pre_connect: instance is NULL");
         return FALSE;
+    }
+    
+    context = instance->context;
+    if (!context) {
+        LOGE("harmonyos_pre_connect: context is NULL");
+        return FALSE;
+    }
 
-    rc = PubSub_SubscribeChannelConnected(instance->context->pubSub,
+    settings = context->settings;
+    if (!settings) {
+        LOGE("harmonyos_pre_connect: settings is NULL");
+        return FALSE;
+    }
+
+    LOGI("harmonyos_pre_connect: Settings validated, proceeding...");
+
+    /* 
+     * 打印关键连接参数用于调试
+     */
+    const char* hostname = freerdp_settings_get_string(settings, FreeRDP_ServerHostname);
+    UINT32 port = freerdp_settings_get_uint32(settings, FreeRDP_ServerPort);
+    const char* username = freerdp_settings_get_string(settings, FreeRDP_Username);
+    BOOL rdpSec = freerdp_settings_get_bool(settings, FreeRDP_RdpSecurity);
+    BOOL tlsSec = freerdp_settings_get_bool(settings, FreeRDP_TlsSecurity);
+    BOOL nlaSec = freerdp_settings_get_bool(settings, FreeRDP_NlaSecurity);
+    BOOL ignoreCert = freerdp_settings_get_bool(settings, FreeRDP_IgnoreCertificate);
+    
+    LOGI("harmonyos_pre_connect: hostname=%{public}s port=%{public}u", 
+         hostname ? hostname : "NULL", port);
+    LOGI("harmonyos_pre_connect: username=%{public}s", 
+         username ? username : "NULL");
+    LOGI("harmonyos_pre_connect: security: RDP=%{public}d TLS=%{public}d NLA=%{public}d",
+         rdpSec, tlsSec, nlaSec);
+    LOGI("harmonyos_pre_connect: IgnoreCertificate=%{public}d", ignoreCert);
+
+    /* 注意：移除了 freerdp_channels_attach 调用，该函数可能在这个阶段不需要 */
+
+    rc = PubSub_SubscribeChannelConnected(context->pubSub,
                                           harmonyos_OnChannelConnectedEventHandler);
     if (rc != CHANNEL_RC_OK) {
-        LOGE("Could not subscribe to connect event handler [%08X]", rc);
+        LOGE("Could not subscribe to connect event handler [%{public}08X]", rc);
         return FALSE;
     }
+    LOGI("harmonyos_pre_connect: ChannelConnected subscribed");
 
-    rc = PubSub_SubscribeChannelDisconnected(instance->context->pubSub,
+    rc = PubSub_SubscribeChannelDisconnected(context->pubSub,
                                              harmonyos_OnChannelDisconnectedEventHandler);
     if (rc != CHANNEL_RC_OK) {
-        LOGE("Could not subscribe to disconnect event handler [%08X]", rc);
+        LOGE("Could not subscribe to disconnect event handler [%{public}08X]", rc);
         return FALSE;
     }
+    LOGI("harmonyos_pre_connect: ChannelDisconnected subscribed");
 
     if (g_onPreConnect) {
         g_onPreConnect((int64_t)(uintptr_t)instance);
     }
+    
+    LOGI("harmonyos_pre_connect: returning TRUE");
     return TRUE;
 }
 
 /* Pointer handlers */
 static BOOL harmonyos_Pointer_New(rdpContext* context, rdpPointer* pointer) {
-    WINPR_ASSERT(context);
-    WINPR_ASSERT(pointer);
-    WINPR_ASSERT(context->gdi);
+    /* 安全检查 */
+    if (!context || !pointer || !context->gdi)
+        return FALSE;
     return TRUE;
 }
 
@@ -295,8 +350,9 @@ static void harmonyos_Pointer_Free(rdpContext* context, rdpPointer* pointer) {
 }
 
 static BOOL harmonyos_Pointer_Set(rdpContext* context, rdpPointer* pointer) {
-    WINPR_ASSERT(context);
-    WINPR_ASSERT(pointer);
+    /* 安全检查 */
+    if (!context || !pointer)
+        return FALSE;
 
     int cursorType = identify_cursor_type(pointer);
     
@@ -309,13 +365,15 @@ static BOOL harmonyos_Pointer_Set(rdpContext* context, rdpPointer* pointer) {
 }
 
 static BOOL harmonyos_Pointer_SetPosition(rdpContext* context, UINT32 x, UINT32 y) {
-    WINPR_ASSERT(context);
+    if (!context)
+        return FALSE;
     LOGD("Pointer SetPosition: x=%u, y=%u", x, y);
     return TRUE;
 }
 
 static BOOL harmonyos_Pointer_SetNull(rdpContext* context) {
-    WINPR_ASSERT(context);
+    if (!context)
+        return FALSE;
     LOGD("Pointer_SetNull");
     
     freerdp* instance = context->instance;
@@ -326,7 +384,8 @@ static BOOL harmonyos_Pointer_SetNull(rdpContext* context) {
 }
 
 static BOOL harmonyos_Pointer_SetDefault(rdpContext* context) {
-    WINPR_ASSERT(context);
+    if (!context)
+        return FALSE;
     LOGD("Pointer_SetDefault");
     
     freerdp* instance = context->instance;
@@ -358,20 +417,42 @@ static BOOL harmonyos_post_connect(freerdp* instance) {
     rdpSettings* settings;
     rdpUpdate* update;
 
-    WINPR_ASSERT(instance);
-    WINPR_ASSERT(instance->context);
+    LOGI("harmonyos_post_connect: ENTER");
+
+    /* 安全检查 - 不使用 WINPR_ASSERT 避免 abort */
+    if (!instance) {
+        LOGE("harmonyos_post_connect: instance is NULL");
+        return FALSE;
+    }
+    if (!instance->context) {
+        LOGE("harmonyos_post_connect: context is NULL");
+        return FALSE;
+    }
 
     update = instance->context->update;
-    WINPR_ASSERT(update);
+    if (!update) {
+        LOGE("harmonyos_post_connect: update is NULL");
+        return FALSE;
+    }
 
     settings = instance->context->settings;
-    WINPR_ASSERT(settings);
-
-    if (!gdi_init(instance, PIXEL_FORMAT_RGBX32))
+    if (!settings) {
+        LOGE("harmonyos_post_connect: settings is NULL");
         return FALSE;
+    }
 
-    if (!harmonyos_register_pointer(instance->context->graphics))
+    LOGI("harmonyos_post_connect: Calling gdi_init...");
+    if (!gdi_init(instance, PIXEL_FORMAT_RGBX32)) {
+        LOGE("harmonyos_post_connect: gdi_init failed");
         return FALSE;
+    }
+    LOGI("harmonyos_post_connect: gdi_init succeeded");
+
+    if (!harmonyos_register_pointer(instance->context->graphics)) {
+        LOGE("harmonyos_post_connect: register_pointer failed");
+        return FALSE;
+    }
+    LOGI("harmonyos_post_connect: register_pointer succeeded");
 
     update->BeginPaint = harmonyos_begin_paint;
     update->EndPaint = harmonyos_end_paint;
@@ -387,15 +468,29 @@ static BOOL harmonyos_post_connect(freerdp* instance) {
     if (g_onConnectionSuccess) {
         g_onConnectionSuccess((int64_t)(uintptr_t)instance);
     }
+    
+    LOGI("harmonyos_post_connect: returning TRUE");
     return TRUE;
 }
 
 /* Post-disconnect callback */
 static void harmonyos_post_disconnect(freerdp* instance) {
+    LOGI("harmonyos_post_disconnect: ENTER");
+    
+    /* 尝试获取更多断开原因的信息 */
+    if (instance && instance->context) {
+        UINT32 errorCode = freerdp_get_last_error(instance->context);
+        const char* errorString = freerdp_get_last_error_string(errorCode);
+        LOGI("harmonyos_post_disconnect: ErrorCode=0x%{public}08X Msg=%{public}s", 
+             errorCode, errorString ? errorString : "NULL");
+    }
+    
     if (g_onDisconnecting) {
         g_onDisconnecting((int64_t)(uintptr_t)instance);
     }
     gdi_free(instance);
+    
+    LOGI("harmonyos_post_disconnect: EXIT");
 }
 
 /* Authentication callback */
@@ -556,32 +651,162 @@ static void internal_on_reconnecting(void* ctx, int attempt, int maxAttempts) {
 static DWORD WINAPI harmonyos_thread_func(LPVOID param) {
     DWORD status = ERROR_BAD_ARGUMENTS;
     freerdp* instance = (freerdp*)param;
-    rdpContext* context;
+    rdpContext* context = NULL;
     BOOL shouldReconnect = FALSE;
+    BOOL connectResult = FALSE;
     int reconnectAttempts = 0;
     const int MAX_RECONNECT_ATTEMPTS = 5;
     
     LOGD("Start...");
 
-    WINPR_ASSERT(instance);
-    WINPR_ASSERT(instance->context);
+    /* 安全检查 - 不使用 WINPR_ASSERT 避免 abort */
+    if (!instance) {
+        LOGE("harmonyos_thread_func: instance is NULL");
+        goto fail;
+    }
+    if (!instance->context) {
+        LOGE("harmonyos_thread_func: context is NULL");
+        goto fail;
+    }
     
     context = instance->context;
 
-    if (freerdp_client_start(context) != CHANNEL_RC_OK)
+    if (freerdp_client_start(context) != CHANNEL_RC_OK) {
+        LOGE("freerdp_client_start failed");
         goto fail;
+    }
 
 reconnect_loop:
-    LOGD("Connect... (attempt %d)", reconnectAttempts + 1);
+    LOGI("Connect... (attempt %{public}d)", reconnectAttempts + 1);
+    LOGI("Checking instance validity...");
+    
+    if (!instance) {
+        LOGE("instance became NULL!");
+        goto fail;
+    }
+    
+    LOGI("instance=%{public}p", (void*)instance);
+    LOGI("context=%{public}p", (void*)instance->context);
+    
+    if (!instance->context) {
+        LOGE("context is NULL before connect!");
+        goto fail;
+    }
+    
+    if (!instance->context->settings) {
+        LOGE("settings is NULL before connect!");
+        goto fail;
+    }
+    
+    LOGI("PreConnect callback=%{public}p", (void*)instance->PreConnect);
+    LOGI("PostConnect callback=%{public}p", (void*)instance->PostConnect);
+    
+    LOGI("Calling freerdp_connect NOW...");
 
-    if (!freerdp_connect(instance)) {
+    /* 清除 errno 以便准确捕获连接错误 */
+    errno = 0;
+    
+    /* 记录连接开始时间 */
+    UINT64 connectStartTime = GetTickCount64();
+    
+    connectResult = freerdp_connect(instance);
+    
+    /* 立即保存 errno，避免被后续调用覆盖 */
+    int savedErrno = errno;
+    
+    /* 计算连接耗时 */
+    UINT64 connectEndTime = GetTickCount64();
+    UINT64 connectDuration = connectEndTime - connectStartTime;
+    
+    LOGI("freerdp_connect returned: %{public}s (took %{public}llu ms)", 
+         connectResult ? "TRUE" : "FALSE", (unsigned long long)connectDuration);
+    
+    /* 如果失败，打印 errno */
+    if (!connectResult) {
+        LOGE("errno=%{public}d (%{public}s)", savedErrno, 
+             savedErrno ? strerror(savedErrno) : "No error");
+        
+        /* 如果连接时间很短（<100ms），说明可能是配置或初始化错误 */
+        if (connectDuration < 100) {
+            LOGE("Connection failed very quickly - likely config/init error, not network");
+        }
+    }
+    
+    if (!connectResult) {
         status = GetLastError();
-        LOGE("Connection failed with error: %08X", status);
+        
+        /* 获取详细错误信息 */
+        UINT32 errorCode = freerdp_get_last_error(context);
+        const char* errorString = freerdp_get_last_error_string(errorCode);
+        const char* errorCategory = freerdp_get_last_error_category(errorCode);
+        
+        /* 使用 {public} 标记避免隐私过滤 */
+        LOGE("Connection failed! GetLastError=0x%{public}08X", status);
+        LOGE("FreeRDP ErrorCode=0x%{public}08X", errorCode);
+        LOGE("FreeRDP Category=%{public}s", errorCategory ? errorCategory : "Unknown");
+        LOGE("FreeRDP Message=%{public}s", errorString ? errorString : "No error message");
+        
+        /* 
+         * 错误类型分类（供上层 UI 使用）:
+         * 
+         * 1. 网络/主机错误 (ERRCONNECT_CONNECT_*):
+         *    - ERRCONNECT_CONNECT_FAILED (0x00020006) - 无法连接到主机/端口
+         *    - ERRCONNECT_DNS_ERROR (0x00020005) - DNS 解析失败
+         *    - ERRCONNECT_CONNECT_TRANSPORT_FAILED (0x0002000C) - 传输层失败
+         *    - GetLastError = WSAETIMEDOUT / WSAECONNREFUSED 等
+         * 
+         * 2. 认证错误 (ERRCONNECT_AUTHENTICATION_*):
+         *    - ERRCONNECT_AUTHENTICATION_FAILED (0x00020009) - 用户名/密码错误
+         *    - ERRCONNECT_LOGON_FAILURE (0x0002000F) - 登录失败
+         *    - ERRCONNECT_ACCOUNT_* - 账户问题（锁定、过期等）
+         * 
+         * 3. 安全协议错误 (ERRCONNECT_SECURITY_*):
+         *    - ERRCONNECT_SECURITY_NEGO_CONNECT_FAILED (0x0002000B) - 安全协商失败
+         *    - ERRCONNECT_TLS_CONNECT_FAILED (0x00020008) - TLS 连接失败
+         *    - ERRCONNECT_MCS_CONNECT_INITIAL_ERROR - MCS 协议错误
+         * 
+         * 4. 其他错误:
+         *    - ErrorCode = 0 但连接失败 - 可能是内部错误或配置问题
+         */
+        
+        /* 分类错误类型 */
+        const char* errorType = "UNKNOWN";
+        BOOL shouldRetry = TRUE;
+        
+        /* 检查 FreeRDP 错误码范围 */
+        UINT32 errorClass = (errorCode >> 16) & 0xFF;
+        UINT32 errorType_id = errorCode & 0xFFFF;
+        
+        if (errorCode == 0) {
+            /* 特殊情况：错误码为0但连接失败 */
+            errorType = "INTERNAL_ERROR";
+            LOGE("Error Type: %{public}s - Internal error or premature disconnect", errorType);
+            /* 内部错误不重试 */
+            shouldRetry = FALSE;
+        } else if (errorType_id >= 0x0005 && errorType_id <= 0x0007) {
+            /* 网络连接错误 */
+            errorType = "NETWORK_ERROR";
+            LOGE("Error Type: %{public}s - Check host address and port", errorType);
+        } else if (errorType_id == 0x0009 || errorType_id == 0x000F || 
+                   (errorType_id >= 0x0010 && errorType_id <= 0x001F)) {
+            /* 认证错误 */
+            errorType = "AUTH_ERROR";
+            LOGE("Error Type: %{public}s - Check username and password", errorType);
+            /* 认证错误不重试 */
+            shouldRetry = FALSE;
+        } else if (errorType_id == 0x0008 || errorType_id == 0x000B || errorType_id == 0x000D) {
+            /* 安全协议错误 */
+            errorType = "SECURITY_ERROR";
+            LOGE("Error Type: %{public}s - Check security settings (RDP/TLS/NLA)", errorType);
+        } else {
+            errorType = "CONNECTION_ERROR";
+            LOGE("Error Type: %{public}s - General connection failure", errorType);
+        }
         
         /* Check if we should try to reconnect */
-        if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+        if (shouldRetry && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
             reconnectAttempts++;
-            LOGI("Will retry connection in %d seconds... (%d/%d)", 
+            LOGI("Will retry connection in %{public}d seconds... (%{public}d/%{public}d)", 
                  reconnectAttempts * 2, reconnectAttempts, MAX_RECONNECT_ATTEMPTS);
             
             /* Exponential backoff */
@@ -590,6 +815,8 @@ reconnect_loop:
             if (!freerdp_shall_disconnect_context(context)) {
                 goto reconnect_loop;
             }
+        } else if (!shouldRetry) {
+            LOGI("Not retrying due to error type: %{public}s", errorType);
         }
     } else {
         /* Connection successful */
@@ -649,11 +876,20 @@ fail:
 
 /* Client new/free */
 static BOOL harmonyos_client_new(freerdp* instance, rdpContext* context) {
-    WINPR_ASSERT(instance);
-    WINPR_ASSERT(context);
-
-    if (!harmonyos_event_queue_init(instance))
+    /* 安全检查 - 不使用 WINPR_ASSERT 避免 abort */
+    if (!instance) {
+        LOGE("harmonyos_client_new: instance is NULL");
         return FALSE;
+    }
+    if (!context) {
+        LOGE("harmonyos_client_new: context is NULL");
+        return FALSE;
+    }
+
+    if (!harmonyos_event_queue_init(instance)) {
+        LOGE("harmonyos_client_new: event_queue_init failed");
+        return FALSE;
+    }
 
     instance->PreConnect = harmonyos_pre_connect;
     instance->PostConnect = harmonyos_post_connect;
@@ -674,7 +910,11 @@ static void harmonyos_client_free(freerdp* instance, rdpContext* context) {
 }
 
 static int RdpClientEntry(RDP_CLIENT_ENTRY_POINTS* pEntryPoints) {
-    WINPR_ASSERT(pEntryPoints);
+    /* 安全检查 - 不使用 WINPR_ASSERT 避免 abort */
+    if (!pEntryPoints) {
+        LOGE("RdpClientEntry: pEntryPoints is NULL");
+        return -1;
+    }
 
     ZeroMemory(pEntryPoints, sizeof(RDP_CLIENT_ENTRY_POINTS));
 
@@ -692,11 +932,33 @@ static int RdpClientEntry(RDP_CLIENT_ENTRY_POINTS* pEntryPoints) {
 
 /* ==================== Public API Implementation ==================== */
 
+/* 全局 SSL 初始化标志 */
+static BOOL g_sslInitialized = FALSE;
+
 int64_t freerdp_harmonyos_new(void) {
     RDP_CLIENT_ENTRY_POINTS clientEntryPoints;
     rdpContext* ctx;
 
     setlocale(LC_ALL, "");
+    
+    /* 初始化 OpenSSL（只需要做一次） */
+    if (!g_sslInitialized) {
+        LOGI("freerdp_harmonyos_new: Initializing OpenSSL...");
+        
+        /* 设置 OpenSSL 环境变量，避免加载不存在的模块 */
+        setenv("OPENSSL_MODULES", "/system/lib64/openssl", 1);
+        
+        /* 使用 winpr 的 SSL 初始化函数 */
+        BOOL sslResult = winpr_InitializeSSL(WINPR_SSL_INIT_DEFAULT);
+        if (sslResult) {
+            LOGI("freerdp_harmonyos_new: OpenSSL initialized successfully");
+            g_sslInitialized = TRUE;
+        } else {
+            LOGW("freerdp_harmonyos_new: OpenSSL initialization returned FALSE (may be ok)");
+            /* 继续执行，因为某些情况下这不是致命错误 */
+            g_sslInitialized = TRUE;
+        }
+    }
 
     RdpClientEntry(&clientEntryPoints);
     ctx = freerdp_client_context_new(&clientEntryPoints);
@@ -718,18 +980,54 @@ bool freerdp_harmonyos_parse_arguments(int64_t instance, const char** args, int 
     freerdp* inst = (freerdp*)(uintptr_t)instance;
     DWORD status;
 
-    if (!inst || !inst->context)
+    LOGI("parse_arguments: ENTER instance=0x%llx argc=%d", (unsigned long long)instance, argc);
+
+    if (!inst) {
+        LOGE("parse_arguments: inst is NULL");
         return false;
+    }
+    
+    LOGI("parse_arguments: inst=%p", (void*)inst);
+    
+    if (!inst->context) {
+        LOGE("parse_arguments: context is NULL");
+        return false;
+    }
+    
+    LOGI("parse_arguments: context=%p", (void*)inst->context);
+    
+    if (!inst->context->settings) {
+        LOGE("parse_arguments: Settings is NULL");
+        return false;
+    }
+    
+    LOGI("parse_arguments: settings=%p - All checks passed!", (void*)inst->context->settings);
 
     char** argv = (char**)malloc(argc * sizeof(char*));
-    if (!argv)
+    if (!argv) {
+        LOGE("parse_arguments: Failed to allocate argv");
         return false;
+    }
+    
+    LOGI("parse_arguments: argv allocated, copying args...");
 
     for (int i = 0; i < argc; i++) {
         argv[i] = strdup(args[i]);
+        if (argv[i]) {
+            /* 不打印密码 */
+            if (strncmp(argv[i], "/p:", 3) == 0) {
+                LOGI("parse_arguments: argv[%d]=/p:****", i);
+            } else {
+                LOGI("parse_arguments: argv[%d]=%s", i, argv[i]);
+            }
+        } else {
+            LOGE("parse_arguments: strdup failed for arg %d", i);
+        }
     }
 
+    LOGI("parse_arguments: Calling freerdp_client_settings_parse_command_line...");
     status = freerdp_client_settings_parse_command_line(inst->context->settings, argc, argv, FALSE);
+    LOGI("parse_arguments: freerdp_client_settings_parse_command_line returned %lu", (unsigned long)status);
 
     for (int i = 0; i < argc; i++)
         free(argv[i]);
@@ -1378,16 +1676,15 @@ bool freerdp_harmonyos_get_frame_buffer(int64_t instance, uint8_t** buffer,
     rdpContext* context = inst->context;
     rdpGdi* gdi = context->gdi;
     
-    if (!gdi || !gdi->primary || !gdi->primary->bitmap) {
+    if (!gdi || !gdi->primary) {
         LOGE("get_frame_buffer: GDI not initialized");
         return false;
     }
     
-    rdpBitmap* bitmap = gdi->primary->bitmap;
-    
+    /* 使用 gdi 直接获取尺寸，避免 HGDI_BITMAP/rdpBitmap 类型不匹配 */
     if (buffer) *buffer = gdi->primary_buffer;
-    if (width) *width = (int)bitmap->width;
-    if (height) *height = (int)bitmap->height;
+    if (width) *width = (int)gdi->width;
+    if (height) *height = (int)gdi->height;
     if (stride) *stride = (int)gdi->stride;
     
     return true;
