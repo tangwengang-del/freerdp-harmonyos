@@ -308,6 +308,10 @@ jobs:
             -DWITH_CLIENT_COMMON=ON \
             -DWITH_SERVER=OFF \
             -DANDROID=ON \
+            -DWITH_CUPS=OFF \
+            -DWITH_PCSC=OFF \
+            -DWITH_LIBSYSTEMD=OFF \
+            -DWITH_KEYBOARD_LAYOUT_FROM_FILE=OFF \
             -DCHANNEL_AUDIN=OFF \
             -DCHANNEL_ENCOMSP=OFF \
             -DCHANNEL_RAIL=OFF \
