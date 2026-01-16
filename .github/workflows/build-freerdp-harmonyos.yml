@@ -164,33 +164,32 @@ jobs:
           echo "zlib done:"
           file ${{ github.workspace }}/install/zlib/lib/libz.a
 
-      - name: Build OpenSSL (Shared for HarmonyOS)
+      - name: Build OpenSSL (Static for HarmonyOS)
         run: |
-          echo "=== Building OpenSSL (Shared Libraries for OHOS) ==="
+          echo "=== Building OpenSSL (Static Libraries for OHOS) ==="
           cd ${{ github.workspace }}
           wget -q https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz
           tar xzf openssl-${OPENSSL_VERSION}.tar.gz
           cd openssl-${OPENSSL_VERSION}
           
-          # Build OpenSSL as shared library for HarmonyOS/musl
-          # Use linux-aarch64 target with OHOS NDK compiler
+          # Build OpenSSL as STATIC library for HarmonyOS/musl
+          # This avoids the ld-linux-aarch64.so.1 issue entirely
+          # OpenSSL will be linked statically into FreeRDP
           CC="$OHOS_CC" CXX="$OHOS_CXX" AR="$OHOS_AR" RANLIB="$OHOS_RANLIB" \
           ./Configure linux-aarch64 \
             --prefix=${{ github.workspace }}/install/openssl \
             --openssldir=${{ github.workspace }}/install/openssl/ssl \
-            shared no-tests no-asm -fPIC -O2 \
-            -Wl,-rpath,\$ORIGIN
+            no-shared no-tests no-asm -fPIC -O2
           
           make -j$(nproc) || make -j2
           make install_sw
           
-          # Verify the libraries are linked correctly (should NOT reference ld-linux-aarch64.so.1)
-          echo "=== Verifying OpenSSL library linking ==="
-          file ${{ github.workspace }}/install/openssl/lib*/libssl.so* || true
-          readelf -d ${{ github.workspace }}/install/openssl/lib*/libssl.so.3 2>/dev/null | grep -i interp || echo "No INTERP (good for shared lib)"
-          readelf -d ${{ github.workspace }}/install/openssl/lib*/libssl.so.3 2>/dev/null | grep -i needed || echo "No NEEDED deps found"
+          # Verify static libraries exist
+          echo "=== Verifying OpenSSL static libraries ==="
+          ls -la ${{ github.workspace }}/install/openssl/lib*/libssl.a || ls -la ${{ github.workspace }}/install/openssl/lib/libssl.a
+          ls -la ${{ github.workspace }}/install/openssl/lib*/libcrypto.a || ls -la ${{ github.workspace }}/install/openssl/lib/libcrypto.a
           
-          echo "OpenSSL build done"
+          echo "OpenSSL static build done"
 
       - name: Clone FreeRDP
         run: |
@@ -374,18 +373,8 @@ jobs:
         run: |
           mkdir -p ${{ github.workspace }}/artifacts/arm64-v8a
           
-          # Collect FreeRDP libraries
+          # Collect FreeRDP libraries only (OpenSSL is statically linked)
           find ${{ github.workspace }}/install/freerdp -name "*.so*" -exec cp {} ${{ github.workspace }}/artifacts/arm64-v8a/ \; 2>/dev/null || true
-          
-          # Collect OpenSSL shared libraries (needed at runtime)
-          OPENSSL_LIB="${{ github.workspace }}/install/openssl"
-          if [ -d "$OPENSSL_LIB/lib64" ]; then
-            cp $OPENSSL_LIB/lib64/libssl.so* ${{ github.workspace }}/artifacts/arm64-v8a/ 2>/dev/null || true
-            cp $OPENSSL_LIB/lib64/libcrypto.so* ${{ github.workspace }}/artifacts/arm64-v8a/ 2>/dev/null || true
-          elif [ -d "$OPENSSL_LIB/lib" ]; then
-            cp $OPENSSL_LIB/lib/libssl.so* ${{ github.workspace }}/artifacts/arm64-v8a/ 2>/dev/null || true
-            cp $OPENSSL_LIB/lib/libcrypto.so* ${{ github.workspace }}/artifacts/arm64-v8a/ 2>/dev/null || true
-          fi
           
           cd ${{ github.workspace }}/artifacts/arm64-v8a
           
@@ -408,23 +397,37 @@ jobs:
           echo "=== Verifying library linking (should NOT have ld-linux-aarch64.so.1) ==="
           for lib in *.so*; do
             echo "Checking $lib:"
-            readelf -d "$lib" 2>/dev/null | grep -E "(NEEDED|INTERP)" || echo "  No dynamic deps"
+            # Check for glibc loader reference (would be an error)
+            if readelf -d "$lib" 2>/dev/null | grep -q "ld-linux-aarch64.so.1"; then
+              echo "  ERROR: References glibc loader!"
+              exit 1
+            fi
+            readelf -d "$lib" 2>/dev/null | grep -E "NEEDED" || echo "  No external NEEDED deps (good - static linking)"
           done
           
           # 创建 README
-          cat > README.txt << EOF
-          FreeRDP HarmonyOS Libraries
-          Built: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
-          FreeRDP: $FREERDP_VERSION
-          OpenSSL: $OPENSSL_VERSION (shared, musl-compatible)
-          zlib: $ZLIB_VERSION (static)
-          Toolchain: OpenHarmony NDK (musl libc)
-          Target: arm64-v8a
+          cat > README.txt << 'EOFREADME'
+FreeRDP HarmonyOS Libraries
+Built: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+FreeRDP: ${FREERDP_VERSION}
+OpenSSL: ${OPENSSL_VERSION} (statically linked into FreeRDP)
+zlib: ${ZLIB_VERSION} (statically linked)
+Toolchain: OpenHarmony NDK (musl libc)
+Target: arm64-v8a
+
+IMPORTANT: 
+- All libraries are compiled with OHOS NDK (musl libc)
+- OpenSSL is STATICALLY linked into FreeRDP - no libssl.so needed
+- These libraries do NOT reference ld-linux-aarch64.so.1 (glibc loader)
+EOFREADME
           
-          IMPORTANT: All libraries are compiled with OHOS NDK to use musl libc.
-          They should NOT reference ld-linux-aarch64.so.1 (glibc loader).
-          EOF
+          # Substitute variables in README
+          sed -i "s/\${FREERDP_VERSION}/${FREERDP_VERSION}/g" README.txt
+          sed -i "s/\${OPENSSL_VERSION}/${OPENSSL_VERSION}/g" README.txt
+          sed -i "s/\${ZLIB_VERSION}/${ZLIB_VERSION}/g" README.txt
+          sed -i "s/\$(date -u +\"%Y-%m-%d %H:%M:%S UTC\")/$(date -u +"%Y-%m-%d %H:%M:%S UTC")/g" README.txt
           
+          echo "=== Final artifacts ==="
           ls -la
 
       - name: Upload artifacts
