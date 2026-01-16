@@ -55,9 +55,8 @@ target_link_libraries(freerdp_harmonyos
     hilog_ndk.z
     
     # FreeRDP libraries
-    # 如果 freerdp-client3 可用，优先使用原生库
-    # 否则使用兼容层 (freerdp_client_compat.c)
-    $<$<TARGET_EXISTS:freerdp-client3>:freerdp-client3>
+    # freerdp-client3 在 OHOS/musl 上无法编译，使用兼容层替代
+    # 兼容层: freerdp_client_compat.c
     freerdp3
     winpr3
     

@@ -305,7 +305,7 @@ jobs:
             -DWITH_PROGRESS_BAR=OFF \
             -DWITH_SIMD=OFF \
             -DWITH_NEON=OFF \
-            -DWITH_CLIENT_COMMON=ON \
+            -DWITH_CLIENT_COMMON=OFF \
             -DWITH_FUSE=OFF \
             -DWITH_AAD=OFF \
             -DWITH_PKCS11=OFF \
