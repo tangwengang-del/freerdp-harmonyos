@@ -287,7 +287,6 @@ jobs:
             -DWITH_INTERNAL_MD5=ON \
             -DWITH_FUSE=OFF \
             -DWITH_CLIENT_INTERFACE=OFF \
-            -DWITH_CLIENT_COMMON=OFF \
             -DWITH_PROXY=OFF \
             -DWITH_SHADOW=OFF \
             -DWITH_CLIENT=OFF \
@@ -295,7 +294,7 @@ jobs:
             -DWITH_MANPAGES=OFF \
             -DBUILD_SHARED_LIBS=ON \
             -DWITH_CHANNELS=ON \
-            -DWITH_CLIENT_CHANNELS=OFF \
+            -DWITH_CLIENT_CHANNELS=ON \
             -DCHANNEL_URBDRC=OFF \
             -DCHANNEL_SMARTCARD=OFF \
             -DCHANNEL_CLIPRDR=ON \
