@@ -12,6 +12,39 @@ import { BookmarkBase, ManualBookmark } from '../model/BookmarkBase';
 
 const TAG = 'BookmarkPage';
 
+/**
+ * Router params interface
+ */
+interface BookmarkPageParams {
+  mode?: string;
+  bookmark?: object;
+}
+
+/**
+ * Resolution preset interface
+ */
+interface ResolutionPreset {
+  label: string;
+  w: string;
+  h: string;
+}
+
+/**
+ * Security option interface
+ */
+interface SecurityOption {
+  label: string;
+  value: number;
+}
+
+/**
+ * Sound option interface
+ */
+interface SoundOption {
+  label: string;
+  value: number;
+}
+
 @Entry
 @Component
 struct BookmarkPage {
@@ -55,15 +88,50 @@ struct BookmarkPage {
   // UI state
   @State currentTab: number = 0;
 
+  /**
+   * Get resolution presets
+   */
+  private getResolutionPresets(): ResolutionPreset[] {
+    const presets: ResolutionPreset[] = [];
+    presets.push({ label: '1920x1080 (Full HD)', w: '1920', h: '1080' });
+    presets.push({ label: '1366x768 (HD)', w: '1366', h: '768' });
+    presets.push({ label: '1280x720 (720p)', w: '1280', h: '720' });
+    presets.push({ label: '2560x1440 (2K)', w: '2560', h: '1440' });
+    return presets;
+  }
+
+  /**
+   * Get security options
+   */
+  private getSecurityOptions(): SecurityOption[] {
+    const options: SecurityOption[] = [];
+    options.push({ label: '自动', value: 0 });
+    options.push({ label: 'RDP', value: 1 });
+    options.push({ label: 'TLS', value: 2 });
+    options.push({ label: 'NLA', value: 3 });
+    return options;
+  }
+
+  /**
+   * Get sound options
+   */
+  private getSoundOptions(): SoundOption[] {
+    const options: SoundOption[] = [];
+    options.push({ label: '本地', value: 0 });
+    options.push({ label: '远程', value: 1 });
+    options.push({ label: '禁用', value: 2 });
+    return options;
+  }
+
   aboutToAppear(): void {
     console.info(`${TAG}: aboutToAppear`);
     
-    const params = router.getParams() as Record<string, object | string>;
+    const params = router.getParams() as BookmarkPageParams;
     if (params) {
-      this.mode = (params.mode as string) || 'create';
+      this.mode = params.mode || 'create';
       
       if (params.bookmark) {
-        this.bookmark = BookmarkBase.fromJson(params.bookmark as object);
+        this.bookmark = BookmarkBase.fromJson(params.bookmark);
         this.loadFromBookmark();
       }
     }
@@ -261,12 +329,7 @@ struct BookmarkPage {
           .margin({ top: 16, bottom: 8 })
         
         Column() {
-          ForEach([
-            { label: '1920x1080 (Full HD)', w: '1920', h: '1080' },
-            { label: '1366x768 (HD)', w: '1366', h: '768' },
-            { label: '1280x720 (720p)', w: '1280', h: '720' },
-            { label: '2560x1440 (2K)', w: '2560', h: '1440' },
-          ], (preset: { label: string, w: string, h: string }) => {
+          ForEach(this.getResolutionPresets(), (preset: ResolutionPreset) => {
             Button(preset.label)
               .width('100%')
               .height(44)
@@ -300,12 +363,7 @@ struct BookmarkPage {
           .margin({ top: 16, bottom: 8 })
         
         Row() {
-          ForEach([
-            { label: '自动', value: 0 },
-            { label: 'RDP', value: 1 },
-            { label: 'TLS', value: 2 },
-            { label: 'NLA', value: 3 },
-          ], (opt: { label: string, value: number }) => {
+          ForEach(this.getSecurityOptions(), (opt: SecurityOption) => {
             Button(opt.label)
               .width('22%')
               .height(36)
@@ -326,11 +384,7 @@ struct BookmarkPage {
           .margin({ top: 16, bottom: 8 })
         
         Row() {
-          ForEach([
-            { label: '本地', value: 0 },
-            { label: '远程', value: 1 },
-            { label: '禁用', value: 2 },
-          ], (opt: { label: string, value: number }) => {
+          ForEach(this.getSoundOptions(), (opt: SoundOption) => {
             Button(opt.label)
               .width('30%')
               .height(40)

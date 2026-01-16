@@ -21,6 +21,14 @@ import LibFreeRDP, {
 } from '../services/LibFreeRDP';
 
 /**
+ * View position interface
+ */
+interface ViewPosition {
+  x: number;
+  y: number;
+}
+
+/**
  * Touch pointer event listener
  */
 export interface TouchPointerListener {
@@ -56,7 +64,7 @@ export struct TouchPointerView {
   @Prop desktopHeight: number = 1080;
   
   // View scale and offset
-  @Prop scale: number = 1.0;
+  @Prop viewScale: number = 1.0;
   @Prop offsetX: number = 0;
   @Prop offsetY: number = 0;
   
@@ -116,11 +124,12 @@ export struct TouchPointerView {
   /**
    * Get view position of pointer
    */
-  private getViewPosition(): { x: number, y: number } {
-    return {
-      x: this.pointerX * this.scale + this.offsetX,
-      y: this.pointerY * this.scale + this.offsetY
+  private getViewPosition(): ViewPosition {
+    const pos: ViewPosition = {
+      x: this.pointerX * this.viewScale + this.offsetX,
+      y: this.pointerY * this.viewScale + this.offsetY
     };
+    return pos;
   }
 
   /**
@@ -138,8 +147,8 @@ export struct TouchPointerView {
         break;
         
       case TouchType.Move:
-        const dx = (touch.x - this.lastTouchX) / this.scale;
-        const dy = (touch.y - this.lastTouchY) / this.scale;
+        const dx = (touch.x - this.lastTouchX) / this.viewScale;
+        const dy = (touch.y - this.lastTouchY) / this.viewScale;
         
         this.moveTo(this.pointerX + dx, this.pointerY + dy);
         

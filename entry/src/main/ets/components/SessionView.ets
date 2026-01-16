@@ -17,6 +17,14 @@ import LibFreeRDP, {
 } from '../services/LibFreeRDP';
 
 /**
+ * Desktop coordinate point
+ */
+interface DesktopPoint {
+  x: number;
+  y: number;
+}
+
+/**
  * Session view event listener
  */
 export interface SessionViewListener {
@@ -42,7 +50,7 @@ export struct SessionView {
   @Prop @Watch('onPixelMapChanged') pixelMap: image.PixelMap | null = null;
   
   // View state
-  @State scale: number = 1.0;
+  @State viewScale: number = 1.0;
   @State offsetX: number = 0;
   @State offsetY: number = 0;
   @State viewWidth: number = 0;
@@ -81,13 +89,14 @@ export struct SessionView {
   /**
    * Convert view coordinates to desktop coordinates
    */
-  private viewToDesktop(viewX: number, viewY: number): { x: number, y: number } {
-    const x = Math.round((viewX - this.offsetX) / this.scale);
-    const y = Math.round((viewY - this.offsetY) / this.scale);
-    return { 
+  private viewToDesktop(viewX: number, viewY: number): DesktopPoint {
+    const x = Math.round((viewX - this.offsetX) / this.viewScale);
+    const y = Math.round((viewY - this.offsetY) / this.viewScale);
+    const result: DesktopPoint = {
       x: Math.max(0, Math.min(x, this.desktopWidth - 1)),
       y: Math.max(0, Math.min(y, this.desktopHeight - 1))
     };
+    return result;
   }
 
   /**
@@ -124,7 +133,7 @@ export struct SessionView {
       const dx = event.touches[1].x - event.touches[0].x;
       const dy = event.touches[1].y - event.touches[0].y;
       this.initialPinchDistance = Math.sqrt(dx * dx + dy * dy);
-      this.initialScale = this.scale;
+      this.initialScale = this.viewScale;
     }
   }
 
@@ -173,15 +182,15 @@ export struct SessionView {
         const centerY = (event.touches[0].y + event.touches[1].y) / 2;
         
         // Adjust offset to zoom around center
-        const scaleChange = newScale / this.scale;
+        const scaleChange = newScale / this.viewScale;
         this.offsetX = centerX - (centerX - this.offsetX) * scaleChange;
         this.offsetY = centerY - (centerY - this.offsetY) * scaleChange;
         
-        this.scale = newScale;
+        this.viewScale = newScale;
         this.constrainOffset();
         
         if (this.listener) {
-          this.listener.onScaleChanged(this.scale);
+          this.listener.onScaleChanged(this.viewScale);
         }
       }
     }
@@ -206,8 +215,8 @@ export struct SessionView {
    * Constrain offset to keep desktop in view
    */
   private constrainOffset(): void {
-    const scaledWidth = this.desktopWidth * this.scale;
-    const scaledHeight = this.desktopHeight * this.scale;
+    const scaledWidth = this.desktopWidth * this.viewScale;
+    const scaledHeight = this.desktopHeight * this.viewScale;
     
     // Allow some margin
     const margin = 50;
@@ -232,8 +241,8 @@ export struct SessionView {
   /**
    * Set zoom level
    */
-  setScale(newScale: number): void {
-    this.scale = Math.max(SessionView.MIN_SCALE, Math.min(newScale, SessionView.MAX_SCALE));
+  setViewScale(newScale: number): void {
+    this.viewScale = Math.max(SessionView.MIN_SCALE, Math.min(newScale, SessionView.MAX_SCALE));
     this.constrainOffset();
   }
 
@@ -241,14 +250,14 @@ export struct SessionView {
    * Zoom in
    */
   zoomIn(): void {
-    this.setScale(this.scale * 1.25);
+    this.setViewScale(this.viewScale * 1.25);
   }
 
   /**
    * Zoom out
    */
   zoomOut(): void {
-    this.setScale(this.scale / 1.25);
+    this.setViewScale(this.viewScale / 1.25);
   }
 
   /**
@@ -259,18 +268,18 @@ export struct SessionView {
     
     const scaleX = this.viewWidth / this.desktopWidth;
     const scaleY = this.viewHeight / this.desktopHeight;
-    this.scale = Math.min(scaleX, scaleY);
+    this.viewScale = Math.min(scaleX, scaleY);
     
     // Center the desktop
-    this.offsetX = (this.viewWidth - this.desktopWidth * this.scale) / 2;
-    this.offsetY = (this.viewHeight - this.desktopHeight * this.scale) / 2;
+    this.offsetX = (this.viewWidth - this.desktopWidth * this.viewScale) / 2;
+    this.offsetY = (this.viewHeight - this.desktopHeight * this.viewScale) / 2;
   }
 
   /**
    * Reset to 100% zoom
    */
   resetZoom(): void {
-    this.scale = 1.0;
+    this.viewScale = 1.0;
     this.offsetX = 0;
     this.offsetY = 0;
     this.constrainOffset();
@@ -319,8 +328,8 @@ export struct SessionView {
       // Remote desktop canvas
       if (this.pixelMap) {
         Image(this.pixelMap)
-          .width(this.desktopWidth * this.scale)
-          .height(this.desktopHeight * this.scale)
+          .width(this.desktopWidth * this.viewScale)
+          .height(this.desktopHeight * this.viewScale)
           .position({ x: this.offsetX, y: this.offsetY })
           .objectFit(ImageFit.Fill)
           .interpolation(ImageInterpolation.Medium)
@@ -345,7 +354,7 @@ export struct SessionView {
       this.viewHeight = newValue.height as number;
       
       // Initial fit to screen
-      if (this.scale === 1.0 && this.offsetX === 0 && this.offsetY === 0) {
+      if (this.viewScale === 1.0 && this.offsetX === 0 && this.offsetY === 0) {
         this.fitToScreen();
       } else {
         this.constrainOffset();

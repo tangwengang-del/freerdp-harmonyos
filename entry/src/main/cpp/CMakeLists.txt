@@ -9,13 +9,16 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_C_STANDARD 11)
 
-# Find required packages
-find_package(OpenSSL REQUIRED)
-
 # FreeRDP paths (set by build system)
+# Note: CMAKE_CURRENT_SOURCE_DIR is entry/src/main/cpp
+# Go up 3 levels to reach entry/ directory where libs/ is located
 if(NOT DEFINED FREERDP_DIR)
-    set(FREERDP_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../../libs")
+    set(FREERDP_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../libs")
 endif()
+
+# OpenSSL is already linked into FreeRDP libraries, no need to find_package
+# Pre-compiled libraries are in libs/arm64-v8a directory
+set(LIBS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../libs/arm64-v8a")
 
 # Include directories
 include_directories(
@@ -23,13 +26,12 @@ include_directories(
     ${FREERDP_DIR}/include
     ${FREERDP_DIR}/include/freerdp3
     ${FREERDP_DIR}/include/winpr3
-    ${OPENSSL_INCLUDE_DIR}
 )
 
 # Link directories
 link_directories(
     ${FREERDP_DIR}/lib
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../libs/arm64-v8a
+    ${LIBS_DIR}
 )
 
 # Source files
@@ -56,8 +58,9 @@ target_link_libraries(freerdp_harmonyos
     freerdp-client3
     winpr3
     
-    # OpenSSL
-    ${OPENSSL_LIBRARIES}
+    # OpenSSL (pre-compiled in libs directory)
+    ssl
+    crypto
     
     # FFmpeg (optional, for H.264)
     avcodec
@@ -69,7 +72,7 @@ target_link_libraries(freerdp_harmonyos
 # Set output properties
 set_target_properties(freerdp_harmonyos PROPERTIES
     OUTPUT_NAME "freerdp_harmonyos"
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../../../../libs/arm64-v8a"
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../../../libs/arm64-v8a"
 )
 
 # Compiler flags

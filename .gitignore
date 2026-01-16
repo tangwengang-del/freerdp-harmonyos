@@ -40,3 +40,19 @@ android/Studio/freeRDPCore/build/
 android/Studio/aFreeRDP/build/
 android/Studio/*.apk
 android/Studio/local.properties
+
+# Signing files (sensitive)
+.signing/*.p12
+.signing/*.cer
+.signing/*.p7b
+.signing/*.jks
+.signing/*.keystore
+*.p12
+*.cer
+*.p7b
+*.jks
+*.keystore
+
+# Keep signing directory README
+!.signing/README.md
+!.signing/签名文件说明.txt

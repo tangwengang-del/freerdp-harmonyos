@@ -106,7 +106,7 @@ static UINT harmonyos_cliprdr_server_format_list(CliprdrClientContext* cliprdr, 
     
     /* Send format list response */
     ZeroMemory(&formatListResponse, sizeof(CLIPRDR_FORMAT_LIST_RESPONSE));
-    formatListResponse.msgFlags = CB_RESPONSE_OK;
+    formatListResponse.common.msgFlags = CB_RESPONSE_OK;
     
     cliprdr->ClientFormatListResponse(cliprdr, &formatListResponse);
     
@@ -126,7 +126,8 @@ static UINT harmonyos_cliprdr_server_format_list(CliprdrClientContext* cliprdr, 
 
 /* Server format list response callback */
 static UINT harmonyos_cliprdr_server_format_list_response(CliprdrClientContext* cliprdr, const CLIPRDR_FORMAT_LIST_RESPONSE* formatListResponse) {
-    LOGD("Server format list response: flags=0x%04X", formatListResponse->msgFlags);
+    (void)cliprdr;
+    LOGD("Server format list response: flags=0x%04X", formatListResponse->common.msgFlags);
     return CHANNEL_RC_OK;
 }
 
@@ -141,8 +142,8 @@ static UINT harmonyos_cliprdr_server_format_data_request(CliprdrClientContext* c
     
     /* TODO: Get clipboard data from HarmonyOS pasteboard and send to server */
     ZeroMemory(&formatDataResponse, sizeof(CLIPRDR_FORMAT_DATA_RESPONSE));
-    formatDataResponse.msgFlags = CB_RESPONSE_FAIL;
-    formatDataResponse.dataLen = 0;
+    formatDataResponse.common.msgFlags = CB_RESPONSE_FAIL;
+    formatDataResponse.common.dataLen = 0;
     formatDataResponse.requestedFormatData = NULL;
     
     return cliprdr->ClientFormatDataResponse(cliprdr, &formatDataResponse);
@@ -150,13 +151,13 @@ static UINT harmonyos_cliprdr_server_format_data_request(CliprdrClientContext* c
 
 /* Server format data response callback */
 static UINT harmonyos_cliprdr_server_format_data_response(CliprdrClientContext* cliprdr, const CLIPRDR_FORMAT_DATA_RESPONSE* formatDataResponse) {
-    LOGD("Server format data response: flags=0x%04X, dataLen=%d", 
-         formatDataResponse->msgFlags, formatDataResponse->dataLen);
+    LOGD("Server format data response: flags=0x%04X, dataLen=%u", 
+         formatDataResponse->common.msgFlags, formatDataResponse->common.dataLen);
     
     if (!cliprdr || !g_clipboardCtx)
         return ERROR_INVALID_PARAMETER;
     
-    if (formatDataResponse->msgFlags != CB_RESPONSE_OK)
+    if (formatDataResponse->common.msgFlags != CB_RESPONSE_OK)
         return CHANNEL_RC_OK;
     
     /* Free previous data */
@@ -166,17 +167,17 @@ static UINT harmonyos_cliprdr_server_format_data_response(CliprdrClientContext* 
         g_clipboardCtx->lastReceivedDataLength = 0;
     }
     
-    if (formatDataResponse->dataLen > 0 && formatDataResponse->requestedFormatData) {
+    if (formatDataResponse->common.dataLen > 0 && formatDataResponse->requestedFormatData) {
         /* Convert and store data */
         if (g_clipboardCtx->requestedFormatId == CF_UNICODETEXT) {
             /* Convert UTF-16 to UTF-8 */
             /* For simplicity, just copy as-is for now */
             /* TODO: Proper UTF-16 to UTF-8 conversion */
-            g_clipboardCtx->lastReceivedData = (char*)malloc(formatDataResponse->dataLen + 1);
+            g_clipboardCtx->lastReceivedData = (char*)malloc(formatDataResponse->common.dataLen + 1);
             if (g_clipboardCtx->lastReceivedData) {
-                memcpy(g_clipboardCtx->lastReceivedData, formatDataResponse->requestedFormatData, formatDataResponse->dataLen);
-                g_clipboardCtx->lastReceivedData[formatDataResponse->dataLen] = '\0';
-                g_clipboardCtx->lastReceivedDataLength = formatDataResponse->dataLen;
+                memcpy(g_clipboardCtx->lastReceivedData, formatDataResponse->requestedFormatData, formatDataResponse->common.dataLen);
+                g_clipboardCtx->lastReceivedData[formatDataResponse->common.dataLen] = '\0';
+                g_clipboardCtx->lastReceivedDataLength = formatDataResponse->common.dataLen;
                 
                 /* TODO: Notify ArkTS layer about clipboard change */
                 LOGI("Clipboard data received: %zu bytes", g_clipboardCtx->lastReceivedDataLength);
@@ -212,6 +213,7 @@ void harmonyos_cliprdr_init(harmonyosContext* afc, CliprdrClientContext* cliprdr
 
 /* Uninitialize clipboard */
 void harmonyos_cliprdr_uninit(harmonyosContext* afc, CliprdrClientContext* cliprdr) {
+    (void)afc;
     if (!cliprdr)
         return;
     
@@ -230,6 +232,7 @@ void harmonyos_cliprdr_uninit(harmonyosContext* afc, CliprdrClientContext* clipr
 
 /* Send clipboard data to server */
 bool harmonyos_cliprdr_send_data(const char* data, size_t length) {
+    (void)length;
     if (!g_clipboardCtx || !g_clipboardCtx->cliprdr || !data)
         return false;
     

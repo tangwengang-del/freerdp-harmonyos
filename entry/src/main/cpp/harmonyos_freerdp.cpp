@@ -911,5 +911,6 @@ bool freerdp_harmonyos_is_connected(int64_t instance) {
     if (!inst || !inst->context)
         return false;
     
-    return freerdp_is_connected(inst);
+    /* FreeRDP 3.x doesn't have freerdp_is_connected, check via shall_disconnect */
+    return !freerdp_shall_disconnect_context(inst->context);
 }

@@ -308,7 +308,7 @@ export class GlobalSessionManager {
    * Register a new session
    */
   static registerSession(instance: number, session: SessionState): void {
-    this.sessions.set(instance, session);
+    GlobalSessionManager.sessions.set(instance, session);
     console.info(`GlobalSessionManager: Registered session ${instance}`);
   }
 
@@ -316,17 +316,17 @@ export class GlobalSessionManager {
    * Get a session by instance
    */
   static getSession(instance: number): SessionState | undefined {
-    return this.sessions.get(instance);
+    return GlobalSessionManager.sessions.get(instance);
   }
 
   /**
    * Remove a session
    */
   static removeSession(instance: number): void {
-    const session = this.sessions.get(instance);
+    const session = GlobalSessionManager.sessions.get(instance);
     if (session) {
       session.cleanup();
-      this.sessions.delete(instance);
+      GlobalSessionManager.sessions.delete(instance);
       console.info(`GlobalSessionManager: Removed session ${instance}`);
     }
   }
@@ -335,26 +335,31 @@ export class GlobalSessionManager {
    * Get all active sessions
    */
   static getAllSessions(): SessionState[] {
-    return Array.from(this.sessions.values());
+    const result: SessionState[] = [];
+    GlobalSessionManager.sessions.forEach((session: SessionState) => {
+      result.push(session);
+    });
+    return result;
   }
 
   /**
    * Get count of active sessions
    */
   static getSessionCount(): number {
-    return this.sessions.size;
+    return GlobalSessionManager.sessions.size;
   }
 
   /**
    * Check if any session is connected
    */
   static hasConnectedSession(): boolean {
-    for (const session of this.sessions.values()) {
+    let hasConnected = false;
+    GlobalSessionManager.sessions.forEach((session: SessionState) => {
       if (session.isConnected()) {
-        return true;
+        hasConnected = true;
       }
-    }
-    return false;
+    });
+    return hasConnected;
   }
 
   /**
@@ -362,10 +367,10 @@ export class GlobalSessionManager {
    */
   static cleanupAll(): void {
     console.info('GlobalSessionManager: Cleaning up all sessions');
-    for (const session of this.sessions.values()) {
+    GlobalSessionManager.sessions.forEach((session: SessionState) => {
       session.cleanup();
-    }
-    this.sessions.clear();
+    });
+    GlobalSessionManager.sessions.clear();
   }
 }
 

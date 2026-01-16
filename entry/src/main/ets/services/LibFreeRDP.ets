@@ -7,40 +7,7 @@
  * Copyright 2026 FreeRDP HarmonyOS Port
  */
 
-// Try to load native module with error handling
-let freerdpNative: ESObject | null = null;
-let nativeLoadError: string | null = null;
-
-try {
-  freerdpNative = requireNapi('libfreerdp_harmonyos.so');
-} catch (e) {
-  nativeLoadError = `Failed to load native module: ${e}`;
-  console.error(`[LibFreeRDP] ${nativeLoadError}`);
-}
-
-// Helper type for native module
-interface FreerdpNativeInterface {
-  setOnConnectionSuccess: (callback: (instance: number) => void) => void;
-  setOnConnectionFailure: (callback: (instance: number) => void) => void;
-  setOnPreConnect: (callback: (instance: number) => void) => void;
-  setOnDisconnecting: (callback: (instance: number) => void) => void;
-  setOnDisconnected: (callback: (instance: number) => void) => void;
-  freerdpHasH264: () => boolean;
-  freerdpNew: () => number;
-  freerdpFree: (inst: number) => void;
-  freerdpConnect: (inst: number) => boolean;
-  freerdpDisconnect: (inst: number) => boolean;
-  freerdpParseArguments: (inst: number, args: string[]) => boolean;
-  freerdpSendCursorEvent: (inst: number, x: number, y: number, flags: number) => boolean;
-  freerdpSendKeyEvent: (inst: number, keycode: number, down: boolean) => boolean;
-  freerdpSendUnicodeKeyEvent: (inst: number, keycode: number, down: boolean) => boolean;
-  freerdpSetTcpKeepalive: (inst: number, enabled: boolean, delay: number, interval: number, retries: number) => boolean;
-  freerdpSendSynchronizeEvent: (inst: number, flags: number) => boolean;
-  freerdpSendClipboardData: (inst: number, data: string) => boolean;
-  freerdpSetClientDecoding: (inst: number, enable: boolean) => number;
-  freerdpGetLastErrorString: (inst: number) => string;
-  freerdpGetVersion: () => string;
-}
+import freerdpNative from 'libfreerdp_harmonyos.so';
 
 // Cursor type constants (matching C layer definitions)
 export const CURSOR_TYPE_UNKNOWN = 0;
@@ -164,29 +131,9 @@ let eventListener: EventListener | null = null;
 // H.264 support flag
 let hasH264Support: boolean = false;
 
-// Check if native module is available
-function isNativeAvailable(): boolean {
-  return freerdpNative !== null && nativeLoadError === null;
-}
-
-// Get native module load error (if any)
-export function getNativeLoadError(): string | null {
-  return nativeLoadError;
-}
-
 // Initialize native callbacks
 function initCallbacks(): void {
-  if (!isNativeAvailable()) {
-    console.error(`[LibFreeRDP] Cannot initialize callbacks: ${nativeLoadError}`);
-    console.error('[LibFreeRDP] Native libraries may be compiled with wrong toolchain.');
-    console.error('[LibFreeRDP] HarmonyOS requires musl libc, not glibc.');
-    console.error('[LibFreeRDP] Please rebuild libraries with musl cross-compiler.');
-    return;
-  }
-
-  const native = freerdpNative as FreerdpNativeInterface;
-
-  native.setOnConnectionSuccess((instance: number) => {
+  freerdpNative.setOnConnectionSuccess((instance: number) => {
     console.info(`[LibFreeRDP] OnConnectionSuccess: instance=${instance}`);
     instanceState.set(instance, true);
     if (eventListener) {
@@ -194,7 +141,7 @@ function initCallbacks(): void {
     }
   });
 
-  native.setOnConnectionFailure((instance: number) => {
+  freerdpNative.setOnConnectionFailure((instance: number) => {
     console.error(`[LibFreeRDP] OnConnectionFailure: instance=${instance}`);
     instanceState.delete(instance);
     if (eventListener) {
@@ -202,21 +149,21 @@ function initCallbacks(): void {
     }
   });
 
-  native.setOnPreConnect((instance: number) => {
+  freerdpNative.setOnPreConnect((instance: number) => {
     console.info(`[LibFreeRDP] OnPreConnect: instance=${instance}`);
     if (eventListener) {
       eventListener.OnPreConnect(instance);
     }
   });
 
-  native.setOnDisconnecting((instance: number) => {
+  freerdpNative.setOnDisconnecting((instance: number) => {
     console.info(`[LibFreeRDP] OnDisconnecting: instance=${instance}`);
     if (eventListener) {
       eventListener.OnDisconnecting(instance);
     }
   });
 
-  native.setOnDisconnected((instance: number) => {
+  freerdpNative.setOnDisconnected((instance: number) => {
     console.info(`[LibFreeRDP] OnDisconnected: instance=${instance}`);
     instanceState.delete(instance);
     if (eventListener) {
@@ -225,7 +172,7 @@ function initCallbacks(): void {
   });
 
   // Check H.264 support
-  hasH264Support = native.freerdpHasH264();
+  hasH264Support = freerdpNative.freerdpHasH264();
   console.info(`[LibFreeRDP] H.264 support: ${hasH264Support}`);
 }
 
@@ -234,20 +181,6 @@ initCallbacks();
 
 export class LibFreeRDP {
   private static TAG = 'LibFreeRDP';
-
-  /**
-   * Check if native library is loaded successfully
-   */
-  static isNativeLoaded(): boolean {
-    return isNativeAvailable();
-  }
-
-  /**
-   * Get native library load error message
-   */
-  static getLoadError(): string | null {
-    return nativeLoadError;
-  }
 
   /**
    * Check if H.264 is supported
@@ -267,12 +200,7 @@ export class LibFreeRDP {
    * Create a new FreeRDP instance
    */
   static newInstance(): number {
-    if (!isNativeAvailable()) {
-      console.error(`${LibFreeRDP.TAG}: Native library not loaded: ${nativeLoadError}`);
-      return 0;
-    }
-    const native = freerdpNative as FreerdpNativeInterface;
-    const instance: number = native.freerdpNew() as number;
+    const instance: number = freerdpNative.freerdpNew() as number;
     console.info(`${LibFreeRDP.TAG}: newInstance() = ${instance}`);
     return instance;
   }
@@ -281,18 +209,12 @@ export class LibFreeRDP {
    * Free a FreeRDP instance
    */
   static freeInstance(inst: number): void {
-    if (!isNativeAvailable()) {
-      console.error(`${LibFreeRDP.TAG}: Native library not loaded`);
-      return;
-    }
-    const native = freerdpNative as FreerdpNativeInterface;
-    
     console.info(`${LibFreeRDP.TAG}: freeInstance(${inst})`);
     
     // Disconnect if still connected
     if (instanceState.get(inst)) {
       try {
-        native.freerdpDisconnect(inst);
+        freerdpNative.freerdpDisconnect(inst);
       } catch (e) {
         console.error(`${LibFreeRDP.TAG}: Failed to disconnect instance ${inst}`, e);
       }
@@ -312,7 +234,7 @@ export class LibFreeRDP {
     }
     
     try {
-      native.freerdpFree(inst);
+      freerdpNative.freerdpFree(inst);
     } catch (e) {
       console.error(`${LibFreeRDP.TAG}: Failed to free instance ${inst}`, e);
     }
@@ -324,27 +246,18 @@ export class LibFreeRDP {
    * Connect to a remote desktop
    */
   static connect(inst: number): boolean {
-    if (!isNativeAvailable()) {
-      console.error(`${LibFreeRDP.TAG}: Native library not loaded`);
-      return false;
-    }
     if (instanceState.get(inst)) {
       throw new Error('Instance already connected');
     }
-    const native = freerdpNative as FreerdpNativeInterface;
-    return native.freerdpConnect(inst);
+    return freerdpNative.freerdpConnect(inst);
   }
 
   /**
    * Disconnect from a remote desktop
    */
   static disconnect(inst: number): boolean {
-    if (!isNativeAvailable()) {
-      return true;
-    }
-    const native = freerdpNative as FreerdpNativeInterface;
     if (instanceState.get(inst)) {
-      return native.freerdpDisconnect(inst);
+      return freerdpNative.freerdpDisconnect(inst);
     }
     return true;
   }
@@ -353,12 +266,8 @@ export class LibFreeRDP {
    * Cancel an ongoing connection
    */
   static cancelConnection(inst: number): boolean {
-    if (!isNativeAvailable()) {
-      return true;
-    }
-    const native = freerdpNative as FreerdpNativeInterface;
     if (instanceState.get(inst)) {
-      return native.freerdpDisconnect(inst);
+      return freerdpNative.freerdpDisconnect(inst);
     }
     return true;
   }
@@ -367,12 +276,6 @@ export class LibFreeRDP {
    * Set connection info from bookmark settings
    */
   static setConnectionInfo(inst: number, bookmark: BookmarkSettings, clientName: string = ''): boolean {
-    if (!isNativeAvailable()) {
-      console.error(`${LibFreeRDP.TAG}: Native library not loaded`);
-      return false;
-    }
-    const native = freerdpNative as FreerdpNativeInterface;
-    
     const args: string[] = [];
     
     args.push('FreeRDP');
@@ -484,7 +387,7 @@ export class LibFreeRDP {
     args.push(`/log-level:${bookmark.debugSettings.debugLevel}`);
     
     // Parse arguments
-    if (!native.freerdpParseArguments(inst, args)) {
+    if (!freerdpNative.freerdpParseArguments(inst, args)) {
       return false;
     }
     
@@ -503,55 +406,38 @@ export class LibFreeRDP {
    * Send a cursor/mouse event
    */
   static sendCursorEvent(inst: number, x: number, y: number, flags: number): boolean {
-    if (!isNativeAvailable() || inst === 0) {
+    if (inst === 0) {
       return false;
     }
-    const native = freerdpNative as FreerdpNativeInterface;
-    return native.freerdpSendCursorEvent(inst, x, y, flags);
+    return freerdpNative.freerdpSendCursorEvent(inst, x, y, flags);
   }
 
   /**
    * Send a key event
    */
   static sendKeyEvent(inst: number, keycode: number, down: boolean): boolean {
-    if (!isNativeAvailable()) {
-      return false;
-    }
-    const native = freerdpNative as FreerdpNativeInterface;
-    return native.freerdpSendKeyEvent(inst, keycode, down);
+    return freerdpNative.freerdpSendKeyEvent(inst, keycode, down);
   }
 
   /**
    * Send a Unicode key event
    */
   static sendUnicodeKeyEvent(inst: number, keycode: number, down: boolean): boolean {
-    if (!isNativeAvailable()) {
-      return false;
-    }
-    const native = freerdpNative as FreerdpNativeInterface;
-    return native.freerdpSendUnicodeKeyEvent(inst, keycode, down);
+    return freerdpNative.freerdpSendUnicodeKeyEvent(inst, keycode, down);
   }
 
   /**
    * Set TCP Keepalive settings (must be called before connect)
    */
   static setTcpKeepalive(inst: number, enabled: boolean, delay: number, interval: number, retries: number): boolean {
-    if (!isNativeAvailable()) {
-      return false;
-    }
-    const native = freerdpNative as FreerdpNativeInterface;
-    return native.freerdpSetTcpKeepalive(inst, enabled, delay, interval, retries);
+    return freerdpNative.freerdpSetTcpKeepalive(inst, enabled, delay, interval, retries);
   }
 
   /**
    * Send a synchronize event (used for heartbeat)
    */
   static sendSynchronizeEvent(inst: number, flags: number): boolean {
-    if (!isNativeAvailable()) {
-      return false;
-    }
-    const native = freerdpNative as FreerdpNativeInterface;
-    return native.freerdpSendSynchronizeEvent(inst, flags);
+    return freerdpNative.freerdpSendSynchronizeEvent(inst, flags);
   }
 
   /**
@@ -565,11 +451,7 @@ export class LibFreeRDP {
    * Send clipboard data
    */
   static sendClipboardData(inst: number, data: string): boolean {
-    if (!isNativeAvailable()) {
-      return false;
-    }
-    const native = freerdpNative as FreerdpNativeInterface;
-    return native.freerdpSendClipboardData(inst, data);
+    return freerdpNative.freerdpSendClipboardData(inst, data);
   }
 
   /**
@@ -577,33 +459,21 @@ export class LibFreeRDP {
    * When disabled, stops receiving graphics updates but keeps audio
    */
   static setClientDecoding(inst: number, enable: boolean): number {
-    if (!isNativeAvailable()) {
-      return -1;
-    }
-    const native = freerdpNative as FreerdpNativeInterface;
-    return native.freerdpSetClientDecoding(inst, enable);
+    return freerdpNative.freerdpSetClientDecoding(inst, enable);
   }
 
   /**
    * Get the last error string
    */
   static getLastErrorString(inst: number): string {
-    if (!isNativeAvailable()) {
-      return nativeLoadError ?? 'Native library not loaded';
-    }
-    const native = freerdpNative as FreerdpNativeInterface;
-    return native.freerdpGetLastErrorString(inst);
+    return freerdpNative.freerdpGetLastErrorString(inst);
   }
 
   /**
    * Get FreeRDP version
    */
   static getVersion(): string {
-    if (!isNativeAvailable()) {
-      return 'Native library not loaded';
-    }
-    const native = freerdpNative as FreerdpNativeInterface;
-    return native.freerdpGetVersion();
+    return freerdpNative.freerdpGetVersion();
   }
 
   /**

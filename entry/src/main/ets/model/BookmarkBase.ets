@@ -143,29 +143,93 @@ export class BookmarkBase {
    */
   static fromJson(json: object): BookmarkBase {
     const bookmark = new BookmarkBase();
-    Object.assign(bookmark, json);
+    const data = json as Record<string, Object>;
+    
+    // Copy basic properties
+    if (data['id'] !== undefined) bookmark.id = data['id'] as number;
+    if (data['label'] !== undefined) bookmark.label = data['label'] as string;
+    if (data['type'] !== undefined) bookmark.type = data['type'] as BookmarkType;
+    if (data['hostname'] !== undefined) bookmark.hostname = data['hostname'] as string;
+    if (data['port'] !== undefined) bookmark.port = data['port'] as number;
+    if (data['username'] !== undefined) bookmark.username = data['username'] as string;
+    if (data['domain'] !== undefined) bookmark.domain = data['domain'] as string;
+    if (data['password'] !== undefined) bookmark.password = data['password'] as string;
+    
+    // Copy screen settings
+    if (data['screenSettings'] !== undefined) {
+      const ss = data['screenSettings'] as Record<string, Object>;
+      if (ss['width'] !== undefined) bookmark.screenSettings.width = ss['width'] as number;
+      if (ss['height'] !== undefined) bookmark.screenSettings.height = ss['height'] as number;
+      if (ss['colors'] !== undefined) bookmark.screenSettings.colors = ss['colors'] as number;
+    }
+    
+    // Copy advanced settings
+    if (data['advancedSettings'] !== undefined) {
+      const as_ = data['advancedSettings'] as Record<string, Object>;
+      if (as_['consoleMode'] !== undefined) bookmark.advancedSettings.consoleMode = as_['consoleMode'] as boolean;
+      if (as_['security'] !== undefined) bookmark.advancedSettings.security = as_['security'] as number;
+      if (as_['remoteProgram'] !== undefined) bookmark.advancedSettings.remoteProgram = as_['remoteProgram'] as string;
+      if (as_['workDir'] !== undefined) bookmark.advancedSettings.workDir = as_['workDir'] as string;
+      if (as_['redirectSDCard'] !== undefined) bookmark.advancedSettings.redirectSDCard = as_['redirectSDCard'] as boolean;
+      if (as_['redirectSound'] !== undefined) bookmark.advancedSettings.redirectSound = as_['redirectSound'] as number;
+      if (as_['redirectMicrophone'] !== undefined) bookmark.advancedSettings.redirectMicrophone = as_['redirectMicrophone'] as boolean;
+    }
+    
+    // Copy performance flags
+    if (data['performanceFlags'] !== undefined) {
+      const pf = data['performanceFlags'] as Record<string, Object>;
+      if (pf['remoteFX'] !== undefined) bookmark.performanceFlags.remoteFX = pf['remoteFX'] as boolean;
+      if (pf['gfx'] !== undefined) bookmark.performanceFlags.gfx = pf['gfx'] as boolean;
+      if (pf['h264'] !== undefined) bookmark.performanceFlags.h264 = pf['h264'] as boolean;
+      if (pf['wallpaper'] !== undefined) bookmark.performanceFlags.wallpaper = pf['wallpaper'] as boolean;
+      if (pf['fullWindowDrag'] !== undefined) bookmark.performanceFlags.fullWindowDrag = pf['fullWindowDrag'] as boolean;
+      if (pf['menuAnimations'] !== undefined) bookmark.performanceFlags.menuAnimations = pf['menuAnimations'] as boolean;
+      if (pf['theming'] !== undefined) bookmark.performanceFlags.theming = pf['theming'] as boolean;
+      if (pf['fontSmoothing'] !== undefined) bookmark.performanceFlags.fontSmoothing = pf['fontSmoothing'] as boolean;
+      if (pf['desktopComposition'] !== undefined) bookmark.performanceFlags.desktopComposition = pf['desktopComposition'] as boolean;
+    }
+    
+    // Copy debug settings
+    if (data['debugSettings'] !== undefined) {
+      const ds = data['debugSettings'] as Record<string, Object>;
+      if (ds['asyncChannel'] !== undefined) bookmark.debugSettings.asyncChannel = ds['asyncChannel'] as boolean;
+      if (ds['asyncUpdate'] !== undefined) bookmark.debugSettings.asyncUpdate = ds['asyncUpdate'] as boolean;
+      if (ds['debugLevel'] !== undefined) bookmark.debugSettings.debugLevel = ds['debugLevel'] as string;
+    }
+    
+    // Copy gateway settings
+    if (data['gatewaySettings'] !== undefined) {
+      const gs = data['gatewaySettings'] as Record<string, Object>;
+      if (gs['enabled'] !== undefined) bookmark.gatewaySettings.enabled = gs['enabled'] as boolean;
+      if (gs['hostname'] !== undefined) bookmark.gatewaySettings.hostname = gs['hostname'] as string;
+      if (gs['port'] !== undefined) bookmark.gatewaySettings.port = gs['port'] as number;
+      if (gs['username'] !== undefined) bookmark.gatewaySettings.username = gs['username'] as string;
+      if (gs['domain'] !== undefined) bookmark.gatewaySettings.domain = gs['domain'] as string;
+      if (gs['password'] !== undefined) bookmark.gatewaySettings.password = gs['password'] as string;
+    }
+    
     return bookmark;
   }
 
   /**
    * Convert bookmark to JSON object
    */
-  toJson(): object {
-    return {
-      id: this.id,
-      label: this.label,
-      type: this.type,
-      hostname: this.hostname,
-      port: this.port,
-      username: this.username,
-      domain: this.domain,
-      password: this.password,
-      screenSettings: this.screenSettings,
-      advancedSettings: this.advancedSettings,
-      performanceFlags: this.performanceFlags,
-      debugSettings: this.debugSettings,
-      gatewaySettings: this.gatewaySettings
-    };
+  toJson(): Record<string, Object> {
+    const result: Record<string, Object> = {};
+    result['id'] = this.id;
+    result['label'] = this.label;
+    result['type'] = this.type;
+    result['hostname'] = this.hostname;
+    result['port'] = this.port;
+    result['username'] = this.username;
+    result['domain'] = this.domain;
+    result['password'] = this.password;
+    result['screenSettings'] = this.screenSettings;
+    result['advancedSettings'] = this.advancedSettings;
+    result['performanceFlags'] = this.performanceFlags;
+    result['debugSettings'] = this.debugSettings;
+    result['gatewaySettings'] = this.gatewaySettings;
+    return result;
   }
 
   /**
@@ -202,11 +266,45 @@ export class BookmarkBase {
     cloned.username = this.username;
     cloned.domain = this.domain;
     cloned.password = this.password;
-    cloned.screenSettings = { ...this.screenSettings };
-    cloned.advancedSettings = { ...this.advancedSettings };
-    cloned.performanceFlags = { ...this.performanceFlags };
-    cloned.debugSettings = { ...this.debugSettings };
-    cloned.gatewaySettings = { ...this.gatewaySettings };
+    
+    // Clone screen settings
+    cloned.screenSettings.width = this.screenSettings.width;
+    cloned.screenSettings.height = this.screenSettings.height;
+    cloned.screenSettings.colors = this.screenSettings.colors;
+    
+    // Clone advanced settings
+    cloned.advancedSettings.consoleMode = this.advancedSettings.consoleMode;
+    cloned.advancedSettings.security = this.advancedSettings.security;
+    cloned.advancedSettings.remoteProgram = this.advancedSettings.remoteProgram;
+    cloned.advancedSettings.workDir = this.advancedSettings.workDir;
+    cloned.advancedSettings.redirectSDCard = this.advancedSettings.redirectSDCard;
+    cloned.advancedSettings.redirectSound = this.advancedSettings.redirectSound;
+    cloned.advancedSettings.redirectMicrophone = this.advancedSettings.redirectMicrophone;
+    
+    // Clone performance flags
+    cloned.performanceFlags.remoteFX = this.performanceFlags.remoteFX;
+    cloned.performanceFlags.gfx = this.performanceFlags.gfx;
+    cloned.performanceFlags.h264 = this.performanceFlags.h264;
+    cloned.performanceFlags.wallpaper = this.performanceFlags.wallpaper;
+    cloned.performanceFlags.fullWindowDrag = this.performanceFlags.fullWindowDrag;
+    cloned.performanceFlags.menuAnimations = this.performanceFlags.menuAnimations;
+    cloned.performanceFlags.theming = this.performanceFlags.theming;
+    cloned.performanceFlags.fontSmoothing = this.performanceFlags.fontSmoothing;
+    cloned.performanceFlags.desktopComposition = this.performanceFlags.desktopComposition;
+    
+    // Clone debug settings
+    cloned.debugSettings.asyncChannel = this.debugSettings.asyncChannel;
+    cloned.debugSettings.asyncUpdate = this.debugSettings.asyncUpdate;
+    cloned.debugSettings.debugLevel = this.debugSettings.debugLevel;
+    
+    // Clone gateway settings
+    cloned.gatewaySettings.enabled = this.gatewaySettings.enabled;
+    cloned.gatewaySettings.hostname = this.gatewaySettings.hostname;
+    cloned.gatewaySettings.port = this.gatewaySettings.port;
+    cloned.gatewaySettings.username = this.gatewaySettings.username;
+    cloned.gatewaySettings.domain = this.gatewaySettings.domain;
+    cloned.gatewaySettings.password = this.gatewaySettings.password;
+    
     return cloned;
   }
 

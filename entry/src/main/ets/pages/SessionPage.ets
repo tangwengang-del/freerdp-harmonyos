@@ -8,20 +8,68 @@
 
 import router from '@ohos.router';
 import promptAction from '@ohos.promptAction';
-import screenLock from '@ohos.screenLock';
 import window from '@ohos.window';
 import common from '@ohos.app.ability.common';
 import image from '@ohos.multimedia.image';
 import { BookmarkBase } from '../model/BookmarkBase';
 import { SessionState, ConnectionState, GlobalSessionManager } from '../model/SessionState';
-import LibFreeRDP, { UIEventListener, EventListener } from '../services/LibFreeRDP';
+import LibFreeRDP, { EventListener, BookmarkSettings, ScreenSettings, AdvancedSettings, PerformanceFlags, DebugSettings, GatewaySettings } from '../services/LibFreeRDP';
 import { RdpBackgroundService } from '../services/RdpBackgroundService';
-import { NetworkManager } from '../services/NetworkManager';
-import { SessionView, SessionViewListener } from '../components/SessionView';
-import { TouchPointerView, TouchPointerListener } from '../components/TouchPointerView';
-import { VirtualKeyboard, VirtualKeyboardListener } from '../components/VirtualKeyboard';
+import { NetworkManager, SessionInfo } from '../services/NetworkManager';
+import { SessionView } from '../components/SessionView';
+import { TouchPointerView } from '../components/TouchPointerView';
+import { VirtualKeyboard } from '../components/VirtualKeyboard';
+
+/**
+ * Router params interface
+ */
+interface SessionPageParams {
+  bookmark?: object;
+}
 
 const TAG = 'SessionPage';
+
+// Global callbacks for event listener (workaround for ArkTS struct limitations)
+let globalOnPreConnectCallback: ((instance: number) => void) | null = null;
+let globalOnConnectionSuccessCallback: ((instance: number) => void) | null = null;
+let globalOnConnectionFailureCallback: ((instance: number) => void) | null = null;
+let globalOnDisconnectingCallback: ((instance: number) => void) | null = null;
+let globalOnDisconnectedCallback: ((instance: number) => void) | null = null;
+
+/**
+ * Session event listener implementation class
+ */
+class SessionEventListenerImpl implements EventListener {
+  OnPreConnect(instance: number): void {
+    if (globalOnPreConnectCallback) {
+      globalOnPreConnectCallback(instance);
+    }
+  }
+
+  OnConnectionSuccess(instance: number): void {
+    if (globalOnConnectionSuccessCallback) {
+      globalOnConnectionSuccessCallback(instance);
+    }
+  }
+
+  OnConnectionFailure(instance: number): void {
+    if (globalOnConnectionFailureCallback) {
+      globalOnConnectionFailureCallback(instance);
+    }
+  }
+
+  OnDisconnecting(instance: number): void {
+    if (globalOnDisconnectingCallback) {
+      globalOnDisconnectingCallback(instance);
+    }
+  }
+
+  OnDisconnected(instance: number): void {
+    if (globalOnDisconnectedCallback) {
+      globalOnDisconnectedCallback(instance);
+    }
+  }
+}
 
 // Heartbeat interval for keeping connection alive
 const HEARTBEAT_INTERVAL_MS = 30000;
@@ -38,7 +86,7 @@ struct SessionPage {
   @State desktopWidth: number = 1920;
   @State desktopHeight: number = 1080;
   @State pixelMap: image.PixelMap | null = null;
-  @State scale: number = 1.0;
+  @State viewScale: number = 1.0;
   @State offsetX: number = 0;
   @State offsetY: number = 0;
   
@@ -69,7 +117,7 @@ struct SessionPage {
     console.info(`${TAG}: aboutToAppear`);
     
     // Get bookmark from router params
-    const params = router.getParams() as Record<string, object>;
+    const params = router.getParams() as SessionPageParams;
     if (params && params.bookmark) {
       const bookmark = BookmarkBase.fromJson(params.bookmark);
       this.initSession(bookmark);
@@ -86,9 +134,6 @@ struct SessionPage {
     NetworkManager.setOnReconnectSuccessCallback(() => {
       this.onReconnectSuccess();
     });
-    
-    // Setup screen lock listener
-    this.setupScreenLockListener();
     
     // Keep screen on
     this.setKeepScreenOn(true);
@@ -137,29 +182,31 @@ struct SessionPage {
     this.connectionState = ConnectionState.CONNECTING;
     this.statusMessage = '正在连接...';
     
+    // Set up event listener callbacks
+    globalOnPreConnectCallback = (instance: number): void => {
+      console.info(`${TAG}: OnPreConnect`);
+      this.statusMessage = '正在建立连接...';
+    };
+    globalOnConnectionSuccessCallback = (instance: number): void => {
+      console.info(`${TAG}: OnConnectionSuccess`);
+      this.onConnectionSuccess(instance);
+    };
+    globalOnConnectionFailureCallback = (instance: number): void => {
+      console.error(`${TAG}: OnConnectionFailure`);
+      this.onConnectionFailure(instance);
+    };
+    globalOnDisconnectingCallback = (instance: number): void => {
+      console.info(`${TAG}: OnDisconnecting`);
+      this.statusMessage = '正在断开连接...';
+    };
+    globalOnDisconnectedCallback = (instance: number): void => {
+      console.info(`${TAG}: OnDisconnected`);
+      this.onDisconnected(instance);
+    };
+    
     // Set up event listener
-    LibFreeRDP.setEventListener({
-      OnPreConnect: (instance: number) => {
-        console.info(`${TAG}: OnPreConnect`);
-        this.statusMessage = '正在建立连接...';
-      },
-      OnConnectionSuccess: (instance: number) => {
-        console.info(`${TAG}: OnConnectionSuccess`);
-        this.onConnectionSuccess(instance);
-      },
-      OnConnectionFailure: (instance: number) => {
-        console.error(`${TAG}: OnConnectionFailure`);
-        this.onConnectionFailure(instance);
-      },
-      OnDisconnecting: (instance: number) => {
-        console.info(`${TAG}: OnDisconnecting`);
-        this.statusMessage = '正在断开连接...';
-      },
-      OnDisconnected: (instance: number) => {
-        console.info(`${TAG}: OnDisconnected`);
-        this.onDisconnected(instance);
-      }
-    } as EventListener);
+    const eventListener = new SessionEventListenerImpl();
+    LibFreeRDP.setEventListener(eventListener);
     
     // Create FreeRDP instance
     const instance = LibFreeRDP.newInstance();
@@ -173,32 +220,23 @@ struct SessionPage {
     GlobalSessionManager.registerSession(instance, this.session);
     
     // Set connection info
-    if (!LibFreeRDP.setConnectionInfo(instance, {
-      hostname: bookmark.hostname,
-      port: bookmark.port,
-      username: bookmark.username,
-      domain: bookmark.domain,
-      password: bookmark.password,
-      screenSettings: bookmark.screenSettings,
-      advancedSettings: bookmark.advancedSettings,
-      performanceFlags: bookmark.performanceFlags,
-      debugSettings: bookmark.debugSettings,
-      gatewaySettings: bookmark.gatewaySettings?.enabled ? bookmark.gatewaySettings : undefined
-    })) {
+    const connectionInfo: BookmarkSettings = this.createConnectionInfo(bookmark);
+    if (!LibFreeRDP.setConnectionInfo(instance, connectionInfo)) {
       this.statusMessage = '错误：连接参数无效';
       this.connectionState = ConnectionState.DISCONNECTED;
       return;
     }
     
     // Set session info for reconnection
-    NetworkManager.setSessionInfo({
+    const sessionInfo: SessionInfo = {
       instance: instance,
       hostname: bookmark.hostname,
       port: bookmark.port,
       username: bookmark.username,
       domain: bookmark.domain,
       password: bookmark.password
-    });
+    };
+    NetworkManager.setSessionInfo(sessionInfo);
     
     // Connect
     if (!LibFreeRDP.connect(instance)) {
@@ -289,25 +327,11 @@ struct SessionPage {
 
   /**
    * Setup screen lock listener
+   * Note: screenLock.on/off API is not available in current SDK version
    */
   private setupScreenLockListener(): void {
-    try {
-      screenLock.on('screenLockChange', (isLocked: boolean) => {
-        console.info(`${TAG}: Screen lock changed: ${isLocked}`);
-        this.isScreenLocked = isLocked;
-        
-        if (this.session) {
-          this.session.setScreenLocked(isLocked);
-          
-          // Suppress graphics when locked, resume when unlocked
-          if (this.session.getInstance() !== 0) {
-            LibFreeRDP.setClientDecoding(this.session.getInstance(), !isLocked);
-          }
-        }
-      });
-    } catch (error) {
-      console.error(`${TAG}: Failed to setup screen lock listener:`, error);
-    }
+    // Screen lock monitoring is not available in current SDK
+    console.info(`${TAG}: Screen lock listener setup skipped (API not available)`);
   }
 
   /**
@@ -316,12 +340,13 @@ struct SessionPage {
   private startHeartbeat(): void {
     this.stopHeartbeat();
     
-    this.heartbeatTimer = setInterval(() => {
+    const heartbeatCallback = (): void => {
       if (this.session && this.session.getInstance() !== 0 && 
           this.connectionState === ConnectionState.CONNECTED) {
         LibFreeRDP.sendHeartbeat(this.session.getInstance());
       }
-    }, HEARTBEAT_INTERVAL_MS) as unknown as number;
+    };
+    this.heartbeatTimer = setInterval(heartbeatCallback, HEARTBEAT_INTERVAL_MS) as number;
     
     console.info(`${TAG}: Heartbeat started (interval: ${HEARTBEAT_INTERVAL_MS}ms)`);
   }
@@ -338,6 +363,76 @@ struct SessionPage {
   }
 
   /**
+   * Create connection info from bookmark
+   */
+  private createConnectionInfo(bookmark: BookmarkBase): BookmarkSettings {
+    // Create screen settings with explicit type
+    const screenSettings: ScreenSettings = {
+      width: bookmark.screenSettings.width,
+      height: bookmark.screenSettings.height,
+      colors: bookmark.screenSettings.colors
+    };
+
+    // Create advanced settings with explicit type
+    const advancedSettings: AdvancedSettings = {
+      consoleMode: bookmark.advancedSettings.consoleMode,
+      security: bookmark.advancedSettings.security,
+      remoteProgram: bookmark.advancedSettings.remoteProgram,
+      workDir: bookmark.advancedSettings.workDir,
+      redirectSDCard: bookmark.advancedSettings.redirectSDCard,
+      redirectSound: bookmark.advancedSettings.redirectSound,
+      redirectMicrophone: bookmark.advancedSettings.redirectMicrophone
+    };
+
+    // Create performance flags with explicit type
+    const performanceFlags: PerformanceFlags = {
+      remoteFX: bookmark.performanceFlags.remoteFX,
+      gfx: bookmark.performanceFlags.gfx,
+      h264: bookmark.performanceFlags.h264,
+      wallpaper: bookmark.performanceFlags.wallpaper,
+      fullWindowDrag: bookmark.performanceFlags.fullWindowDrag,
+      menuAnimations: bookmark.performanceFlags.menuAnimations,
+      theming: bookmark.performanceFlags.theming,
+      fontSmoothing: bookmark.performanceFlags.fontSmoothing,
+      desktopComposition: bookmark.performanceFlags.desktopComposition
+    };
+
+    // Create debug settings with explicit type
+    const debugSettings: DebugSettings = {
+      asyncChannel: bookmark.debugSettings.asyncChannel,
+      asyncUpdate: bookmark.debugSettings.asyncUpdate,
+      debugLevel: bookmark.debugSettings.debugLevel
+    };
+
+    // Create bookmark settings
+    const info: BookmarkSettings = {
+      hostname: bookmark.hostname,
+      port: bookmark.port,
+      username: bookmark.username,
+      domain: bookmark.domain,
+      password: bookmark.password,
+      screenSettings: screenSettings,
+      advancedSettings: advancedSettings,
+      performanceFlags: performanceFlags,
+      debugSettings: debugSettings
+    };
+
+    // Add gateway settings if enabled
+    if (bookmark.gatewaySettings && bookmark.gatewaySettings.enabled) {
+      const gatewaySettings: GatewaySettings = {
+        enabled: bookmark.gatewaySettings.enabled,
+        hostname: bookmark.gatewaySettings.hostname,
+        port: bookmark.gatewaySettings.port,
+        username: bookmark.gatewaySettings.username,
+        domain: bookmark.gatewaySettings.domain,
+        password: bookmark.gatewaySettings.password
+      };
+      info.gatewaySettings = gatewaySettings;
+    }
+    return info;
+  }
+
+  /**
    * Schedule toolbar auto-hide
    */
   private scheduleToolbarHide(): void {
@@ -345,9 +440,10 @@ struct SessionPage {
       clearTimeout(this.toolbarHideTimer);
     }
     
-    this.toolbarHideTimer = setTimeout(() => {
+    const hideCallback = (): void => {
       this.showToolbar = false;
-    }, SessionPage.TOOLBAR_HIDE_DELAY) as unknown as number;
+    };
+    this.toolbarHideTimer = setTimeout(hideCallback, SessionPage.TOOLBAR_HIDE_DELAY) as number;
   }
 
   /**
@@ -410,12 +506,7 @@ struct SessionPage {
     // Allow screen to turn off
     this.setKeepScreenOn(false);
     
-    // Remove screen lock listener
-    try {
-      screenLock.off('screenLockChange');
-    } catch (e) {
-      // Ignore
-    }
+    // Screen lock listener cleanup not needed (API not available)
   }
 
   /**
@@ -468,7 +559,7 @@ struct SessionPage {
       
       // Keyboard button
       Button({ type: ButtonType.Circle }) {
-        Image($r('sys.media.ohos_ic_public_keyboard'))
+        Image($r('sys.media.ohos_ic_public_edit'))
           .width(24)
           .height(24)
           .fillColor('#FFFFFF')
@@ -557,7 +648,7 @@ struct SessionPage {
           viewHeight: 0,
           desktopWidth: this.desktopWidth,
           desktopHeight: this.desktopHeight,
-          scale: this.scale,
+          viewScale: this.viewScale,
           offsetX: this.offsetX,
           offsetY: this.offsetY
         })

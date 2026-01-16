@@ -8,7 +8,7 @@
 
 import connection from '@ohos.net.connection';
 import { BusinessError } from '@ohos.base';
-import LibFreeRDP from './LibFreeRDP';
+import LibFreeRDP, { BookmarkSettings, ScreenSettings, AdvancedSettings, PerformanceFlags, DebugSettings } from './LibFreeRDP';
 
 const TAG = 'NetworkManager';
 
@@ -32,7 +32,7 @@ let onReconnectSuccessCallback: (() => void) | null = null;
 let onReconnectFailureCallback: ((error: string) => void) | null = null;
 
 // Session info for reconnection
-interface SessionInfo {
+export interface SessionInfo {
   instance: number;
   hostname: string;
   port: number;
@@ -79,7 +79,7 @@ export class NetworkManager {
 
         // Trigger reconnect if we have a session to reconnect
         if (currentSession && !isReconnecting) {
-          this.startReconnect();
+          NetworkManager.startReconnect();
         }
       });
 
@@ -93,12 +93,7 @@ export class NetworkManager {
         }
       });
 
-      // Subscribe to network capabilities change
-      netConnection.on('netCapabilitiesChange', 
-        (netHandle: connection.NetHandle, netCap: connection.NetCapabilities) => {
-          console.info(`${TAG}: Network capabilities changed: netId=${netHandle.netId}`);
-        }
-      );
+      // Note: netCapabilitiesChange callback removed due to API incompatibility
 
       // Check current network state
       const hasDefaultNet = await connection.hasDefaultNet();
@@ -130,7 +125,7 @@ export class NetworkManager {
       netConnection = null;
     }
 
-    this.cancelReconnect();
+    NetworkManager.cancelReconnect();
     currentSession = null;
   }
 
@@ -154,7 +149,7 @@ export class NetworkManager {
    */
   static clearSessionInfo(): void {
     currentSession = null;
-    this.cancelReconnect();
+    NetworkManager.cancelReconnect();
     console.info(`${TAG}: Session info cleared`);
   }
 
@@ -209,7 +204,7 @@ export class NetworkManager {
     isReconnecting = true;
     reconnectAttempts = 0;
 
-    this.attemptReconnect();
+    NetworkManager.attemptReconnect();
   }
 
   /**
@@ -253,9 +248,10 @@ export class NetworkManager {
 
     console.info(`${TAG}: Reconnect attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS} in ${delay}ms`);
 
-    reconnectTimerId = setTimeout(() => {
-      this.doReconnect();
-    }, delay) as unknown as number;
+    const reconnectCallback = (): void => {
+      NetworkManager.doReconnect();
+    };
+    reconnectTimerId = setTimeout(reconnectCallback, delay) as number;
   }
 
   /**
@@ -275,7 +271,7 @@ export class NetworkManager {
         // Disconnect first
         LibFreeRDP.disconnect(currentSession.instance);
         // Wait a bit for clean disconnect
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise<void>((resolve: () => void) => setTimeout(resolve, 1000));
       }
 
       // Create new instance
@@ -285,38 +281,50 @@ export class NetworkManager {
       }
 
       // Set connection info
-      const bookmark = {
+      const screenSettings: ScreenSettings = {
+        width: 1920,
+        height: 1080,
+        colors: 32
+      };
+      
+      const advancedSettings: AdvancedSettings = {
+        consoleMode: false,
+        security: 0,
+        remoteProgram: '',
+        workDir: '',
+        redirectSDCard: false,
+        redirectSound: 0,
+        redirectMicrophone: false
+      };
+      
+      const performanceFlags: PerformanceFlags = {
+        remoteFX: true,
+        gfx: true,
+        h264: true,
+        wallpaper: false,
+        fullWindowDrag: false,
+        menuAnimations: false,
+        theming: true,
+        fontSmoothing: true,
+        desktopComposition: true
+      };
+      
+      const debugSettings: DebugSettings = {
+        asyncChannel: true,
+        asyncUpdate: true,
+        debugLevel: 'WARN'
+      };
+      
+      const bookmark: BookmarkSettings = {
         hostname: currentSession.hostname,
         port: currentSession.port,
         username: currentSession.username,
         domain: currentSession.domain,
         password: currentSession.password,
-        screenSettings: { width: 1920, height: 1080, colors: 32 },
-        advancedSettings: {
-          consoleMode: false,
-          security: 0,
-          remoteProgram: '',
-          workDir: '',
-          redirectSDCard: false,
-          redirectSound: 0,
-          redirectMicrophone: false,
-        },
-        performanceFlags: {
-          remoteFX: true,
-          gfx: true,
-          h264: true,
-          wallpaper: false,
-          fullWindowDrag: false,
-          menuAnimations: false,
-          theming: true,
-          fontSmoothing: true,
-          desktopComposition: true,
-        },
-        debugSettings: {
-          asyncChannel: true,
-          asyncUpdate: true,
-          debugLevel: 'WARN',
-        },
+        screenSettings: screenSettings,
+        advancedSettings: advancedSettings,
+        performanceFlags: performanceFlags,
+        debugSettings: debugSettings
       };
 
       if (!LibFreeRDP.setConnectionInfo(newInstance, bookmark)) {
@@ -344,7 +352,7 @@ export class NetworkManager {
 
       // Schedule next attempt
       if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-        this.attemptReconnect();
+        NetworkManager.attemptReconnect();
       } else {
         isReconnecting = false;
         if (onReconnectFailureCallback) {

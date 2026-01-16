@@ -74,7 +74,48 @@ Native 库需要在 GitHub Actions 上编译：
 2. 推送代码触发 GitHub Actions
 3. 下载编译好的 `.so` 文件
 
-### 2. 编译 HarmonyOS 应用
+### 2. 配置签名（必需）
+
+在虚拟服务器环境中，需要先配置签名才能构建应用：
+
+#### 快速配置
+
+```powershell
+# 1. 运行签名设置脚本
+.\setup-signing.ps1
+
+# 2. 按照提示获取签名文件
+# 从华为开发者平台下载 debug.p12, debug.cer, debug.p7b
+# 放置到 .signing 目录
+
+# 3. 验证配置
+.\setup-signing.ps1
+```
+
+#### 详细说明
+
+查看完整签名配置文档：
+- **快速开始**: [SIGNING_QUICK_START.md](./SIGNING_QUICK_START.md)
+- **详细指南**: [签名配置指南.md](./签名配置指南.md)
+
+### 3. 编译 HarmonyOS 应用
+
+配置签名后，使用以下方式构建：
+
+#### 方式A：使用构建脚本（推荐）
+
+```powershell
+# 构建 debug 版本
+.\build-and-sign.ps1
+
+# 构建 release 版本
+.\build-and-sign.ps1 -Release
+
+# 清理后构建
+.\build-and-sign.ps1 -Clean
+```
+
+#### 方式B：使用 hvigorw 命令
 
 ```bash
 # 使用 DevEco Studio 打开项目
@@ -83,11 +124,18 @@ Native 库需要在 GitHub Actions 上编译：
 hvigorw assembleHap
 ```
 
-### 3. 安装测试
+### 4. 安装测试
 
 ```bash
-hdc install entry/build/default/outputs/default/entry-default.hap
+hdc install entry/build/default/outputs/default/entry-default-signed.hap
 ```
+
+### 5. 云调试部署
+
+构建完成后，HAP 文件可以：
+- 上传到华为云调试平台
+- 部署到远程测试服务器
+- 通过 DevEco Studio 远程调试
 
 ## 技术架构
 
