@@ -177,6 +177,12 @@ bool freerdp_harmonyos_configure_audio(int64_t instance, bool playback, bool cap
 bool freerdp_harmonyos_set_auto_reconnect(int64_t instance, bool enabled, int maxRetries, int delayMs);
 int freerdp_harmonyos_get_connection_health(int64_t instance);
 
+/* Screen Refresh - use after unlock/foreground to prevent static screen */
+bool freerdp_harmonyos_request_refresh(int64_t instance);
+bool freerdp_harmonyos_request_refresh_rect(int64_t instance, int x, int y, int width, int height);
+bool freerdp_harmonyos_get_frame_buffer(int64_t instance, uint8_t** buffer, 
+                                         int* width, int* height, int* stride);
+
 /* Connection health status values */
 #define CONNECTION_HEALTH_INVALID     -1
 #define CONNECTION_HEALTH_DISCONNECTED 0

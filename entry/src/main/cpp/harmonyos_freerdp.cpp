@@ -1028,18 +1028,22 @@ bool freerdp_harmonyos_exit_background_mode(int64_t instance) {
         return false;
     }
     
-    LOGI("Exiting background mode - resuming graphics");
+    LOGI("Exiting background mode - resuming graphics with full refresh");
     
-    /* Re-enable graphics decoding */
+    /* Re-enable graphics decoding FIRST */
     freerdp_settings_set_bool(settings, FreeRDP_DeactivateClientDecoding, FALSE);
     
-    /* Send SuppressOutput PDU to tell server to resume graphics */
+    /* Get full screen dimensions */
+    UINT32 width = freerdp_settings_get_uint32(settings, FreeRDP_DesktopWidth);
+    UINT32 height = freerdp_settings_get_uint32(settings, FreeRDP_DesktopHeight);
+    
     RECTANGLE_16 rect = { 0 };
     rect.left = 0;
     rect.top = 0;
-    rect.right = (UINT16)freerdp_settings_get_uint32(settings, FreeRDP_DesktopWidth);
-    rect.bottom = (UINT16)freerdp_settings_get_uint32(settings, FreeRDP_DesktopHeight);
+    rect.right = (UINT16)width;
+    rect.bottom = (UINT16)height;
     
+    /* Step 1: Send SuppressOutput PDU to tell server to resume graphics */
     if (update->SuppressOutput) {
         /* TRUE = allow display updates */
         if (!update->SuppressOutput(context, TRUE, &rect)) {
@@ -1047,7 +1051,56 @@ bool freerdp_harmonyos_exit_background_mode(int64_t instance) {
         }
     }
     
-    LOGI("Background mode exited - graphics resumed");
+    /* Step 2: Request full screen refresh using RefreshRect PDU */
+    if (update->RefreshRect) {
+        /* RefreshRect tells the server to re-send the specified area */
+        if (!update->RefreshRect(context, 1, &rect)) {
+            LOGW("RefreshRect PDU failed");
+        } else {
+            LOGI("RefreshRect sent for full screen (%ux%u)", width, height);
+        }
+    } else {
+        LOGW("RefreshRect callback not available");
+    }
+    
+    /* Step 3: Mark entire GDI surface as invalid to force redraw */
+    rdpGdi* gdi = context->gdi;
+    if (gdi && gdi->primary && gdi->primary->hdc && gdi->primary->hdc->hwnd) {
+        HGDI_WND hwnd = gdi->primary->hdc->hwnd;
+        
+        /* Create a full-screen invalid region */
+        GDI_RGN invalidRegion;
+        invalidRegion.x = 0;
+        invalidRegion.y = 0;
+        invalidRegion.w = (INT32)width;
+        invalidRegion.h = (INT32)height;
+        
+        /* Add to invalid regions - this will trigger redraw on next update cycle */
+        if (hwnd->invalid) {
+            hwnd->invalid->null = FALSE;
+            hwnd->invalid->x = 0;
+            hwnd->invalid->y = 0;
+            hwnd->invalid->w = (INT32)width;
+            hwnd->invalid->h = (INT32)height;
+        }
+        
+        /* Also expand cinvalid array if needed */
+        if (hwnd->cinvalid && hwnd->count > 0) {
+            hwnd->cinvalid[0] = invalidRegion;
+            hwnd->ninvalid = 1;
+        }
+        
+        LOGI("GDI surface marked as invalid for full redraw");
+    }
+    
+    /* Step 4: Notify application that graphics update is coming */
+    if (g_onGraphicsUpdate) {
+        /* Trigger an immediate update callback for the full screen */
+        g_onGraphicsUpdate((int64_t)(uintptr_t)inst, 0, 0, (int)width, (int)height);
+        LOGI("Graphics update callback triggered");
+    }
+    
+    LOGI("Background mode exited - full screen refresh requested");
     return true;
 }
 
@@ -1145,4 +1198,132 @@ int freerdp_harmonyos_get_connection_health(int64_t instance) {
         return 1; /* Connected but degraded */
     
     return 2; /* Healthy */
+}
+
+/* Force immediate full screen refresh - use after unlock/foreground */
+bool freerdp_harmonyos_request_refresh(int64_t instance) {
+    freerdp* inst = (freerdp*)(uintptr_t)instance;
+    
+    if (!inst || !inst->context) {
+        LOGE("request_refresh: Invalid instance");
+        return false;
+    }
+    
+    rdpContext* context = inst->context;
+    rdpSettings* settings = context->settings;
+    rdpUpdate* update = context->update;
+    
+    if (!settings || !update) {
+        LOGE("request_refresh: Invalid settings or update");
+        return false;
+    }
+    
+    /* Get screen dimensions */
+    UINT32 width = freerdp_settings_get_uint32(settings, FreeRDP_DesktopWidth);
+    UINT32 height = freerdp_settings_get_uint32(settings, FreeRDP_DesktopHeight);
+    
+    LOGI("Requesting full screen refresh (%ux%u)", width, height);
+    
+    RECTANGLE_16 rect = { 0 };
+    rect.left = 0;
+    rect.top = 0;
+    rect.right = (UINT16)width;
+    rect.bottom = (UINT16)height;
+    
+    bool success = true;
+    
+    /* Method 1: RefreshRect PDU - asks server to re-send the area */
+    if (update->RefreshRect) {
+        if (!update->RefreshRect(context, 1, &rect)) {
+            LOGW("RefreshRect PDU failed");
+            success = false;
+        } else {
+            LOGI("RefreshRect PDU sent");
+        }
+    }
+    
+    /* Method 2: Mark GDI as invalid */
+    rdpGdi* gdi = context->gdi;
+    if (gdi && gdi->primary && gdi->primary->hdc && gdi->primary->hdc->hwnd) {
+        HGDI_WND hwnd = gdi->primary->hdc->hwnd;
+        
+        if (hwnd->invalid) {
+            hwnd->invalid->null = FALSE;
+            hwnd->invalid->x = 0;
+            hwnd->invalid->y = 0;
+            hwnd->invalid->w = (INT32)width;
+            hwnd->invalid->h = (INT32)height;
+            LOGI("GDI invalid region set");
+        }
+    }
+    
+    /* Method 3: Trigger immediate callback with current buffer */
+    if (g_onGraphicsUpdate) {
+        g_onGraphicsUpdate((int64_t)(uintptr_t)inst, 0, 0, (int)width, (int)height);
+        LOGI("Graphics update callback triggered");
+    }
+    
+    return success;
+}
+
+/* Request partial screen refresh for specific area */
+bool freerdp_harmonyos_request_refresh_rect(int64_t instance, int x, int y, int width, int height) {
+    freerdp* inst = (freerdp*)(uintptr_t)instance;
+    
+    if (!inst || !inst->context) {
+        LOGE("request_refresh_rect: Invalid instance");
+        return false;
+    }
+    
+    rdpContext* context = inst->context;
+    rdpUpdate* update = context->update;
+    
+    if (!update) {
+        LOGE("request_refresh_rect: Invalid update");
+        return false;
+    }
+    
+    RECTANGLE_16 rect = { 0 };
+    rect.left = (UINT16)x;
+    rect.top = (UINT16)y;
+    rect.right = (UINT16)(x + width);
+    rect.bottom = (UINT16)(y + height);
+    
+    if (update->RefreshRect) {
+        if (!update->RefreshRect(context, 1, &rect)) {
+            LOGW("RefreshRect PDU failed for rect (%d,%d,%d,%d)", x, y, width, height);
+            return false;
+        }
+        LOGI("RefreshRect sent for (%d,%d,%d,%d)", x, y, width, height);
+    }
+    
+    return true;
+}
+
+/* Get the current frame buffer for immediate display */
+bool freerdp_harmonyos_get_frame_buffer(int64_t instance, uint8_t** buffer, 
+                                         int* width, int* height, int* stride) {
+    freerdp* inst = (freerdp*)(uintptr_t)instance;
+    
+    if (!inst || !inst->context) {
+        LOGE("get_frame_buffer: Invalid instance");
+        return false;
+    }
+    
+    rdpContext* context = inst->context;
+    rdpGdi* gdi = context->gdi;
+    
+    if (!gdi || !gdi->primary || !gdi->primary->bitmap) {
+        LOGE("get_frame_buffer: GDI not initialized");
+        return false;
+    }
+    
+    rdpBitmap* bitmap = gdi->primary->bitmap;
+    
+    if (buffer) *buffer = gdi->primary_buffer;
+    if (width) *width = (int)bitmap->width;
+    if (height) *height = (int)bitmap->height;
+    if (stride) *stride = (int)gdi->stride;
+    
+    return true;
 }
