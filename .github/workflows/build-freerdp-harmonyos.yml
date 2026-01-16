@@ -1,5 +1,6 @@
 # GitHub Actions Workflow for Building FreeRDP HarmonyOS Native Libraries
 # 策略：使用 OpenHarmony NDK 编译，确保与 HarmonyOS 的 musl libc 兼容
+# 修复：添加补丁禁用 pthread_cancel（musl libc 不支持）
 
 name: Build FreeRDP for HarmonyOS (OHOS NDK)
 
@@ -153,6 +154,27 @@ jobs:
           git clone --depth 1 --branch ${FREERDP_VERSION} \
             https://github.com/FreeRDP/FreeRDP.git ${{ github.workspace }}/FreeRDP
 
+      - name: Patch FreeRDP for OHOS/musl compatibility
+        run: |
+          echo "=== Patching FreeRDP for OHOS/musl libc compatibility ==="
+          cd ${{ github.workspace }}/FreeRDP
+          
+          # 补丁：禁用 pthread_cancel（musl libc 不支持）
+          # 将 #ifndef ANDROID 改为 #if !defined(ANDROID) && !defined(__OHOS__)
+          THREAD_FILE="winpr/libwinpr/thread/thread.c"
+          
+          if [ -f "$THREAD_FILE" ]; then
+            echo "Patching $THREAD_FILE to disable pthread_cancel for OHOS..."
+            sed -i 's/#ifndef ANDROID/#if !defined(ANDROID) \&\& !defined(__OHOS__)/g' "$THREAD_FILE"
+            
+            echo "=== Verifying patch ==="
+            grep -n "ANDROID\|OHOS" "$THREAD_FILE" | head -10
+            echo "Patch applied successfully!"
+          else
+            echo "WARNING: $THREAD_FILE not found"
+            find . -name "thread.c" -path "*/thread/*" | head -5
+          fi
+
       - name: Build FreeRDP
         run: |
           echo "=== Building FreeRDP ==="
@@ -168,25 +190,30 @@ jobs:
           
           # 创建 CMake 工具链文件（使用绝对路径）
           cat > /tmp/ohos-toolchain.cmake << TOOLCHAIN_EOF
-          set(CMAKE_SYSTEM_NAME Linux)
-          set(CMAKE_SYSTEM_PROCESSOR aarch64)
-          
-          set(CMAKE_C_COMPILER "${OHOS_CC}")
-          set(CMAKE_CXX_COMPILER "${OHOS_CXX}")
-          set(CMAKE_AR "${OHOS_AR}" CACHE FILEPATH "Archiver")
-          set(CMAKE_RANLIB "${OHOS_RANLIB}" CACHE FILEPATH "Ranlib")
-          set(CMAKE_STRIP "${OHOS_STRIP}" CACHE FILEPATH "Strip")
-          
-          set(CMAKE_C_FLAGS_INIT "-fPIC -O2")
-          set(CMAKE_CXX_FLAGS_INIT "-fPIC -O2")
-          
-          set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
-          set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
-          set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
-          set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
-          
-          set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-          TOOLCHAIN_EOF
+set(CMAKE_SYSTEM_NAME Linux)
+set(CMAKE_SYSTEM_PROCESSOR aarch64)
+
+set(CMAKE_C_COMPILER "${OHOS_CC}")
+set(CMAKE_CXX_COMPILER "${OHOS_CXX}")
+set(CMAKE_AR "${OHOS_AR}" CACHE FILEPATH "Archiver")
+set(CMAKE_RANLIB "${OHOS_RANLIB}" CACHE FILEPATH "Ranlib")
+set(CMAKE_STRIP "${OHOS_STRIP}" CACHE FILEPATH "Strip")
+
+# 添加 __OHOS__ 定义，确保 pthread_cancel 被禁用
+set(CMAKE_C_FLAGS_INIT "-fPIC -O2 -D__OHOS__=1")
+set(CMAKE_CXX_FLAGS_INIT "-fPIC -O2 -D__OHOS__=1")
+
+# 添加链接器标志，允许未定义符号（备用方案）
+set(CMAKE_SHARED_LINKER_FLAGS_INIT "-Wl,--allow-shlib-undefined")
+set(CMAKE_EXE_LINKER_FLAGS_INIT "-Wl,--allow-shlib-undefined")
+
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
+
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+TOOLCHAIN_EOF
           
           echo "Toolchain file:"
           cat /tmp/ohos-toolchain.cmake
@@ -289,14 +316,14 @@ jobs:
           
           # 创建 README
           cat > README.txt << EOF
-          FreeRDP HarmonyOS Libraries
-          Built: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
-          FreeRDP: $FREERDP_VERSION
-          OpenSSL: $OPENSSL_VERSION (static)
-          zlib: $ZLIB_VERSION (static)
-          Toolchain: OpenHarmony NDK (musl libc)
-          Target: arm64-v8a
-          EOF
+FreeRDP HarmonyOS Libraries
+Built: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+FreeRDP: $FREERDP_VERSION
+OpenSSL: $OPENSSL_VERSION (static)
+zlib: $ZLIB_VERSION (static)
+Toolchain: OpenHarmony NDK (musl libc)
+Target: arm64-v8a
+EOF
           
           ls -la
 
