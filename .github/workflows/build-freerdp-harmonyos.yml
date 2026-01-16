@@ -47,28 +47,62 @@ jobs:
           echo "=== Downloading OpenHarmony SDK ==="
           SDK_URL="https://mirrors.huaweicloud.com/openharmony/os/${OHOS_SDK_VERSION}/ohos-sdk-windows_linux-public.tar.gz"
           SDK_DIR="${HOME}/ohos-sdk"
+          SDK_FILE="${HOME}/ohos-sdk.tar.gz"
           
           mkdir -p ${SDK_DIR}
-          cd ${SDK_DIR}
           
-          curl -L --progress-bar "${SDK_URL}" | tar xz
-          
-          cd linux
-          for f in *.zip; do
-            unzip -q "$f" -d ${SDK_DIR}
+          # 下载 SDK（带重试机制）
+          echo "Downloading SDK from ${SDK_URL}..."
+          for i in 1 2 3; do
+            echo "Download attempt $i..."
+            if curl -L --retry 3 --retry-delay 5 -o "${SDK_FILE}" "${SDK_URL}"; then
+              echo "Download completed, verifying..."
+              if tar -tzf "${SDK_FILE}" > /dev/null 2>&1; then
+                echo "Archive is valid"
+                break
+              else
+                echo "Archive is corrupted, retrying..."
+                rm -f "${SDK_FILE}"
+              fi
+            else
+              echo "Download failed, retrying..."
+              sleep 10
+            fi
+            if [ $i -eq 3 ]; then
+              echo "ERROR: Failed to download SDK after 3 attempts"
+              exit 1
+            fi
           done
+          
+          # 解压 SDK
+          echo "Extracting SDK..."
+          cd ${SDK_DIR}
+          tar xzf "${SDK_FILE}"
+          
+          # 解压 Linux SDK 组件
+          if [ -d "linux" ]; then
+            cd linux
+            for f in *.zip; do
+              echo "Extracting $f..."
+              unzip -q "$f" -d ${SDK_DIR}
+            done
+          fi
           
           # 查找 NDK 路径
           NATIVE_DIR=$(find ${SDK_DIR} -maxdepth 1 -type d -name "native*" | head -1)
           
           if [ -z "${NATIVE_DIR}" ]; then
             echo "ERROR: Native SDK not found"
+            echo "SDK directory contents:"
             ls -la ${SDK_DIR}/
             exit 1
           fi
           
           echo "Native SDK: ${NATIVE_DIR}"
           echo "OHOS_NDK_HOME=${NATIVE_DIR}" >> $GITHUB_ENV
+          
+          # 清理下载的压缩包
+          rm -f "${SDK_FILE}"
 
       - name: Setup Cross-Compile Environment
         run: |
