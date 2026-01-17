@@ -286,10 +286,10 @@ jobs:
             -DWITH_INTERNAL_MD4=ON \
             -DWITH_INTERNAL_MD5=ON \
             -DWITH_FUSE=OFF \
-            -DWITH_CLIENT_INTERFACE=OFF \
+            -DWITH_CLIENT_INTERFACE=ON \
             -DWITH_PROXY=OFF \
             -DWITH_SHADOW=OFF \
-            -DWITH_CLIENT=OFF \
+            -DWITH_CLIENT=ON \
             -DWITH_CLIENT_SDL=OFF \
             -DWITH_MANPAGES=OFF \
             -DBUILD_SHARED_LIBS=ON \
