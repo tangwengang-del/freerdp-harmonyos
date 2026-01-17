@@ -184,8 +184,9 @@ jobs:
           # Patch: force client common to build shared library (fix missing libfreerdp-client3.so)
           CLIENT_COMMON_CMAKE="client/common/CMakeLists.txt"
           if [ -f "$CLIENT_COMMON_CMAKE" ]; then
-            # Force SHARED library and link OpenSLES for background audio
-            sed -i 's/addtargetwithresourcefile(\${MODULE_NAME} FALSE/add_library(${MODULE_NAME} SHARED/g' "$CLIENT_COMMON_CMAKE"
+            # Force SHARED library via macro argument and link OpenSLES for background audio
+            # Using SHARED instead of FALSE in addtargetwithresourcefile
+            sed -i 's/addtargetwithresourcefile(${MODULE_NAME} FALSE/addtargetwithresourcefile(${MODULE_NAME} SHARED/g' "$CLIENT_COMMON_CMAKE"
             echo "find_library(OPENSLES_LIB OpenSLES)" >> "$CLIENT_COMMON_CMAKE"
             echo "target_link_libraries(\${MODULE_NAME} PUBLIC freerdp winpr \${OPENSLES_LIB})" >> "$CLIENT_COMMON_CMAKE"
             echo "Patched client/common to build shared library with OpenSLES support"
@@ -366,9 +367,15 @@ jobs:
           
           cmake --install .
           
+          # Manual fix: ensure the client lib is in the install directory even if cmake install missed it
+          INSTALL_LIB_DIR="${{ github.workspace }}/install/freerdp/lib"
+          mkdir -p "${INSTALL_LIB_DIR}"
+          cp "${CLIENT_DIR}/libfreerdp-client3.so" "${INSTALL_LIB_DIR}/" || true
+          cp "${CLIENT_DIR}/libfreerdp-client.so" "${INSTALL_LIB_DIR}/" || true
+          
           echo "=== FreeRDP core libraries built ==="
-          ls -la ${{ github.workspace }}/install/freerdp/lib/*.so* 2>/dev/null || echo "No .so files"
-
+          ls -la ${{ github.workspace }}/install/freerdp/lib/
+          
       - name: Build NAPI Wrapper (libfreerdp_harmonyos.so)
         run: |
           echo "=== Building NAPI Wrapper with Compatibility Layer ==="
@@ -404,7 +411,8 @@ jobs:
             if [ -f "$f" ]; then
               echo "  $f"
               $OHOS_CC -c "$f" -o "${f%.c}.o" $CFLAGS $INCLUDE_DIRS 2>&1 || {
-                echo "Warning: Failed to compile $f"
+                echo "Error: Failed to compile $f"
+                exit 1
               }
             fi
           done
@@ -416,7 +424,8 @@ jobs:
               echo "  $f"
               $OHOS_CXX -c "$f" -o "${f%.cpp}.o" -std=c++17 -DNAPI_VERSION=8 $CFLAGS $INCLUDE_DIRS \
                 -I${OHOS_NDK_HOME}/sysroot/usr/include/napi 2>&1 || {
-                echo "Warning: Failed to compile $f"
+                echo "Error: Failed to compile $f"
+                exit 1
               }
             fi
           done
@@ -429,28 +438,37 @@ jobs:
           
           if [ -n "$OBJS" ]; then
             echo "Linking libfreerdp_harmonyos.so..."
+            # Link against all required libs including OpenSLES
             $OHOS_CXX -shared -o libfreerdp_harmonyos.so $OBJS \
               -fPIC \
               -L${{ github.workspace }}/install/freerdp/lib \
               -lfreerdp-client3 \
               -lfreerdp3 \
               -lwinpr3 \
+              -lOpenSLES \
               ${OPENSSL_LIB}/libssl.a \
               ${OPENSSL_LIB}/libcrypto.a \
               ${{ github.workspace }}/install/zlib/lib/libz.a \
               -Wl,--allow-shlib-undefined \
               -Wl,-rpath,'$ORIGIN' \
-              2>&1 && echo "SUCCESS: libfreerdp_harmonyos.so built" || {
-                echo "Link failed, trying without static libs..."
+              2>&1 || {
+                echo "Link failed, trying with libfreerdp-client..."
                 $OHOS_CXX -shared -o libfreerdp_harmonyos.so $OBJS \
                   -fPIC \
                   -L${{ github.workspace }}/install/freerdp/lib \
-                  -lfreerdp-client3 \
+                  -lfreerdp-client \
                   -lfreerdp3 \
                   -lwinpr3 \
+                  -lOpenSLES \
+                  ${OPENSSL_LIB}/libssl.a \
+                  ${OPENSSL_LIB}/libcrypto.a \
+                  ${{ github.workspace }}/install/zlib/lib/libz.a \
                   -Wl,--allow-shlib-undefined \
                   -Wl,-rpath,'$ORIGIN' \
-                  2>&1 || echo "Link still failed"
+                  2>&1 || {
+                    echo "Link still failed"
+                    exit 1
+                  }
               }
           fi
           
@@ -459,7 +477,8 @@ jobs:
             file libfreerdp_harmonyos.so
             ls -la libfreerdp_harmonyos.so
           else
-            echo "WARNING: libfreerdp_harmonyos.so not created"
+            echo "ERROR: libfreerdp_harmonyos.so not created"
+            exit 1
           fi
 
       - name: Collect artifacts
