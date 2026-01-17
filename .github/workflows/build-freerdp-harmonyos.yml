@@ -176,6 +176,13 @@ jobs:
             sed -i 's/#ifndef ANDROID/#if !defined(ANDROID) \&\& !defined(__OHOS__)/g' "$THREAD_FILE"
             echo "Patched thread.c"
           fi
+          
+          # Patch: force client common to build shared library (fix missing libfreerdp-client3.so)
+          CLIENT_COMMON_CMAKE="client/common/CMakeLists.txt"
+          if [ -f "$CLIENT_COMMON_CMAKE" ]; then
+            sed -i 's/addtargetwithresourcefile(\${MODULE_NAME} FALSE/addtargetwithresourcefile(\${MODULE_NAME} SHARED/g' "$CLIENT_COMMON_CMAKE"
+            echo "Patched client/common to build shared library"
+          fi
 
       - name: Build FreeRDP Core Libraries
         run: |
