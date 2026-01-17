@@ -180,8 +180,12 @@ jobs:
           # Patch: force client common to build shared library (fix missing libfreerdp-client3.so)
           CLIENT_COMMON_CMAKE="client/common/CMakeLists.txt"
           if [ -f "$CLIENT_COMMON_CMAKE" ]; then
+            # Replace the addtargetwithresourcefile call to force SHARED
             sed -i 's/addtargetwithresourcefile(\${MODULE_NAME} FALSE/addtargetwithresourcefile(\${MODULE_NAME} SHARED/g' "$CLIENT_COMMON_CMAKE"
+            # Also ensure library versioning is enabled
+            sed -i '/set(MODULE_NAME "freerdp-client")/a set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/client/common)' "$CLIENT_COMMON_CMAKE"
             echo "Patched client/common to build shared library"
+            cat "$CLIENT_COMMON_CMAKE"
           fi
 
       - name: Build FreeRDP Core Libraries
@@ -311,11 +315,12 @@ jobs:
           
           # Ensure freerdp-client3 shared library exists (some builds output libfreerdp-client.so*)
           CLIENT_DIR="${{ github.workspace }}/FreeRDP/build/client/common"
+          mkdir -p "${CLIENT_DIR}"
           if [ ! -f "${CLIENT_DIR}/libfreerdp-client3.so.${FREERDP_VERSION}" ]; then
             TARGET_LIB="${CLIENT_DIR}/libfreerdp-client3.so.${FREERDP_VERSION}"
             ALT_CLIENT=$(find "${{ github.workspace }}/FreeRDP/build" -type f \( -name "libfreerdp-client.so.*" -o -name "libfreerdp-client.so" -o -name "libfreerdp-client3.so.*" -o -name "libfreerdp-client3.so" \) | head -1 || true)
             if [ -n "${ALT_CLIENT}" ]; then
-              echo "Fixing client common library name: ${ALT_CLIENT}"
+              echo "Fixing client common library name: ${ALT_CLIENT} -> ${TARGET_LIB}"
               mkdir -p "${CLIENT_DIR}"
               cp "${ALT_CLIENT}" "${TARGET_LIB}"
             else
