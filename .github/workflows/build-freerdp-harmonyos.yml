@@ -296,6 +296,18 @@ jobs:
             exit 1
           }
           
+          # Ensure freerdp-client3 shared library exists (some builds output libfreerdp-client.so*)
+          CLIENT_DIR="${{ github.workspace }}/FreeRDP/build/client/common"
+          if [ ! -f "${CLIENT_DIR}/libfreerdp-client3.so.${FREERDP_VERSION}" ]; then
+            ALT_CLIENT=$(ls ${CLIENT_DIR}/libfreerdp-client.so.* 2>/dev/null | head -1 || true)
+            if [ -n "${ALT_CLIENT}" ]; then
+              echo "Fixing client common library name: ${ALT_CLIENT}"
+              cp "${ALT_CLIENT}" "${CLIENT_DIR}/libfreerdp-client3.so.${FREERDP_VERSION}"
+              ln -sf "libfreerdp-client3.so.${FREERDP_VERSION}" "${CLIENT_DIR}/libfreerdp-client3.so.3"
+              ln -sf "libfreerdp-client3.so.${FREERDP_VERSION}" "${CLIENT_DIR}/libfreerdp-client3.so"
+            fi
+          fi
+          
           cmake --install .
           
           echo "=== FreeRDP core libraries built ==="
