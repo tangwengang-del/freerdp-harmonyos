@@ -27,6 +27,8 @@
 #define LOGD(...) OH_LOG_DEBUG(LOG_APP, __VA_ARGS__)
 
 /* OHOS/musl 兼容: GetTickCount64 替代实现 */
+#if !defined(_WIN32)
+#include <time.h>
 static inline UINT64 GetTickCount64_compat(void) {
     struct timespec ts;
     if (clock_gettime(CLOCK_MONOTONIC, &ts) == 0) {
@@ -34,7 +36,9 @@ static inline UINT64 GetTickCount64_compat(void) {
     }
     return 0;
 }
+#undef GetTickCount64
 #define GetTickCount64() GetTickCount64_compat()
+#endif
 
 #else
 #define LOGI(...) printf(__VA_ARGS__)
@@ -1484,7 +1488,6 @@ bool freerdp_harmonyos_configure_audio(int64_t instance, bool playback, bool cap
     /* Enable audio playback */
     if (playback) {
         freerdp_settings_set_bool(settings, FreeRDP_AudioPlayback, TRUE);
-        freerdp_settings_set_bool(settings, FreeRDP_RemoteConsoleAudio, FALSE);
         LOGI("Audio playback enabled");
     }
     

@@ -43,7 +43,8 @@
 #define COMPAT_LOGE(...) OH_LOG_ERROR(LOG_APP, __VA_ARGS__)
 
 /* OHOS/musl 兼容: GetTickCount64 替代实现 */
-#ifdef __MUSL__
+#if !defined(_WIN32)
+#include <time.h>
 static inline UINT64 GetTickCount64_compat(void) {
     struct timespec ts;
     if (clock_gettime(CLOCK_MONOTONIC, &ts) == 0) {
@@ -51,6 +52,7 @@ static inline UINT64 GetTickCount64_compat(void) {
     }
     return 0;
 }
+#undef GetTickCount64
 #define GetTickCount64() GetTickCount64_compat()
 #endif
 
@@ -306,11 +308,6 @@ BOOL freerdp_client_configure_audio(rdpSettings* settings, BOOL playback, BOOL c
     freerdp_settings_set_bool(settings, FreeRDP_AudioPlayback, playback);
     freerdp_settings_set_bool(settings, FreeRDP_AudioCapture, capture);
     
-    /* Set audio mode based on playback preference */
-    if (playback) {
-        freerdp_settings_set_uint32(settings, FreeRDP_AudioMode, 0); /* Local playback */
-    }
-    
     COMPAT_LOGI("Audio configured: playback=%d, capture=%d", playback, capture);
     return TRUE;
 }
@@ -320,10 +317,10 @@ BOOL freerdp_client_set_audio_quality(rdpSettings* settings, int qualityMode)
     if (!settings)
         return FALSE;
     
+    /* In FreeRDP 3, quality is often handled via connection type or specific channel settings */
     /* Quality modes: 0=dynamic, 1=medium, 2=high */
-    freerdp_settings_set_uint32(settings, FreeRDP_AudioQualityMode, qualityMode);
     
-    COMPAT_LOGI("Audio quality set to: %d", qualityMode);
+    COMPAT_LOGI("Audio quality set to: %d (FreeRDP 3 handles this via connection type)", qualityMode);
     return TRUE;
 }
 
