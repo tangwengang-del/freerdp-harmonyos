@@ -180,12 +180,11 @@ jobs:
           # Patch: force client common to build shared library (fix missing libfreerdp-client3.so)
           CLIENT_COMMON_CMAKE="client/common/CMakeLists.txt"
           if [ -f "$CLIENT_COMMON_CMAKE" ]; then
-            # Replace the addtargetwithresourcefile call to force SHARED
-            sed -i 's/addtargetwithresourcefile(\${MODULE_NAME} FALSE/addtargetwithresourcefile(\${MODULE_NAME} SHARED/g' "$CLIENT_COMMON_CMAKE"
-            # Also ensure library versioning is enabled
-            sed -i '/set(MODULE_NAME "freerdp-client")/a set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/client/common)' "$CLIENT_COMMON_CMAKE"
+            # Use standard CMake to force SHARED library
+            sed -i 's/addtargetwithresourcefile(\${MODULE_NAME} FALSE/add_library(${MODULE_NAME} SHARED/g' "$CLIENT_COMMON_CMAKE"
+            # Ensure it links to core libs
+            echo "target_link_libraries(\${MODULE_NAME} PUBLIC freerdp winpr)" >> "$CLIENT_COMMON_CMAKE"
             echo "Patched client/common to build shared library"
-            cat "$CLIENT_COMMON_CMAKE"
           fi
 
       - name: Build FreeRDP Core Libraries
@@ -312,48 +311,20 @@ jobs:
           cmake --build . --target freerdp-client --parallel $(nproc) 2>&1 | tee build_client_output.log || true
           
           echo "=== Searching for client libraries ==="
-          find "${{ github.workspace }}/FreeRDP/build" -type f \( -name "libfreerdp-client*" -o -name "freerdp-client*" \) 2>/dev/null || echo "No client libs found"
+          find . -name "libfreerdp-client*" -o -name "freerdp-client*" || true
           
-          # Create the expected file before cmake install
-          echo "=== Preparing client library for install ==="
-          EXPECTED_PATH="${{ github.workspace }}/FreeRDP/build/client/common/libfreerdp-client3.so.${FREERDP_VERSION}"
-          mkdir -p "${{ github.workspace }}/FreeRDP/build/client/common"
+          # We need to ensure the library has the correct name and version suffix for CMake install
+          # HarmonyOS/Android usually prefer no version suffix, but FreeRDP install expects it.
+          CLIENT_DIR="client/common"
+          mkdir -p "${CLIENT_DIR}"
+          ACTUAL_LIB=$(find . -name "libfreerdp-client.so" -o -name "libfreerdp-client3.so" | head -1)
           
-          if [ ! -f "${EXPECTED_PATH}" ]; then
-            # Find any client library that was built
-            CLIENT_LIB=$(find "${{ github.workspace }}/FreeRDP/build" -type f \( -name "libfreerdp-client*.so*" -o -name "libfreerdp-client*.a" \) | head -1 || true)
-            
-            if [ -n "${CLIENT_LIB}" ] && [ -f "${CLIENT_LIB}" ]; then
-              if [[ "${CLIENT_LIB}" == *.so* ]]; then
-                echo "Copying shared client library to expected location: ${CLIENT_LIB} -> ${EXPECTED_PATH}"
-                cp "${CLIENT_LIB}" "${EXPECTED_PATH}"
-              else
-                echo "Building shared library from static: ${CLIENT_LIB}"
-                # Find core libraries
-                FREERDP3_SO=$(find "${{ github.workspace }}/FreeRDP/build" -type f -name "libfreerdp3.so*" | head -1)
-                WINPR3_SO=$(find "${{ github.workspace }}/FreeRDP/build" -type f -name "libwinpr3.so*" | head -1)
-                
-                $OHOS_CXX -shared -o "${EXPECTED_PATH}" \
-                  -Wl,--whole-archive "${CLIENT_LIB}" -Wl,--no-whole-archive \
-                  -L"$(dirname ${FREERDP3_SO})" -L"$(dirname ${WINPR3_SO})" \
-                  -lfreerdp3 -lwinpr3 \
-                  -Wl,--allow-shlib-undefined
-              fi
-            else
-              echo "WARNING: No client library found, creating minimal shared lib to allow install to proceed"
-              echo 'int freerdp_client_dummy() { return 0; }' > dummy.c
-              $OHOS_CC -shared -o "${EXPECTED_PATH}" dummy.c
-            fi
-          fi
-          
-          # Always create symlinks if the main file exists
-          if [ -f "${EXPECTED_PATH}" ]; then
-            cd "${{ github.workspace }}/FreeRDP/build/client/common"
-            rm -f libfreerdp-client3.so.3 libfreerdp-client3.so
-            ln -s "libfreerdp-client3.so.${FREERDP_VERSION}" libfreerdp-client3.so.3
-            ln -s libfreerdp-client3.so.3 libfreerdp-client3.so
-            echo "Created symlinks:"
-            ls -la libfreerdp-client3*
+          if [ -n "${ACTUAL_LIB}" ]; then
+            echo "Found client lib at ${ACTUAL_LIB}, preparing for install..."
+            cp "${ACTUAL_LIB}" "${CLIENT_DIR}/libfreerdp-client3.so.${FREERDP_VERSION}"
+            cd "${CLIENT_DIR}"
+            ln -sf "libfreerdp-client3.so.${FREERDP_VERSION}" libfreerdp-client3.so.3
+            ln -sf libfreerdp-client3.so.3 libfreerdp-client3.so
             cd -
           fi
           
