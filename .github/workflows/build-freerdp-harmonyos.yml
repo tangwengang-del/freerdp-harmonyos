@@ -251,6 +251,8 @@ jobs:
             -DWITH_PCSC=OFF \
             -DWITH_JPEG=OFF \
             -DWITH_OPENSLES=ON \
+            -DOpenSLES_INCLUDE_DIR=${{ env.OHOS_NDK_HOME }}/sysroot/usr/include \
+            -DOpenSLES_LIBRARY=${{ env.OHOS_NDK_HOME }}/sysroot/usr/lib/aarch64-linux-ohos/libOpenSLES.so \
             -DWITH_OPENH264=OFF \
             -DWITH_GSM=OFF \
             -DWITH_LAME=OFF \
