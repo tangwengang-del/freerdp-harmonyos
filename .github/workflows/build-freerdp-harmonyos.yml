@@ -3,8 +3,8 @@
 # 策略：使用 OpenHarmony NDK 编译，确保与 HarmonyOS 的 musl libc 兼容
 # 
 # 关键决策：
-# 1. 不使用 freerdp-client3 库（在 musl 上有链接问题）
-# 2. 使用项目中的兼容层 (freerdp_client_compat.c) 替代
+# 1. 启用 freerdp-client3（提供 client_common API）
+# 2. 继续使用兼容层 (freerdp_client_compat.c) 扩展功能
 # 3. 编译 NAPI 包装层 (libfreerdp_harmonyos.so)
 # 4. OpenSSL 和 zlib 静态链接
 
@@ -20,10 +20,11 @@ on:
       freerdp_version:
         description: 'FreeRDP version to build'
         required: false
-        default: '3.5.1'
+        default: '3.10.3'
 
 env:
-  FREERDP_VERSION: ${{ github.event.inputs.freerdp_version || '3.5.1' }}
+  # 使用与工程一致的 FreeRDP 版本
+  FREERDP_VERSION: ${{ github.event.inputs.freerdp_version || '3.10.3' }}
   OPENSSL_VERSION: "3.0.15"
   ZLIB_VERSION: "1.3.1"
   OHOS_SDK_VERSION: "5.0.0-Release"
@@ -204,7 +205,10 @@ jobs:
           set(CMAKE_POSITION_INDEPENDENT_CODE ON)
           EOF
           
-          # Build ONLY core libraries - no client library (use compat layer instead)
+          echo "Toolchain file:"
+          cat /tmp/ohos-toolchain.cmake
+          
+          # 最小化配置，保留客户端核心能力
           cmake .. \
             -DCMAKE_TOOLCHAIN_FILE=/tmp/ohos-toolchain.cmake \
             -DCMAKE_BUILD_TYPE=Release \
@@ -217,8 +221,8 @@ jobs:
             -DOPENSSL_SSL_LIBRARY=${OPENSSL_LIB}/libssl.a \
             -DWITH_SERVER=OFF \
             -DWITH_SAMPLE=OFF \
-            -DWITH_CLIENT=OFF \
-            -DWITH_CLIENT_COMMON=OFF \
+            -DWITH_CLIENT=ON \
+            -DWITH_CLIENT_COMMON=ON \
             -DWITH_CLIENT_INTERFACE=OFF \
             -DWITH_PROXY=OFF \
             -DWITH_SHADOW=OFF \
@@ -250,6 +254,7 @@ jobs:
             -DWITH_INTERNAL_MD4=ON \
             -DWITH_INTERNAL_MD5=ON \
             -DWITH_FUSE=OFF \
+            -DWITH_CLIENT_SDL=OFF \
             -DWITH_MANPAGES=OFF \
             -DBUILD_SHARED_LIBS=ON \
             -DWITH_CHANNELS=ON \
@@ -359,6 +364,7 @@ jobs:
             $OHOS_CXX -shared -o libfreerdp_harmonyos.so $OBJS \
               -fPIC \
               -L${{ github.workspace }}/install/freerdp/lib \
+              -lfreerdp-client3 \
               -lfreerdp3 \
               -lwinpr3 \
               ${OPENSSL_LIB}/libssl.a \
@@ -371,6 +377,7 @@ jobs:
                 $OHOS_CXX -shared -o libfreerdp_harmonyos.so $OBJS \
                   -fPIC \
                   -L${{ github.workspace }}/install/freerdp/lib \
+                  -lfreerdp-client3 \
                   -lfreerdp3 \
                   -lwinpr3 \
                   -Wl,--allow-shlib-undefined \
@@ -432,7 +439,7 @@ jobs:
           Toolchain: OpenHarmony NDK (musl libc)
           Target: arm64-v8a
           
-          Note: Uses compatibility layer instead of freerdp-client3
+          Note: freerdp-client3 enabled; compat layer provides extensions
           EOF
           
           echo "=== Artifacts ==="
