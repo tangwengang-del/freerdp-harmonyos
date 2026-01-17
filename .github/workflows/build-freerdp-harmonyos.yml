@@ -181,11 +181,11 @@ jobs:
           # Patch: force client common to build shared library (fix missing libfreerdp-client3.so)
           CLIENT_COMMON_CMAKE="client/common/CMakeLists.txt"
           if [ -f "$CLIENT_COMMON_CMAKE" ]; then
-            # Use standard CMake to force SHARED library
+            # Force SHARED library and link OpenSLES for background audio
             sed -i 's/addtargetwithresourcefile(\${MODULE_NAME} FALSE/add_library(${MODULE_NAME} SHARED/g' "$CLIENT_COMMON_CMAKE"
-            # Ensure it links to core libs
-            echo "target_link_libraries(\${MODULE_NAME} PUBLIC freerdp winpr)" >> "$CLIENT_COMMON_CMAKE"
-            echo "Patched client/common to build shared library"
+            echo "find_library(OPENSLES_LIB OpenSLES)" >> "$CLIENT_COMMON_CMAKE"
+            echo "target_link_libraries(\${MODULE_NAME} PUBLIC freerdp winpr \${OPENSLES_LIB})" >> "$CLIENT_COMMON_CMAKE"
+            echo "Patched client/common to build shared library with OpenSLES support"
           fi
 
       - name: Build FreeRDP Core Libraries
@@ -318,17 +318,23 @@ jobs:
           find . -name "libfreerdp-client*" -o -name "freerdp-client*" || true
           
           # We need to ensure the library has the correct name and version suffix for CMake install
-          # HarmonyOS/Android usually prefer no version suffix, but FreeRDP install expects it.
           CLIENT_DIR="client/common"
           mkdir -p "${CLIENT_DIR}"
           ACTUAL_LIB=$(find . -name "libfreerdp-client.so" -o -name "libfreerdp-client3.so" | head -1)
           
           if [ -n "${ACTUAL_LIB}" ]; then
-            echo "Found client lib at ${ACTUAL_LIB}, preparing for install..."
+            echo "Found client lib at ${ACTUAL_LIB}, preparing all naming variants for install..."
+            # Create all variants CMake install might expect to avoid "No such file" errors
+            cp "${ACTUAL_LIB}" "${CLIENT_DIR}/libfreerdp-client.so"
+            cp "${ACTUAL_LIB}" "${CLIENT_DIR}/libfreerdp-client3.so"
+            cp "${ACTUAL_LIB}" "${CLIENT_DIR}/libfreerdp-client.so.${FREERDP_VERSION}"
             cp "${ACTUAL_LIB}" "${CLIENT_DIR}/libfreerdp-client3.so.${FREERDP_VERSION}"
+            
             cd "${CLIENT_DIR}"
-            ln -sf "libfreerdp-client3.so.${FREERDP_VERSION}" libfreerdp-client3.so.3
-            ln -sf libfreerdp-client3.so.3 libfreerdp-client3.so
+            ln -sf "libfreerdp-client.so.${FREERDP_VERSION}" libfreerdp-client.so.3 2>/dev/null || true
+            ln -sf "libfreerdp-client3.so.${FREERDP_VERSION}" libfreerdp-client3.so.3 2>/dev/null || true
+            echo "Prepared client libraries:"
+            ls -la libfreerdp-client*
             cd -
           fi
           
