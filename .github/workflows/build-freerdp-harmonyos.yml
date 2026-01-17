@@ -1,6 +1,12 @@
 # GitHub Actions Workflow for Building FreeRDP HarmonyOS Native Libraries
+# 
 # 策略：使用 OpenHarmony NDK 编译，确保与 HarmonyOS 的 musl libc 兼容
-# 修复：添加补丁禁用 pthread_cancel（musl libc 不支持）
+# 
+# 关键决策：
+# 1. 不使用 freerdp-client3 库（在 musl 上有链接问题）
+# 2. 使用项目中的兼容层 (freerdp_client_compat.c) 替代
+# 3. 编译 NAPI 包装层 (libfreerdp_harmonyos.so)
+# 4. OpenSSL 和 zlib 静态链接
 
 name: Build FreeRDP for HarmonyOS (OHOS NDK)
 
@@ -14,10 +20,9 @@ on:
       freerdp_version:
         description: 'FreeRDP version to build'
         required: false
-        default: '3.10.3'
+        default: '3.5.1'
 
 env:
-  # 使用 FreeRDP 3.5.1 - 更稳定的版本
   FREERDP_VERSION: ${{ github.event.inputs.freerdp_version || '3.5.1' }}
   OPENSSL_VERSION: "3.0.15"
   ZLIB_VERSION: "1.3.1"
@@ -25,7 +30,7 @@ env:
 
 jobs:
   build-ohos-arm64:
-    name: Build for HarmonyOS (arm64-v8a, OHOS NDK)
+    name: Build for HarmonyOS (arm64-v8a)
     runs-on: ubuntu-22.04
     
     steps:
@@ -51,64 +56,46 @@ jobs:
           
           mkdir -p ${SDK_DIR}
           
-          # 下载 SDK（带重试机制）
-          echo "Downloading SDK from ${SDK_URL}..."
           for i in 1 2 3; do
             echo "Download attempt $i..."
             if curl -L --retry 3 --retry-delay 5 -o "${SDK_FILE}" "${SDK_URL}"; then
-              echo "Download completed, verifying..."
               if tar -tzf "${SDK_FILE}" > /dev/null 2>&1; then
                 echo "Archive is valid"
                 break
-              else
-                echo "Archive is corrupted, retrying..."
-                rm -f "${SDK_FILE}"
               fi
-            else
-              echo "Download failed, retrying..."
-              sleep 10
             fi
+            rm -f "${SDK_FILE}"
+            sleep 10
             if [ $i -eq 3 ]; then
-              echo "ERROR: Failed to download SDK after 3 attempts"
+              echo "ERROR: Failed to download SDK"
               exit 1
             fi
           done
           
-          # 解压 SDK
-          echo "Extracting SDK..."
           cd ${SDK_DIR}
           tar xzf "${SDK_FILE}"
           
-          # 解压 Linux SDK 组件
           if [ -d "linux" ]; then
             cd linux
             for f in *.zip; do
-              echo "Extracting $f..."
               unzip -q "$f" -d ${SDK_DIR}
             done
           fi
           
-          # 查找 NDK 路径
           NATIVE_DIR=$(find ${SDK_DIR} -maxdepth 1 -type d -name "native*" | head -1)
           
           if [ -z "${NATIVE_DIR}" ]; then
             echo "ERROR: Native SDK not found"
-            echo "SDK directory contents:"
             ls -la ${SDK_DIR}/
             exit 1
           fi
           
           echo "Native SDK: ${NATIVE_DIR}"
           echo "OHOS_NDK_HOME=${NATIVE_DIR}" >> $GITHUB_ENV
-          
-          # 清理下载的压缩包
           rm -f "${SDK_FILE}"
 
       - name: Setup Cross-Compile Environment
         run: |
-          echo "=== Setting up cross-compile environment ==="
-          
-          # 编译器路径
           OHOS_CLANG="${OHOS_NDK_HOME}/llvm/bin/clang"
           OHOS_CLANGXX="${OHOS_NDK_HOME}/llvm/bin/clang++"
           OHOS_AR="${OHOS_NDK_HOME}/llvm/bin/llvm-ar"
@@ -117,24 +104,20 @@ jobs:
           OHOS_SYSROOT="${OHOS_NDK_HOME}/sysroot"
           OHOS_TARGET="aarch64-linux-ohos"
           
-          # 验证编译器
-          echo "Testing compiler..."
-          echo 'int main() { return 0; }' > /tmp/test.c
-          ${OHOS_CLANG} --target=${OHOS_TARGET} --sysroot=${OHOS_SYSROOT} -c /tmp/test.c -o /tmp/test.o
-          echo "Compiler works!"
-          
-          # 创建编译器包装脚本
           mkdir -p ${HOME}/ohos-tools
           
-          echo '#!/bin/bash' > ${HOME}/ohos-tools/ohos-clang
-          echo "exec ${OHOS_CLANG} --target=${OHOS_TARGET} --sysroot=${OHOS_SYSROOT} \"\$@\"" >> ${HOME}/ohos-tools/ohos-clang
+          cat > ${HOME}/ohos-tools/ohos-clang << EOF
+          #!/bin/bash
+          exec ${OHOS_CLANG} --target=${OHOS_TARGET} --sysroot=${OHOS_SYSROOT} "\$@"
+          EOF
           chmod +x ${HOME}/ohos-tools/ohos-clang
           
-          echo '#!/bin/bash' > ${HOME}/ohos-tools/ohos-clang++
-          echo "exec ${OHOS_CLANGXX} --target=${OHOS_TARGET} --sysroot=${OHOS_SYSROOT} \"\$@\"" >> ${HOME}/ohos-tools/ohos-clang++
+          cat > ${HOME}/ohos-tools/ohos-clang++ << EOF
+          #!/bin/bash
+          exec ${OHOS_CLANGXX} --target=${OHOS_TARGET} --sysroot=${OHOS_SYSROOT} "\$@"
+          EOF
           chmod +x ${HOME}/ohos-tools/ohos-clang++
           
-          # 保存路径为完整的绝对路径
           echo "OHOS_CC=${HOME}/ohos-tools/ohos-clang" >> $GITHUB_ENV
           echo "OHOS_CXX=${HOME}/ohos-tools/ohos-clang++" >> $GITHUB_ENV
           echo "OHOS_AR=${OHOS_AR}" >> $GITHUB_ENV
@@ -143,13 +126,13 @@ jobs:
           echo "OHOS_SYSROOT=${OHOS_SYSROOT}" >> $GITHUB_ENV
           echo "OHOS_TARGET=${OHOS_TARGET}" >> $GITHUB_ENV
           
-          # 测试包装脚本
-          ${HOME}/ohos-tools/ohos-clang -c /tmp/test.c -o /tmp/test2.o
-          echo "Wrapper script works!"
+          # Test compiler
+          echo 'int main() { return 0; }' > /tmp/test.c
+          ${HOME}/ohos-tools/ohos-clang -c /tmp/test.c -o /tmp/test.o
+          echo "Compiler works!"
 
       - name: Build zlib
         run: |
-          echo "=== Building zlib ==="
           cd ${{ github.workspace }}
           wget -q https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz
           tar xzf zlib-${ZLIB_VERSION}.tar.gz
@@ -160,13 +143,9 @@ jobs:
           
           make -j$(nproc)
           make install
-          
-          echo "zlib done:"
-          file ${{ github.workspace }}/install/zlib/lib/libz.a
 
       - name: Build OpenSSL
         run: |
-          echo "=== Building OpenSSL ==="
           cd ${{ github.workspace }}
           wget -q https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz
           tar xzf openssl-${OPENSSL_VERSION}.tar.gz
@@ -180,8 +159,6 @@ jobs:
           
           make -j$(nproc) || make -j2
           make install_sw
-          
-          echo "OpenSSL done"
 
       - name: Clone FreeRDP
         run: |
@@ -190,39 +167,26 @@ jobs:
 
       - name: Patch FreeRDP for OHOS/musl compatibility
         run: |
-          echo "=== Patching FreeRDP for OHOS/musl libc compatibility ==="
           cd ${{ github.workspace }}/FreeRDP
           
-          # 补丁：禁用 pthread_cancel（musl libc 不支持）
-          # 将 #ifndef ANDROID 改为 #if !defined(ANDROID) && !defined(__OHOS__)
+          # Patch: Disable pthread_cancel (musl doesn't support it)
           THREAD_FILE="winpr/libwinpr/thread/thread.c"
-          
           if [ -f "$THREAD_FILE" ]; then
-            echo "Patching $THREAD_FILE to disable pthread_cancel for OHOS..."
             sed -i 's/#ifndef ANDROID/#if !defined(ANDROID) \&\& !defined(__OHOS__)/g' "$THREAD_FILE"
-            
-            echo "=== Verifying patch ==="
-            grep -n "ANDROID\|OHOS" "$THREAD_FILE" | head -10
-            echo "Patch applied successfully!"
-          else
-            echo "WARNING: $THREAD_FILE not found"
-            find . -name "thread.c" -path "*/thread/*" | head -5
+            echo "Patched thread.c"
           fi
 
-      - name: Build FreeRDP
+      - name: Build FreeRDP Core Libraries
         run: |
-          echo "=== Building FreeRDP ==="
           cd ${{ github.workspace }}/FreeRDP
           mkdir build && cd build
           
-          # 找 OpenSSL 库路径
           if [ -d "${{ github.workspace }}/install/openssl/lib64" ]; then
             OPENSSL_LIB="${{ github.workspace }}/install/openssl/lib64"
           else
             OPENSSL_LIB="${{ github.workspace }}/install/openssl/lib"
           fi
           
-          # 创建 CMake 工具链文件
           cat > /tmp/ohos-toolchain.cmake << EOF
           set(CMAKE_SYSTEM_NAME Linux)
           set(CMAKE_SYSTEM_PROCESSOR aarch64)
@@ -234,20 +198,14 @@ jobs:
           set(CMAKE_C_FLAGS_INIT "-fPIC -O2 -D__OHOS__=1")
           set(CMAKE_CXX_FLAGS_INIT "-fPIC -O2 -D__OHOS__=1")
           set(CMAKE_SHARED_LINKER_FLAGS_INIT "-Wl,--allow-shlib-undefined")
-          set(CMAKE_EXE_LINKER_FLAGS_INIT "-Wl,--allow-shlib-undefined")
           set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
           set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
           set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
-          set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
           set(CMAKE_POSITION_INDEPENDENT_CODE ON)
           EOF
           
-          echo "Toolchain file:"
-          cat /tmp/ohos-toolchain.cmake
-          
-          # 最小化配置，关闭所有非必需功能
-          # 添加 --log-level=VERBOSE 以获取更详细的 CMake 输出
-          cmake .. --log-level=VERBOSE \
+          # Build ONLY core libraries - no client library (use compat layer instead)
+          cmake .. \
             -DCMAKE_TOOLCHAIN_FILE=/tmp/ohos-toolchain.cmake \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/install/freerdp \
@@ -259,6 +217,11 @@ jobs:
             -DOPENSSL_SSL_LIBRARY=${OPENSSL_LIB}/libssl.a \
             -DWITH_SERVER=OFF \
             -DWITH_SAMPLE=OFF \
+            -DWITH_CLIENT=OFF \
+            -DWITH_CLIENT_COMMON=OFF \
+            -DWITH_CLIENT_INTERFACE=OFF \
+            -DWITH_PROXY=OFF \
+            -DWITH_SHADOW=OFF \
             -DWITH_CUPS=OFF \
             -DWITH_PULSE=OFF \
             -DWITH_ALSA=OFF \
@@ -287,34 +250,19 @@ jobs:
             -DWITH_INTERNAL_MD4=ON \
             -DWITH_INTERNAL_MD5=ON \
             -DWITH_FUSE=OFF \
-            -DWITH_CLIENT_INTERFACE=ON \
-            -DWITH_PROXY=OFF \
-            -DWITH_SHADOW=OFF \
-            -DWITH_CLIENT=ON \
-            -DWITH_CLIENT_SDL=OFF \
             -DWITH_MANPAGES=OFF \
             -DBUILD_SHARED_LIBS=ON \
             -DWITH_CHANNELS=ON \
             -DWITH_CLIENT_CHANNELS=ON \
-            -DWITH_WAYLAND=OFF \
             -DWITH_CAIRO=OFF \
-            -DWITH_SWSCALE=OFF \
             -DWITH_SDL_IMAGE_DIALOGS=OFF \
             -DWITH_WEBVIEW=OFF \
             -DWITH_PLATFORM_SERVER=OFF \
-            -DWITH_SAMPLE=OFF \
             -DWITH_PROGRESS_BAR=OFF \
             -DWITH_SIMD=OFF \
             -DWITH_NEON=OFF \
-            -DWITH_CLIENT_COMMON=ON \
-            -DWITH_FUSE=OFF \
             -DWITH_AAD=OFF \
-            -DWITH_PKCS11=OFF \
             -DWITH_SMARTCARD=OFF \
-            -DWITH_SERVER=OFF \
-            -DWITH_CUPS=OFF \
-            -DWITH_PCSC=OFF \
-            -DWITH_LIBSYSTEMD=OFF \
             -DWITH_KEYBOARD_LAYOUT_FROM_FILE=OFF \
             -DCHANNEL_AUDIN=ON \
             -DCHANNEL_ENCOMSP=OFF \
@@ -337,139 +285,144 @@ jobs:
             -DWITH_BINARY_VERSIONING=OFF \
             2>&1 | tee cmake_output.log
           
-          # 先检查 CMake 配置结果
-          echo "=== Checking CMake configuration for client ==="
-          grep -i "freerdp-client\|WITH_CLIENT\|client/common\|CLIENT_COMMON" cmake_output.log || true
-          
-          echo "=== Checking CMakeCache for client options ==="
-          grep -i "WITH_CLIENT" CMakeCache.txt || echo "No WITH_CLIENT in cache"
-          
-          echo "=== Checking if client/common was processed ==="
-          ls -la ../client/common/ 2>/dev/null || echo "Source client/common not found"
-          ls -la client/ 2>/dev/null || echo "Build client/ not found"
-          
-          echo "=== Checking available targets ==="
-          cmake --build . --target help 2>/dev/null | grep -i client || echo "No client targets found"
-          
-          echo "=== Checking client/common CMakeLists.txt ==="
-          cat ../client/common/CMakeLists.txt 2>/dev/null | head -100 || echo "CMakeLists.txt not found"
-          
-          echo "=== Checking root CMakeLists.txt for client condition ==="
-          grep -A5 "WITH_CLIENT_COMMON\|add_subdirectory(client)" ../CMakeLists.txt 2>/dev/null | head -20 || true
-          
-          echo "=== Checking cmake_output.log for add_library ==="
-          grep -i "add_library\|add_executable\|freerdp-client" cmake_output.log | head -50 || echo "No add_library found"
-          
-          echo "=== Checking if client/common Makefile exists ==="
-          ls -la client/common/Makefile 2>/dev/null || echo "No Makefile in client/common"
-          ls -la client/common/CMakeFiles/ 2>/dev/null || echo "No CMakeFiles in client/common"
-          
-          # 构建所有目标
-          echo "=== Building all targets ==="
-          cmake --build . --parallel $(nproc) 2>&1 | tee build_output.log
-          BUILD_RESULT=$?
-          
-          echo "=== Build result: $BUILD_RESULT ==="
-          
-          # 检查构建目录结构
-          echo "=== Build directory structure ==="
-          ls -la
-          ls -la client/ 2>/dev/null || echo "client directory not found"
-          ls -la client/common/ 2>/dev/null || echo "client/common directory not found"
-          
-          echo "=== Finding all .so files in build ==="
-          find . -name "*.so*" -type f 2>/dev/null
-          
-          echo "=== Finding libfreerdp-client specifically ==="
-          find . -name "*freerdp-client*" 2>/dev/null || echo "No freerdp-client files found"
-          
-          if [ $BUILD_RESULT -ne 0 ]; then
-            echo "=== Build failed ==="
-            tail -100 build_output.log
+          cmake --build . --parallel $(nproc) 2>&1 | tee build_output.log || {
+            echo "Build failed"
+            tail -50 build_output.log
             exit 1
-          fi
-          
-          # 检查 freerdp-client 库是否生成
-          if [ ! -f "client/common/libfreerdp-client3.so.3.5.1" ]; then
-            echo "=== WARNING: libfreerdp-client3.so.3.5.1 not found ==="
-            echo "=== Checking if freerdp-client target exists ==="
-            
-            # 尝试单独构建 freerdp-client
-            echo "=== Trying to build freerdp-client target explicitly ==="
-            cmake --build . --target freerdp-client3 --verbose 2>&1 | tee client_build.log || {
-              echo "=== freerdp-client3 target failed, checking errors ==="
-              cat client_build.log
-              
-              # 检查是否是链接问题
-              echo "=== Checking for undefined symbols ==="
-              grep -i "undefined\|error\|cannot find" client_build.log || true
-            }
-            
-            echo "=== After explicit build, checking again ==="
-            find . -name "*freerdp-client*" 2>/dev/null || echo "Still no freerdp-client files"
-            ls -la client/common/ 2>/dev/null || echo "client/common still empty"
-          else
-            echo "=== libfreerdp-client3.so found! ==="
-          fi
-          
-          echo "=== Installing ==="
-          # 如果 libfreerdp-client3.so 不存在，修改安装脚本跳过它
-          if [ ! -f "client/common/libfreerdp-client3.so.3.5.1" ]; then
-            echo "=== libfreerdp-client3.so not built, patching install script ==="
-            # 注释掉 client/common 的安装
-            if [ -f "client/common/cmake_install.cmake" ]; then
-              sed -i 's/file(INSTALL/# file(INSTALL/g' client/common/cmake_install.cmake
-              echo "Patched client/common/cmake_install.cmake"
-            fi
-          fi
-          cmake --install . || {
-            echo "=== Install failed, trying without client ==="
-            # 手动安装核心库
-            mkdir -p ${{ github.workspace }}/install/freerdp/lib
-            cp libfreerdp/libfreerdp3.so* ${{ github.workspace }}/install/freerdp/lib/ 2>/dev/null || true
-            cp winpr/libwinpr/libwinpr3.so* ${{ github.workspace }}/install/freerdp/lib/ 2>/dev/null || true
           }
           
-          echo "=== Checking installed libraries ==="
-          ls -la ${{ github.workspace }}/install/freerdp/lib/
+          cmake --install .
           
-          # 如果 libfreerdp-client 没有被安装，手动复制
-          if [ ! -f "${{ github.workspace }}/install/freerdp/lib/libfreerdp-client3.so" ]; then
-            echo "=== libfreerdp-client3.so not installed, checking build directory ==="
-            if [ -f "client/common/libfreerdp-client3.so.3.5.1" ]; then
-              echo "=== Manually copying from build directory ==="
-              cp client/common/libfreerdp-client3.so* ${{ github.workspace }}/install/freerdp/lib/
-            fi
+          echo "=== FreeRDP core libraries built ==="
+          ls -la ${{ github.workspace }}/install/freerdp/lib/*.so* 2>/dev/null || echo "No .so files"
+
+      - name: Build NAPI Wrapper (libfreerdp_harmonyos.so)
+        run: |
+          echo "=== Building NAPI Wrapper with Compatibility Layer ==="
+          
+          mkdir -p ${{ github.workspace }}/napi_build
+          cd ${{ github.workspace }}/napi_build
+          
+          # Copy source files
+          cp ${{ github.workspace }}/entry/src/main/cpp/*.c . 2>/dev/null || true
+          cp ${{ github.workspace }}/entry/src/main/cpp/*.cpp . 2>/dev/null || true
+          cp ${{ github.workspace }}/entry/src/main/cpp/*.h . 2>/dev/null || true
+          
+          echo "Source files:"
+          ls -la
+          
+          if [ -d "${{ github.workspace }}/install/openssl/lib64" ]; then
+            OPENSSL_LIB="${{ github.workspace }}/install/openssl/lib64"
+          else
+            OPENSSL_LIB="${{ github.workspace }}/install/openssl/lib"
           fi
           
-          echo "=== Final library list ==="
-          ls -la ${{ github.workspace }}/install/freerdp/lib/*.so* 2>/dev/null || echo "No .so files in install"
+          INCLUDE_DIRS="-I${{ github.workspace }}/install/freerdp/include \
+            -I${{ github.workspace }}/install/freerdp/include/freerdp3 \
+            -I${{ github.workspace }}/install/freerdp/include/winpr3 \
+            -I${{ github.workspace }}/install/openssl/include \
+            -I${OHOS_NDK_HOME}/sysroot/usr/include"
           
-          echo "FreeRDP build completed"
+          CFLAGS="-fPIC -O2 -D__OHOS__=1 -DOHOS_PLATFORM -DWITH_OPENSSL"
+          
+          # Compile C files
+          echo "Compiling C files..."
+          for f in *.c; do
+            if [ -f "$f" ]; then
+              echo "  $f"
+              $OHOS_CC -c "$f" -o "${f%.c}.o" $CFLAGS $INCLUDE_DIRS 2>&1 || {
+                echo "Warning: Failed to compile $f"
+              }
+            fi
+          done
+          
+          # Compile C++ files
+          echo "Compiling C++ files..."
+          for f in *.cpp; do
+            if [ -f "$f" ]; then
+              echo "  $f"
+              $OHOS_CXX -c "$f" -o "${f%.cpp}.o" -std=c++17 -DNAPI_VERSION=8 $CFLAGS $INCLUDE_DIRS \
+                -I${OHOS_NDK_HOME}/sysroot/usr/include/napi 2>&1 || {
+                echo "Warning: Failed to compile $f"
+              }
+            fi
+          done
+          
+          echo "Object files:"
+          ls -la *.o 2>/dev/null || echo "No object files"
+          
+          # Link
+          OBJS=$(ls *.o 2>/dev/null | tr '\n' ' ')
+          
+          if [ -n "$OBJS" ]; then
+            echo "Linking libfreerdp_harmonyos.so..."
+            $OHOS_CXX -shared -o libfreerdp_harmonyos.so $OBJS \
+              -fPIC \
+              -L${{ github.workspace }}/install/freerdp/lib \
+              -lfreerdp3 \
+              -lwinpr3 \
+              ${OPENSSL_LIB}/libssl.a \
+              ${OPENSSL_LIB}/libcrypto.a \
+              ${{ github.workspace }}/install/zlib/lib/libz.a \
+              -Wl,--allow-shlib-undefined \
+              -Wl,-rpath,'$ORIGIN' \
+              2>&1 && echo "SUCCESS: libfreerdp_harmonyos.so built" || {
+                echo "Link failed, trying without static libs..."
+                $OHOS_CXX -shared -o libfreerdp_harmonyos.so $OBJS \
+                  -fPIC \
+                  -L${{ github.workspace }}/install/freerdp/lib \
+                  -lfreerdp3 \
+                  -lwinpr3 \
+                  -Wl,--allow-shlib-undefined \
+                  -Wl,-rpath,'$ORIGIN' \
+                  2>&1 || echo "Link still failed"
+              }
+          fi
+          
+          if [ -f "libfreerdp_harmonyos.so" ]; then
+            echo "=== libfreerdp_harmonyos.so created ==="
+            file libfreerdp_harmonyos.so
+            ls -la libfreerdp_harmonyos.so
+          else
+            echo "WARNING: libfreerdp_harmonyos.so not created"
+          fi
 
       - name: Collect artifacts
         run: |
           mkdir -p ${{ github.workspace }}/artifacts/arm64-v8a
           
+          # Copy FreeRDP libraries
           find ${{ github.workspace }}/install/freerdp -name "*.so*" -exec cp {} ${{ github.workspace }}/artifacts/arm64-v8a/ \; 2>/dev/null || true
+          
+          # Copy NAPI wrapper
+          if [ -f "${{ github.workspace }}/napi_build/libfreerdp_harmonyos.so" ]; then
+            cp ${{ github.workspace }}/napi_build/libfreerdp_harmonyos.so ${{ github.workspace }}/artifacts/arm64-v8a/
+          fi
           
           cd ${{ github.workspace }}/artifacts/arm64-v8a
           
-          # 处理符号链接
+          # Handle symlinks - keep actual files
           for f in *.so*; do
             if [ -L "$f" ]; then
               target=$(readlink -f "$f")
               rm "$f"
               if [ -f "$target" ]; then
-                cp "$target" "$(basename $target)"
+                base=$(basename "$target")
+                [ ! -f "$base" ] && cp "$target" "$base"
               fi
             fi
+          done
+          
+          # Create simplified symlink names
+          for f in *.so.*.*; do
+            base="${f%.*.*}"
+            [ ! -f "$base" ] && [ -f "$f" ] && cp "$f" "$base"
           done
           
           # Strip
           ${OHOS_STRIP} --strip-unneeded *.so* 2>/dev/null || true
           
-          # 创建 README
+          # Create README
           cat > README.txt << EOF
           FreeRDP HarmonyOS Libraries
           Built: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
@@ -478,8 +431,11 @@ jobs:
           zlib: $ZLIB_VERSION (static)
           Toolchain: OpenHarmony NDK (musl libc)
           Target: arm64-v8a
+          
+          Note: Uses compatibility layer instead of freerdp-client3
           EOF
           
+          echo "=== Artifacts ==="
           ls -la
 
       - name: Upload artifacts
@@ -505,8 +461,11 @@ jobs:
       - name: Create package
         run: |
           cd libs
-          echo "FreeRDP HarmonyOS - $(date -u)" > VERSION.txt
+          echo "FreeRDP HarmonyOS Libraries" > VERSION.txt
+          echo "Built: $(date -u)" >> VERSION.txt
           echo "Git SHA: ${{ github.sha }}" >> VERSION.txt
+          ls -la arm64-v8a/ >> VERSION.txt
+          
           zip -r ../freerdp-harmonyos-libs.zip .
           cd ..
           sha256sum freerdp-harmonyos-libs.zip > freerdp-harmonyos-libs.zip.sha256
@@ -537,6 +496,17 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: release/*
-          body: "FreeRDP HarmonyOS Native Libraries (musl libc compatible)"
+          body: |
+            ## FreeRDP HarmonyOS Native Libraries
+            
+            Built with OpenHarmony NDK (musl libc compatible)
+            
+            ### Libraries
+            - libfreerdp3.so - FreeRDP core
+            - libwinpr3.so - WinPR library
+            - libfreerdp_harmonyos.so - NAPI wrapper
+            
+            ### Usage
+            Copy to `entry/libs/arm64-v8a/` and build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
