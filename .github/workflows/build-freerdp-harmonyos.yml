@@ -310,45 +310,45 @@ jobs:
           # Ensure client common target is built
           cmake --build . --target freerdp-client --parallel $(nproc) 2>&1 | tee build_client_output.log || true
           
-          echo "=== Client common outputs ==="
-          find "${{ github.workspace }}/FreeRDP/build" -maxdepth 4 -type f -name "libfreerdp-client*" -o -name "libfreerdp-client3*" || true
+          echo "=== Searching for client libraries ==="
+          find "${{ github.workspace }}/FreeRDP/build" -type f \( -name "libfreerdp-client*" -o -name "freerdp-client*" \) 2>/dev/null || echo "No client libs found"
           
-          # Ensure freerdp-client3 shared library exists (some builds output libfreerdp-client.so*)
-          CLIENT_DIR="${{ github.workspace }}/FreeRDP/build/client/common"
-          mkdir -p "${CLIENT_DIR}"
-          if [ ! -f "${CLIENT_DIR}/libfreerdp-client3.so.${FREERDP_VERSION}" ]; then
-            TARGET_LIB="${CLIENT_DIR}/libfreerdp-client3.so.${FREERDP_VERSION}"
-            ALT_CLIENT=$(find "${{ github.workspace }}/FreeRDP/build" -type f \( -name "libfreerdp-client.so.*" -o -name "libfreerdp-client.so" -o -name "libfreerdp-client3.so.*" -o -name "libfreerdp-client3.so" \) | head -1 || true)
-            if [ -n "${ALT_CLIENT}" ]; then
-              echo "Fixing client common library name: ${ALT_CLIENT} -> ${TARGET_LIB}"
-              mkdir -p "${CLIENT_DIR}"
-              cp "${ALT_CLIENT}" "${TARGET_LIB}"
-            else
-              echo "No client shared lib found, attempting to build from static archive..."
-              ALT_STATIC=$(find "${{ github.workspace }}/FreeRDP/build" -type f \( -name "libfreerdp-client.a" -o -name "libfreerdp-client3.a" \) | head -1 || true)
-              if [ -n "${ALT_STATIC}" ]; then
-                mkdir -p "${CLIENT_DIR}"
-                FREERDP3_SO=$(find "${{ github.workspace }}/FreeRDP/build" -type f -name "libfreerdp3.so*" | head -1 || true)
-                WINPR3_SO=$(find "${{ github.workspace }}/FreeRDP/build" -type f -name "libwinpr3.so*" | head -1 || true)
-                LINK_DIRS=""
-                if [ -n "${FREERDP3_SO}" ]; then LINK_DIRS="${LINK_DIRS} -L$(dirname "${FREERDP3_SO}")"; fi
-                if [ -n "${WINPR3_SO}" ]; then LINK_DIRS="${LINK_DIRS} -L$(dirname "${WINPR3_SO}")"; fi
-                $OHOS_CXX -shared -o "${TARGET_LIB}" \
-                  -Wl,--whole-archive "${ALT_STATIC}" -Wl,--no-whole-archive \
-                  ${LINK_DIRS} -lfreerdp3 -lwinpr3 \
-                  -Wl,--allow-shlib-undefined
-              else
-                echo "WARNING: no libfreerdp-client.* produced; client common library missing"
-                ls -la "${CLIENT_DIR}" || true
-              fi
-            fi
-            if [ -f "${TARGET_LIB}" ]; then
-              ln -sf "libfreerdp-client3.so.${FREERDP_VERSION}" "${CLIENT_DIR}/libfreerdp-client3.so.3"
-              ln -sf "libfreerdp-client3.so.${FREERDP_VERSION}" "${CLIENT_DIR}/libfreerdp-client3.so"
-            fi
+          # Patch cmake_install.cmake to skip missing client lib (we'll install manually)
+          if [ -f "client/common/cmake_install.cmake" ]; then
+            sed -i '/file(INSTALL.*libfreerdp-client3\.so/d' client/common/cmake_install.cmake
+            echo "Patched cmake_install.cmake to skip auto-install"
           fi
           
           cmake --install .
+          
+          # Manually install client library after main install
+          echo "=== Manually installing client library ==="
+          CLIENT_INSTALL_DIR="${{ github.workspace }}/install/freerdp/lib"
+          mkdir -p "${CLIENT_INSTALL_DIR}"
+          
+          # Find any client library
+          CLIENT_LIB=$(find "${{ github.workspace }}/FreeRDP/build" -type f \( -name "libfreerdp-client*.so*" -o -name "libfreerdp-client*.a" \) | head -1 || true)
+          
+          if [ -n "${CLIENT_LIB}" ] && [ -f "${CLIENT_LIB}" ]; then
+            if [[ "${CLIENT_LIB}" == *.so* ]]; then
+              echo "Installing shared client library: ${CLIENT_LIB}"
+              cp "${CLIENT_LIB}" "${CLIENT_INSTALL_DIR}/libfreerdp-client3.so.${FREERDP_VERSION}"
+            else
+              echo "Building shared library from static: ${CLIENT_LIB}"
+              FREERDP3_SO="${{ github.workspace }}/install/freerdp/lib/libfreerdp3.so"
+              WINPR3_SO="${{ github.workspace }}/install/freerdp/lib/libwinpr3.so"
+              $OHOS_CXX -shared -o "${CLIENT_INSTALL_DIR}/libfreerdp-client3.so.${FREERDP_VERSION}" \
+                -Wl,--whole-archive "${CLIENT_LIB}" -Wl,--no-whole-archive \
+                -L"${CLIENT_INSTALL_DIR}" -lfreerdp3 -lwinpr3 \
+                -Wl,--allow-shlib-undefined
+            fi
+            cd "${CLIENT_INSTALL_DIR}"
+            ln -sf "libfreerdp-client3.so.${FREERDP_VERSION}" libfreerdp-client3.so.3
+            ln -sf libfreerdp-client3.so.3 libfreerdp-client3.so
+            cd -
+          else
+            echo "WARNING: No client library found to install"
+          fi
           
           echo "=== FreeRDP core libraries built ==="
           ls -la ${{ github.workspace }}/install/freerdp/lib/*.so* 2>/dev/null || echo "No .so files"
