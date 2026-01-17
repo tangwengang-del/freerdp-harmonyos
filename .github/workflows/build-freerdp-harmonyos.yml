@@ -336,17 +336,28 @@ jobs:
             -DWITH_BINARY_VERSIONING=OFF \
             2>&1 | tee cmake_output.log
           
-          # 构建
+          # 先检查 CMake 配置结果
+          echo "=== Checking CMake configuration for client ==="
+          grep -i "freerdp-client\|WITH_CLIENT\|client/common" cmake_output.log || true
+          
+          echo "=== Checking available targets ==="
+          cmake --build . --target help 2>/dev/null | grep -i client || echo "No client targets found"
+          
+          echo "=== Checking client/common CMakeLists.txt ==="
+          cat ../client/common/CMakeLists.txt 2>/dev/null | head -100 || echo "CMakeLists.txt not found"
+          
+          # 构建所有目标
+          echo "=== Building all targets ==="
           cmake --build . --parallel $(nproc) 2>&1 | tee build_output.log
           BUILD_RESULT=$?
           
           echo "=== Build result: $BUILD_RESULT ==="
           
-          echo "=== Checking if client/common directory exists ==="
+          # 检查构建目录结构
+          echo "=== Build directory structure ==="
+          ls -la
           ls -la client/ 2>/dev/null || echo "client directory not found"
-          
-          echo "=== Checking client/common build directory ==="
-          ls -la client/common/ 2>/dev/null || echo "client/common directory not found in build"
+          ls -la client/common/ 2>/dev/null || echo "client/common directory not found"
           
           echo "=== Finding all .so files in build ==="
           find . -name "*.so*" -type f 2>/dev/null
@@ -362,11 +373,23 @@ jobs:
           
           # 检查 freerdp-client 库是否生成
           if [ ! -f "client/common/libfreerdp-client3.so.3.5.1" ]; then
-            echo "=== WARNING: libfreerdp-client3.so.3.5.1 not found in client/common ==="
+            echo "=== WARNING: libfreerdp-client3.so.3.5.1 not found ==="
+            echo "=== Checking if freerdp-client target exists ==="
+            
+            # 尝试单独构建 freerdp-client
             echo "=== Trying to build freerdp-client target explicitly ==="
-            cmake --build . --target freerdp-client 2>&1 || echo "freerdp-client target build failed or not found"
+            cmake --build . --target freerdp-client3 --verbose 2>&1 | tee client_build.log || {
+              echo "=== freerdp-client3 target failed, checking errors ==="
+              cat client_build.log
+              
+              # 检查是否是链接问题
+              echo "=== Checking for undefined symbols ==="
+              grep -i "undefined\|error\|cannot find" client_build.log || true
+            }
+            
             echo "=== After explicit build, checking again ==="
             find . -name "*freerdp-client*" 2>/dev/null || echo "Still no freerdp-client files"
+            ls -la client/common/ 2>/dev/null || echo "client/common still empty"
           else
             echo "=== libfreerdp-client3.so found! ==="
           fi
