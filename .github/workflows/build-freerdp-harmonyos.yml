@@ -356,6 +356,13 @@ jobs:
           echo "=== Checking root CMakeLists.txt for client condition ==="
           grep -A5 "WITH_CLIENT_COMMON\|add_subdirectory(client)" ../CMakeLists.txt 2>/dev/null | head -20 || true
           
+          echo "=== Checking cmake_output.log for add_library ==="
+          grep -i "add_library\|add_executable\|freerdp-client" cmake_output.log | head -50 || echo "No add_library found"
+          
+          echo "=== Checking if client/common Makefile exists ==="
+          ls -la client/common/Makefile 2>/dev/null || echo "No Makefile in client/common"
+          ls -la client/common/CMakeFiles/ 2>/dev/null || echo "No CMakeFiles in client/common"
+          
           # 构建所有目标
           echo "=== Building all targets ==="
           cmake --build . --parallel $(nproc) 2>&1 | tee build_output.log
