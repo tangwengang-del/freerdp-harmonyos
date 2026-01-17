@@ -53,6 +53,7 @@ target_link_libraries(freerdp_harmonyos
     # HarmonyOS N-API
     ace_napi.z
     hilog_ndk.z
+    OpenSLES
     
     # FreeRDP libraries - 使用官方客户端库
     # 现在启用了 WITH_CLIENT_COMMON=ON，可以使用官方 freerdp-client3 库

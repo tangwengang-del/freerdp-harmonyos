@@ -250,6 +250,7 @@ jobs:
             -DWITH_LIBSYSTEMD=OFF \
             -DWITH_PCSC=OFF \
             -DWITH_JPEG=OFF \
+            -DWITH_OPENSLES=ON \
             -DWITH_OPENH264=OFF \
             -DWITH_GSM=OFF \
             -DWITH_LAME=OFF \
