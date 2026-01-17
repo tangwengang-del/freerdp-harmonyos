@@ -13,6 +13,7 @@ name: Build FreeRDP for HarmonyOS (OHOS NDK)
 on:
   push:
     branches: [ main, develop ]
+    tags: [ 'v*' ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:
