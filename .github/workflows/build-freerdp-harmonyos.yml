@@ -336,13 +336,44 @@ jobs:
             -DWITH_BINARY_VERSIONING=OFF \
             2>&1 | tee cmake_output.log
           
-          cmake --build . --parallel $(nproc) 2>&1 | tee build_output.log || {
-            echo "=== Build failed, showing last 100 lines of output ==="
-            tail -100 build_output.log
-            exit 1
-          }
+          # 构建 - 使用 VERBOSE 模式以便看到链接命令
+          cmake --build . --parallel $(nproc) -- VERBOSE=1 2>&1 | tee build_output.log
+          BUILD_RESULT=$?
           
-          cmake --install .
+          echo "=== Checking built libraries ==="
+          find . -name "*.so*" -type f 2>/dev/null | head -20
+          
+          echo "=== Checking freerdp-client build ==="
+          ls -la client/common/ 2>/dev/null || echo "client/common directory not found"
+          ls -la client/common/*.so* 2>/dev/null || echo "No .so files in client/common"
+          
+          if [ $BUILD_RESULT -ne 0 ]; then
+            echo "=== Build failed, showing last 200 lines of output ==="
+            tail -200 build_output.log
+            echo "=== Searching for link errors ==="
+            grep -i "error\|undefined\|cannot find" build_output.log | tail -50
+            exit 1
+          fi
+          
+          # 检查 freerdp-client 库是否生成
+          if [ ! -f "client/common/libfreerdp-client3.so.3.5.1" ]; then
+            echo "=== WARNING: libfreerdp-client3.so not built! ==="
+            echo "=== Checking CMake configuration for client/common ==="
+            cat client/common/CMakeFiles/freerdp-client.dir/flags.make 2>/dev/null || true
+            cat client/common/CMakeFiles/freerdp-client.dir/link.txt 2>/dev/null || true
+            echo "=== Trying to build freerdp-client target explicitly ==="
+            cmake --build . --target freerdp-client -- VERBOSE=1 2>&1 | tail -100
+          fi
+          
+          cmake --install . 2>&1 | tee install_output.log || {
+            echo "=== Install failed ==="
+            tail -50 install_output.log
+            # 如果安装失败但库存在，手动复制
+            if [ -f "client/common/libfreerdp-client3.so.3.5.1" ]; then
+              echo "=== Manually copying freerdp-client library ==="
+              cp client/common/libfreerdp-client3.so* ${{ github.workspace }}/install/freerdp/lib/
+            fi
+          }
           echo "FreeRDP build completed"
 
       - name: Collect artifacts
