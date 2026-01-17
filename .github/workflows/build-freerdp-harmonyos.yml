@@ -296,6 +296,12 @@ jobs:
             exit 1
           }
           
+          # Ensure client common target is built
+          cmake --build . --target freerdp-client --parallel $(nproc) 2>&1 | tee build_client_output.log || true
+          
+          echo "=== Client common outputs ==="
+          find "${{ github.workspace }}/FreeRDP/build" -maxdepth 4 -type f -name "libfreerdp-client*" -o -name "libfreerdp-client3*" || true
+          
           # Ensure freerdp-client3 shared library exists (some builds output libfreerdp-client.so*)
           CLIENT_DIR="${{ github.workspace }}/FreeRDP/build/client/common"
           if [ ! -f "${CLIENT_DIR}/libfreerdp-client3.so.${FREERDP_VERSION}" ]; then
