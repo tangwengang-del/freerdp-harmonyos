@@ -246,7 +246,8 @@ jobs:
           cat /tmp/ohos-toolchain.cmake
           
           # 最小化配置，关闭所有非必需功能
-          cmake .. \
+          # 添加 --log-level=VERBOSE 以获取更详细的 CMake 输出
+          cmake .. --log-level=VERBOSE \
             -DCMAKE_TOOLCHAIN_FILE=/tmp/ohos-toolchain.cmake \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/install/freerdp \
