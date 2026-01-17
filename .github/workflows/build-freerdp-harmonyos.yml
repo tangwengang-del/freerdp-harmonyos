@@ -338,13 +338,23 @@ jobs:
           
           # 先检查 CMake 配置结果
           echo "=== Checking CMake configuration for client ==="
-          grep -i "freerdp-client\|WITH_CLIENT\|client/common" cmake_output.log || true
+          grep -i "freerdp-client\|WITH_CLIENT\|client/common\|CLIENT_COMMON" cmake_output.log || true
+          
+          echo "=== Checking CMakeCache for client options ==="
+          grep -i "WITH_CLIENT" CMakeCache.txt || echo "No WITH_CLIENT in cache"
+          
+          echo "=== Checking if client/common was processed ==="
+          ls -la ../client/common/ 2>/dev/null || echo "Source client/common not found"
+          ls -la client/ 2>/dev/null || echo "Build client/ not found"
           
           echo "=== Checking available targets ==="
           cmake --build . --target help 2>/dev/null | grep -i client || echo "No client targets found"
           
           echo "=== Checking client/common CMakeLists.txt ==="
           cat ../client/common/CMakeLists.txt 2>/dev/null | head -100 || echo "CMakeLists.txt not found"
+          
+          echo "=== Checking root CMakeLists.txt for client condition ==="
+          grep -A5 "WITH_CLIENT_COMMON\|add_subdirectory(client)" ../CMakeLists.txt 2>/dev/null | head -20 || true
           
           # 构建所有目标
           echo "=== Building all targets ==="
