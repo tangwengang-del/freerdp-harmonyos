@@ -338,16 +338,20 @@ jobs:
                   -lfreerdp3 -lwinpr3 \
                   -Wl,--allow-shlib-undefined
               fi
-              
-              # Create symlinks
-              cd "${{ github.workspace }}/FreeRDP/build/client/common"
-              ln -sf "libfreerdp-client3.so.${FREERDP_VERSION}" libfreerdp-client3.so.3
-              ln -sf "libfreerdp-client3.so.${FREERDP_VERSION}" libfreerdp-client3.so
-              cd -
             else
               echo "WARNING: No client library found, creating dummy file to allow install to proceed"
               touch "${EXPECTED_PATH}"
             fi
+          fi
+          
+          # Always create symlinks if the main file exists
+          if [ -f "${EXPECTED_PATH}" ]; then
+            cd "${{ github.workspace }}/FreeRDP/build/client/common"
+            ln -sf "libfreerdp-client3.so.${FREERDP_VERSION}" libfreerdp-client3.so.3
+            ln -sf "libfreerdp-client3.so.3" libfreerdp-client3.so
+            echo "Created symlinks:"
+            ls -la libfreerdp-client3*
+            cd -
           fi
           
           cmake --install .
