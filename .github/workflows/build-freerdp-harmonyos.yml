@@ -184,9 +184,8 @@ jobs:
           # Patch: force client common to build shared library (fix missing libfreerdp-client3.so)
           CLIENT_COMMON_CMAKE="client/common/CMakeLists.txt"
           if [ -f "$CLIENT_COMMON_CMAKE" ]; then
-            # We replace the macro call with a direct add_library
-            # Original: addtargetwithresourcefile(${MODULE_NAME} FALSE "${FREERDP_VERSION}" SRCS)
-            sed -i 's/addtargetwithresourcefile(${MODULE_NAME} FALSE "${FREERDP_VERSION}" SRCS)/add_library(${MODULE_NAME} SHARED ${SRCS})/g' "$CLIENT_COMMON_CMAKE"
+            # Use SHARED instead of FALSE to force shared library build via macro
+            sed -i 's/addtargetwithresourcefile(${MODULE_NAME} FALSE/addtargetwithresourcefile(${MODULE_NAME} SHARED/g' "$CLIENT_COMMON_CMAKE"
             echo "find_library(OPENSLES_LIB OpenSLES)" >> "$CLIENT_COMMON_CMAKE"
             echo "target_link_libraries(\${MODULE_NAME} PUBLIC freerdp winpr \${OPENSLES_LIB})" >> "$CLIENT_COMMON_CMAKE"
             echo "Patched client/common to build shared library with OpenSLES support"
