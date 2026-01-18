@@ -182,21 +182,17 @@ jobs:
           fi
           
           # Patch: OpenSLES Android header issue (OHOS has OpenSLES but not the Android extensions)
-          echo "Patching OpenSLES for HarmonyOS..."
-          OPENSLES_DIR="channels/rdpsnd/client/opensles"
-          find "$OPENSLES_DIR" -name "*.h" -o -name "*.c" | xargs sed -i 's/#include <SLES\/OpenSLES_Android.h>/#include <SLES\/OpenSLES.h>/g'
-          find "$OPENSLES_DIR" -name "*.h" -o -name "*.c" | xargs sed -i 's/#include <SLES\/OpenSLES_AndroidConfiguration.h>/#include <SLES\/OpenSLES.h>/g'
+          echo "Patching OpenSLES for HarmonyOS (Global Audio Channels)..."
+          # Recursive patch for all audio channels (rdpsnd and audin)
+          find channels/ -name "*.h" -o -name "*.c" | xargs sed -i 's/#include <SLES\/OpenSLES_Android.h>/#include <SLES\/OpenSLES.h>/g' || true
+          find channels/ -name "*.h" -o -name "*.c" | xargs sed -i 's/#include <SLES\/OpenSLES_AndroidConfiguration.h>/#include <SLES\/OpenSLES.h>/g' || true
           
-          # v1.1.9 Compatibility: Map Android-specific SL types to standard SL types
-          # HarmonyOS OpenSLES follows the standard, not the Android extensions
-          for f in "$OPENSLES_DIR"/*.c "$OPENSLES_DIR"/*.h; do
-            if [ -f "$f" ]; then
-              sed -i 's/SL_IID_ANDROIDSIMPLEBUFFERQUEUE/SL_IID_BUFFERQUEUE/g' "$f"
-              sed -i 's/SLAndroidSimpleBufferQueueItf/SLBufferQueueItf/g' "$f"
-              sed -i 's/SLDataLocator_AndroidSimpleBufferQueue/SLDataLocator_BufferQueue/g' "$f"
-              sed -i 's/SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE/SL_DATALOCATOR_BUFFERQUEUE/g' "$f"
-            fi
-          done
+          # v1.2.0 Global Compatibility: Map Android-specific SL types to standard SL types
+          # This covers both playback (rdpsnd) and recording (audin)
+          find channels/ -name "*.h" -o -name "*.c" | xargs sed -i 's/SL_IID_ANDROIDSIMPLEBUFFERQUEUE/SL_IID_BUFFERQUEUE/g' || true
+          find channels/ -name "*.h" -o -name "*.c" | xargs sed -i 's/SLAndroidSimpleBufferQueueItf/SLBufferQueueItf/g' || true
+          find channels/ -name "*.h" -o -name "*.c" | xargs sed -i 's/SLDataLocator_AndroidSimpleBufferQueue/SLDataLocator_BufferQueue/g' || true
+          find channels/ -name "*.h" -o -name "*.c" | xargs sed -i 's/SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE/SL_DATALOCATOR_BUFFERQUEUE/g' || true
           
           # Patch: force client common to build shared library (v1.1.7 Literal Fix)
           CLIENT_COMMON_CMAKE="client/common/CMakeLists.txt"
