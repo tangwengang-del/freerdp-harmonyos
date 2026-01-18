@@ -184,9 +184,9 @@ jobs:
           # Patch: force client common to build shared library (fix missing libfreerdp-client3.so)
           CLIENT_COMMON_CMAKE="client/common/CMakeLists.txt"
           if [ -f "$CLIENT_COMMON_CMAKE" ]; then
-            # Force SHARED library via macro argument and link OpenSLES for background audio
-            # Using SHARED instead of FALSE in addtargetwithresourcefile
-            sed -i 's/addtargetwithresourcefile(${MODULE_NAME} FALSE/addtargetwithresourcefile(${MODULE_NAME} SHARED/g' "$CLIENT_COMMON_CMAKE"
+            # Force SHARED library and link OpenSLES for background audio
+            # We replace the macro call with a direct add_library
+            sed -i 's/addtargetwithresourcefile(${MODULE_NAME} FALSE/add_library(${MODULE_NAME} SHARED/g' "$CLIENT_COMMON_CMAKE"
             echo "find_library(OPENSLES_LIB OpenSLES)" >> "$CLIENT_COMMON_CMAKE"
             echo "target_link_libraries(\${MODULE_NAME} PUBLIC freerdp winpr \${OPENSLES_LIB})" >> "$CLIENT_COMMON_CMAKE"
             echo "Patched client/common to build shared library with OpenSLES support"
@@ -325,8 +325,11 @@ jobs:
           CLIENT_DIR="client/common"
           mkdir -p "${CLIENT_DIR}"
           
-          # Find any client library that might have been built
-          ACTUAL_LIB=$(find . -name "libfreerdp-client*.so*" -o -name "libfreerdp-client*.a" | head -1 || true)
+          # Search everywhere for anything that looks like a client library
+          ACTUAL_LIB=$(find . -name "libfreerdp-client.so*" -o -name "libfreerdp-client3.so*" -o -name "libfreerdp-client.a" -o -name "libfreerdp-client3.a" | head -1 || true)
+          
+          echo "Debug: ACTUAL_LIB=${ACTUAL_LIB}"
+          ls -R client/ || true
           
           if [ -n "${ACTUAL_LIB}" ] && [ -f "${ACTUAL_LIB}" ]; then
             echo "Found client lib at ${ACTUAL_LIB}, forcing all naming variants..."
