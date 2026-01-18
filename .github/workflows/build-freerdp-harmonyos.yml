@@ -181,20 +181,18 @@ jobs:
             echo "Patched thread.c"
           fi
           
-          # Patch: force client common to build shared library (fix missing libfreerdp-client3.so)
+          # Patch: force client common to build shared library (v1.1.7 Literal Fix)
           CLIENT_COMMON_CMAKE="client/common/CMakeLists.txt"
           if [ -f "$CLIENT_COMMON_CMAKE" ]; then
-            # Use a very broad match to ensure we replace the macro call
-            # We replace the macro name and comment out the rest of the line to avoid syntax errors
+            echo "Applying literal add_library patch to client/common..."
+            # Literal replacement of the macro call with full source list
             sed -i 's/addtargetwithresourcefile.*/add_library(${MODULE_NAME} SHARED client.c cmdline.c file.c client_cliprdr_file.c geometry.c smartcard_cli.c)/g' "$CLIENT_COMMON_CMAKE"
             
-            # Explicitly set output name to ensure it's libfreerdp-client3.so
+            # Explicitly set output name and link dependencies
             echo "set_target_properties(\${MODULE_NAME} PROPERTIES OUTPUT_NAME \"freerdp-client3\")" >> "$CLIENT_COMMON_CMAKE"
-            
-            # Link dependencies explicitly
             echo "target_link_libraries(\${MODULE_NAME} PUBLIC freerdp winpr OpenSLES)" >> "$CLIENT_COMMON_CMAKE"
             
-            echo "Patched client/common with robust sed replacement"
+            echo "Patched client/common content:"
             cat "$CLIENT_COMMON_CMAKE"
           fi
 
@@ -328,10 +326,6 @@ jobs:
           find . -name "*.so*" -o -name "*.a" || true
           
           echo "=== Searching for client libraries ==="
-          # Clear any potential old results
-          ACTUAL_LIB=""
-          # Robust search for a non-dummy library (at least 100KB)
-          # We search for .so first, then .a
           ACTUAL_LIB=$(find . -type f -name "libfreerdp-client*.so*" -size +100k | head -1 || true)
           if [ -z "${ACTUAL_LIB}" ]; then
             ACTUAL_LIB=$(find . -type f -name "libfreerdp-client*.a" -size +100k | head -1 || true)
@@ -341,80 +335,50 @@ jobs:
           if [ -n "${ACTUAL_LIB}" ]; then
             echo "Found a valid library: ${ACTUAL_LIB} ($(stat -c%s "${ACTUAL_LIB}") bytes)"
           else
-            echo "WARNING: No valid client library found (>100KB)!"
-            ls -R . | grep -E "libfreerdp-client" || true
+            echo "ERROR: No valid client library found (>100KB)!"
+            exit 1
           fi
           
           CLIENT_DIR="client/common"
           mkdir -p "${CLIENT_DIR}"
           
-          if [ -n "${ACTUAL_LIB}" ] && [ -f "${ACTUAL_LIB}" ]; then
-            echo "Found client lib at ${ACTUAL_LIB}, forcing all naming variants..."
-            if [[ "${ACTUAL_LIB}" == *.so* ]]; then
-              cp "${ACTUAL_LIB}" "${CLIENT_DIR}/libfreerdp-client.so"
-              cp "${ACTUAL_LIB}" "${CLIENT_DIR}/libfreerdp-client3.so"
-              cp "${ACTUAL_LIB}" "${CLIENT_DIR}/libfreerdp-client3.so.3"
-              cp "${ACTUAL_LIB}" "${CLIENT_DIR}/libfreerdp-client.so.${FREERDP_VERSION}"
-              cp "${ACTUAL_LIB}" "${CLIENT_DIR}/libfreerdp-client3.so.${FREERDP_VERSION}"
-            else
-              echo "Building shared library from static for install: ${ACTUAL_LIB}"
-              FREERDP3_SO=$(find . -name "libfreerdp3.so*" | head -1)
-              WINPR3_SO=$(find . -name "libwinpr3.so*" | head -1)
-              $OHOS_CXX -shared -o "${CLIENT_DIR}/libfreerdp-client.so" \
-                -Wl,--whole-archive "${ACTUAL_LIB}" -Wl,--no-whole-archive \
-                -L"$(dirname ${FREERDP3_SO})" -L"$(dirname ${WINPR3_SO})" \
-                -lfreerdp3 -lwinpr3 -lOpenSLES -Wl,--allow-shlib-undefined
-              cp "${CLIENT_DIR}/libfreerdp-client.so" "${CLIENT_DIR}/libfreerdp-client3.so"
-              cp "${CLIENT_DIR}/libfreerdp-client.so" "${CLIENT_DIR}/libfreerdp-client3.so.3"
-              cp "${CLIENT_DIR}/libfreerdp-client.so" "${CLIENT_DIR}/libfreerdp-client.so.${FREERDP_VERSION}"
-              cp "${CLIENT_DIR}/libfreerdp-client.so" "${CLIENT_DIR}/libfreerdp-client3.so.${FREERDP_VERSION}"
-            fi
+          if [[ "${ACTUAL_LIB}" == *.so* ]]; then
+            cp "${ACTUAL_LIB}" "${CLIENT_DIR}/libfreerdp-client3.so"
+            cp "${ACTUAL_LIB}" "${CLIENT_DIR}/libfreerdp-client.so"
           else
-            echo "WARNING: No client library found! Creating a placeholder to satisfy install."
-            echo 'int freerdp_client_dummy() { return 0; }' > dummy_client.c
-            $OHOS_CC -shared -o "${CLIENT_DIR}/libfreerdp-client.so" dummy_client.c
-            cp "${CLIENT_DIR}/libfreerdp-client.so" "${CLIENT_DIR}/libfreerdp-client3.so"
-            cp "${CLIENT_DIR}/libfreerdp-client.so" "${CLIENT_DIR}/libfreerdp-client3.so.3"
-            cp "${CLIENT_DIR}/libfreerdp-client.so" "${CLIENT_DIR}/libfreerdp-client.so.${FREERDP_VERSION}"
-            cp "${CLIENT_DIR}/libfreerdp-client.so" "${CLIENT_DIR}/libfreerdp-client3.so.${FREERDP_VERSION}"
+            echo "Building shared library from static: ${ACTUAL_LIB}"
+            FREERDP3_SO=$(find . -name "libfreerdp3.so*" | head -1)
+            WINPR3_SO=$(find . -name "libwinpr3.so*" | head -1)
+            $OHOS_CXX -shared -o "${CLIENT_DIR}/libfreerdp-client3.so" \
+              -Wl,--whole-archive "${ACTUAL_LIB}" -Wl,--no-whole-archive \
+              -L"$(dirname ${FREERDP3_SO})" -L"$(dirname ${WINPR3_SO})" \
+              -lfreerdp3 -lwinpr3 -lOpenSLES -Wl,--allow-shlib-undefined
+            cp "${CLIENT_DIR}/libfreerdp-client3.so" "${CLIENT_DIR}/libfreerdp-client.so"
           fi
           
-          # Patch the install script to be less strict about missing files
-          if [ -f "client/common/cmake_install.cmake" ]; then
-            sed -i 's/file(INSTALL/file(INSTALL OPTIONAL/g' client/common/cmake_install.cmake
-            echo "Patched client/common/cmake_install.cmake with OPTIONAL"
-          fi
-          
-          cmake --install .
-          
-          # Manual fix: ensure the client lib is in the install directory even if cmake install missed it
+          # Manual install to final directory
           INSTALL_LIB_DIR="${{ github.workspace }}/install/freerdp/lib"
           mkdir -p "${INSTALL_LIB_DIR}"
-          cp "${CLIENT_DIR}/libfreerdp-client3.so" "${INSTALL_LIB_DIR}/" || true
-          cp "${CLIENT_DIR}/libfreerdp-client.so" "${INSTALL_LIB_DIR}/" || true
+          cp "${CLIENT_DIR}/libfreerdp-client3.so" "${INSTALL_LIB_DIR}/"
+          
+          cmake --install . --prefix ${{ github.workspace }}/install/freerdp
           
           echo "=== FreeRDP core libraries built ==="
           ls -la ${{ github.workspace }}/install/freerdp/lib/
-          
+
       - name: Build NAPI Wrapper (libfreerdp_harmonyos.so)
         run: |
-          echo "=== Building NAPI Wrapper with Integrated Client Common ==="
+          echo "=== Building NAPI Wrapper with Compatibility Layer ==="
           
           mkdir -p ${{ github.workspace }}/napi_build
           cd ${{ github.workspace }}/napi_build
           
-          # Copy NAPI wrapper source files
+          # Copy source files
           cp ${{ github.workspace }}/entry/src/main/cpp/*.c . 2>/dev/null || true
           cp ${{ github.workspace }}/entry/src/main/cpp/*.cpp . 2>/dev/null || true
           cp ${{ github.workspace }}/entry/src/main/cpp/*.h . 2>/dev/null || true
           
-          # INTEGRATION: Copy FreeRDP Client Common sources directly
-          # This bypasses the issue of the separate .so being empty
-          echo "Integrating client common sources..."
-          cp ${{ github.workspace }}/FreeRDP/client/common/*.c . 2>/dev/null || true
-          cp ${{ github.workspace }}/FreeRDP/client/common/*.h . 2>/dev/null || true
-          
-          echo "Source files after integration:"
+          echo "Source files:"
           ls -la
           
           if [ -d "${{ github.workspace }}/install/openssl/lib64" ]; then
@@ -423,26 +387,21 @@ jobs:
             OPENSSL_LIB="${{ github.workspace }}/install/openssl/lib"
           fi
           
-          # Add FreeRDP source include paths for integrated build
           INCLUDE_DIRS="-I${{ github.workspace }}/install/freerdp/include \
             -I${{ github.workspace }}/install/freerdp/include/freerdp3 \
             -I${{ github.workspace }}/install/freerdp/include/winpr3 \
-            -I${{ github.workspace }}/FreeRDP/include \
-            -I${{ github.workspace }}/FreeRDP/client/common \
             -I${{ github.workspace }}/install/openssl/include \
             -I${OHOS_NDK_HOME}/sysroot/usr/include"
           
-          CFLAGS="-fPIC -O2 -D__OHOS__=1 -DOHOS_PLATFORM -DWITH_OPENSSL -D__LINUX__"
+          CFLAGS="-fPIC -O2 -D__OHOS__=1 -DOHOS_PLATFORM -DWITH_OPENSSL"
           
-          # Compile C files (including integrated client common)
+          # Compile C files
           echo "Compiling C files..."
           for f in *.c; do
             if [ -f "$f" ]; then
               echo "  $f"
               $OHOS_CC -c "$f" -o "${f%.c}.o" $CFLAGS $INCLUDE_DIRS 2>&1 || {
                 echo "Error: Failed to compile $f"
-                # If a specific client file fails, we might need to skip it if it's not essential
-                # but for now we exit
                 exit 1
               }
             fi
@@ -461,18 +420,15 @@ jobs:
             fi
           done
           
-          echo "Object files:"
-          ls -la *.o 2>/dev/null || echo "No object files"
-          
           # Link
           OBJS=$(ls *.o 2>/dev/null | tr '\n' ' ')
           
           if [ -n "$OBJS" ]; then
             echo "Linking libfreerdp_harmonyos.so..."
-            # Link against core libs and OpenSLES
             $OHOS_CXX -shared -o libfreerdp_harmonyos.so $OBJS \
               -fPIC \
               -L${{ github.workspace }}/install/freerdp/lib \
+              -lfreerdp-client3 \
               -lfreerdp3 \
               -lwinpr3 \
               -lOpenSLES \
@@ -489,7 +445,6 @@ jobs:
           
           if [ -f "libfreerdp_harmonyos.so" ]; then
             echo "=== libfreerdp_harmonyos.so created ==="
-            file libfreerdp_harmonyos.so
             ls -la libfreerdp_harmonyos.so
           else
             echo "ERROR: libfreerdp_harmonyos.so not created"
@@ -510,38 +465,32 @@ jobs:
           
           cd ${{ github.workspace }}/artifacts/arm64-v8a
           
-          # Handle symlinks - keep actual files
+          # Keep only actual files and normalize names
           for f in *.so*; do
             if [ -L "$f" ]; then
               target=$(readlink -f "$f")
               rm "$f"
-              if [ -f "$target" ]; then
-                base=$(basename "$target")
-                [ ! -f "$base" ] && cp "$target" "$base"
-              fi
+              [ -f "$target" ] && cp "$target" "$(basename $f)"
             fi
           done
           
-          # Create simplified symlink names
+          # Create simplified names
           for f in *.so.*.*; do
             base="${f%.*.*}"
             [ ! -f "$base" ] && [ -f "$f" ] && cp "$f" "$base"
           done
           
-          # Strip
           ${OHOS_STRIP} --strip-unneeded *.so* 2>/dev/null || true
           
           # Create README
           cat > README.txt << EOF
-          FreeRDP HarmonyOS Libraries
+          FreeRDP HarmonyOS Libraries (v1.1.7)
           Built: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
           FreeRDP: $FREERDP_VERSION
           OpenSSL: $OPENSSL_VERSION (static)
           zlib: $ZLIB_VERSION (static)
           Toolchain: OpenHarmony NDK (musl libc)
           Target: arm64-v8a
-          
-          Note: freerdp-client3 enabled; compat layer provides extensions
           EOF
           
           echo "=== Artifacts ==="
@@ -553,13 +502,11 @@ jobs:
           name: freerdp-harmonyos-arm64-v8a
           path: ${{ github.workspace }}/artifacts/arm64-v8a/
           retention-days: 90
-          if-no-files-found: warn
 
   package:
     name: Package Libraries
     needs: [build-ohos-arm64]
     runs-on: ubuntu-latest
-    
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v4
@@ -570,11 +517,6 @@ jobs:
       - name: Create package
         run: |
           cd libs
-          echo "FreeRDP HarmonyOS Libraries" > VERSION.txt
-          echo "Built: $(date -u)" >> VERSION.txt
-          echo "Git SHA: ${{ github.sha }}" >> VERSION.txt
-          ls -la arm64-v8a/ >> VERSION.txt
-          
           zip -r ../freerdp-harmonyos-libs.zip .
           cd ..
           sha256sum freerdp-harmonyos-libs.zip > freerdp-harmonyos-libs.zip.sha256
@@ -586,7 +528,6 @@ jobs:
           path: |
             freerdp-harmonyos-libs.zip
             freerdp-harmonyos-libs.zip.sha256
-          retention-days: 90
 
   release:
     name: Create Release
@@ -595,7 +536,6 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     permissions:
       contents: write
-    
     steps:
       - name: Download package
         uses: actions/download-artifact@v4
@@ -608,13 +548,14 @@ jobs:
         with:
           files: release/*
           body: |
-            ## FreeRDP HarmonyOS Native Libraries
+            ## FreeRDP HarmonyOS Native Libraries (v1.1.7)
             
             Built with OpenHarmony NDK (musl libc compatible)
             
             ### Libraries
             - libfreerdp3.so - FreeRDP core
             - libwinpr3.so - WinPR library
+            - libfreerdp-client3.so - Client core (FIXED size issue)
             - libfreerdp_harmonyos.so - NAPI wrapper
             
             ### Usage
