@@ -353,8 +353,19 @@ jobs:
           mkdir -p "${CLIENT_DIR}"
           
           if [[ "${ACTUAL_LIB}" == *.so* ]]; then
-            cp "${ACTUAL_LIB}" "${CLIENT_DIR}/libfreerdp-client3.so"
-            cp "${ACTUAL_LIB}" "${CLIENT_DIR}/libfreerdp-client.so"
+            # Fix: Avoid "same file" error by checking absolute paths before cp
+            ABS_ACTUAL=$(readlink -f "${ACTUAL_LIB}")
+            for target_name in "libfreerdp-client3.so" "libfreerdp-client.so"; do
+              TARGET_PATH="${CLIENT_DIR}/${target_name}"
+              if [ -f "${TARGET_PATH}" ]; then
+                ABS_TARGET=$(readlink -f "${TARGET_PATH}")
+                if [ "${ABS_ACTUAL}" == "${ABS_TARGET}" ]; then
+                  echo "Skipping ${target_name} as it already points to the same file"
+                  continue
+                fi
+              fi
+              cp -f "${ACTUAL_LIB}" "${TARGET_PATH}"
+            done
           else
             echo "Building shared library from static: ${ACTUAL_LIB}"
             FREERDP3_SO=$(find . -name "libfreerdp3.so*" | head -1)
