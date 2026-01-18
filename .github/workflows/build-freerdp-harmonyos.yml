@@ -181,6 +181,11 @@ jobs:
             echo "Patched thread.c"
           fi
           
+          # Patch: OpenSLES Android header issue (OHOS has OpenSLES but not the Android extensions)
+          echo "Patching OpenSLES for HarmonyOS..."
+          find channels/rdpsnd/client/opensles/ -name "*.h" -o -name "*.c" | xargs sed -i 's/#include <SLES\/OpenSLES_Android.h>/#include <SLES\/OpenSLES.h>/g'
+          find channels/rdpsnd/client/opensles/ -name "*.h" -o -name "*.c" | xargs sed -i 's/#include <SLES\/OpenSLES_AndroidConfiguration.h>/#include <SLES\/OpenSLES.h>/g'
+          
           # Patch: force client common to build shared library (v1.1.7 Literal Fix)
           CLIENT_COMMON_CMAKE="client/common/CMakeLists.txt"
           if [ -f "$CLIENT_COMMON_CMAKE" ]; then
