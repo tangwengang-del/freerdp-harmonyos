@@ -194,16 +194,13 @@ jobs:
           find channels/ -name "*.h" -o -name "*.c" | xargs sed -i 's/SLDataLocator_AndroidSimpleBufferQueue/SLDataLocator_BufferQueue/g' || true
           find channels/ -name "*.h" -o -name "*.c" | xargs sed -i 's/SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE/SL_DATALOCATOR_BUFFERQUEUE/g' || true
           
-          # Patch: force client common to build shared library (v1.1.7 Literal Fix)
+          # Patch: force client common to build shared library (v1.2.1 SHARED Fix)
           CLIENT_COMMON_CMAKE="client/common/CMakeLists.txt"
           if [ -f "$CLIENT_COMMON_CMAKE" ]; then
-            echo "Applying literal add_library patch to client/common..."
-            # Literal replacement of the macro call with full source list
-            sed -i 's/addtargetwithresourcefile.*/add_library(${MODULE_NAME} SHARED client.c cmdline.c file.c client_cliprdr_file.c geometry.c smartcard_cli.c)/g' "$CLIENT_COMMON_CMAKE"
-            
-            # Explicitly set output name and link dependencies
-            echo "set_target_properties(\${MODULE_NAME} PROPERTIES OUTPUT_NAME \"freerdp-client3\")" >> "$CLIENT_COMMON_CMAKE"
-            echo "target_link_libraries(\${MODULE_NAME} PUBLIC freerdp winpr OpenSLES)" >> "$CLIENT_COMMON_CMAKE"
+            echo "Applying SHARED patch to client/common..."
+            # Change FALSE to SHARED to force shared library build using the official macro
+            # This preserves the internal dependency chain (fixing rdpei and other missing members)
+            sed -i 's/addtargetwithresourcefile(${MODULE_NAME} FALSE/addtargetwithresourcefile(${MODULE_NAME} SHARED/g' "$CLIENT_COMMON_CMAKE"
             
             echo "Patched client/common content:"
             cat "$CLIENT_COMMON_CMAKE"
@@ -318,7 +315,7 @@ jobs:
             -DCHANNEL_DRDYNVC=ON \
             -DCHANNEL_DISP=ON \
             -DCHANNEL_RDPGFX=ON \
-            -DCHANNEL_RDPEI=OFF \
+            -DCHANNEL_RDPEI=ON \
             -DCHANNEL_GEOMETRY=OFF \
             -DCHANNEL_VIDEO=OFF \
             -DWITH_WINPR_TOOLS=OFF \
