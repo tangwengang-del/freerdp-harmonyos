@@ -184,9 +184,9 @@ jobs:
           # Patch: force client common to build shared library (fix missing libfreerdp-client3.so)
           CLIENT_COMMON_CMAKE="client/common/CMakeLists.txt"
           if [ -f "$CLIENT_COMMON_CMAKE" ]; then
-            # Complete replacement of the macro call with a direct add_library
-            # We use the explicit source list to be 100% sure
-            sed -i 's/addtargetwithresourcefile(${MODULE_NAME} FALSE "[^"]*" SRCS)/add_library(${MODULE_NAME} SHARED client.c cmdline.c file.c client_cliprdr_file.c geometry.c smartcard_cli.c)/g' "$CLIENT_COMMON_CMAKE"
+            # Use a very broad match to ensure we replace the macro call
+            # We replace the macro name and comment out the rest of the line to avoid syntax errors
+            sed -i 's/addtargetwithresourcefile.*/add_library(${MODULE_NAME} SHARED client.c cmdline.c file.c client_cliprdr_file.c geometry.c smartcard_cli.c)/g' "$CLIENT_COMMON_CMAKE"
             
             # Explicitly set output name to ensure it's libfreerdp-client3.so
             echo "set_target_properties(\${MODULE_NAME} PROPERTIES OUTPUT_NAME \"freerdp-client3\")" >> "$CLIENT_COMMON_CMAKE"
@@ -194,7 +194,7 @@ jobs:
             # Link dependencies explicitly
             echo "target_link_libraries(\${MODULE_NAME} PUBLIC freerdp winpr OpenSLES)" >> "$CLIENT_COMMON_CMAKE"
             
-            echo "Patched client/common with explicit add_library"
+            echo "Patched client/common with robust sed replacement"
             cat "$CLIENT_COMMON_CMAKE"
           fi
 
