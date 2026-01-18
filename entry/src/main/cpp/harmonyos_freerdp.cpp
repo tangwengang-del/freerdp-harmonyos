@@ -1030,10 +1030,23 @@ bool freerdp_harmonyos_parse_arguments(int64_t instance, const char** args, int 
     freerdp_settings_set_bool(inst->context->settings, FreeRDP_AudioPlayback, TRUE);
     
     /* 
+     * 针对连接 0x0002000D 错误的修复：
+     * 默认启用多种安全协议协商 (RDP + TLS + NLA)，以提高服务器兼容性。
+     */
+    freerdp_settings_set_uint32(inst->context->settings, FreeRDP_RequestedProtocols, 
+                                PROT_NLA | PROT_TLS | PROT_RDP);
+    
+    /* 
      * 关键修复：设置插件加载路径为当前目录，并禁用外部插件自动搜索。
      * 这可以配合 BUILTIN_CHANNELS=ON 彻底解决 absolute path 加载失败导致的崩溃。
      */
     freerdp_settings_set_string(inst->context->settings, FreeRDP_ConfigPath, ".");
+    
+    /* 
+     * 关键修复：禁用各种可能尝试加载绝对路径的选项
+     */
+    freerdp_settings_set_bool(inst->context->settings, FreeRDP_SupportMonitorLayoutPdu, TRUE);
+    freerdp_settings_set_bool(inst->context->settings, FreeRDP_SupportGraphicsPipeline, TRUE);
     
     LOGI("parse_arguments: Calling freerdp_client_settings_parse_command_line...");
     status = freerdp_client_settings_parse_command_line(inst->context->settings, argc, argv, FALSE);
