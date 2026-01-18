@@ -184,12 +184,13 @@ jobs:
           # Patch: force client common to build shared library (fix missing libfreerdp-client3.so)
           CLIENT_COMMON_CMAKE="client/common/CMakeLists.txt"
           if [ -f "$CLIENT_COMMON_CMAKE" ]; then
-            # Force SHARED library and link OpenSLES for background audio
             # We replace the macro call with a direct add_library
-            sed -i 's/addtargetwithresourcefile(${MODULE_NAME} FALSE/add_library(${MODULE_NAME} SHARED/g' "$CLIENT_COMMON_CMAKE"
+            # Original: addtargetwithresourcefile(${MODULE_NAME} FALSE "${FREERDP_VERSION}" SRCS)
+            sed -i 's/addtargetwithresourcefile(${MODULE_NAME} FALSE "${FREERDP_VERSION}" SRCS)/add_library(${MODULE_NAME} SHARED ${SRCS})/g' "$CLIENT_COMMON_CMAKE"
             echo "find_library(OPENSLES_LIB OpenSLES)" >> "$CLIENT_COMMON_CMAKE"
             echo "target_link_libraries(\${MODULE_NAME} PUBLIC freerdp winpr \${OPENSLES_LIB})" >> "$CLIENT_COMMON_CMAKE"
             echo "Patched client/common to build shared library with OpenSLES support"
+            cat "$CLIENT_COMMON_CMAKE"
           fi
 
       - name: Build FreeRDP Core Libraries
@@ -317,6 +318,9 @@ jobs:
           
           # Ensure client common target is built
           cmake --build . --target freerdp-client --parallel $(nproc) 2>&1 | tee build_client_output.log || true
+          
+          echo "=== Debug: Build directory structure ==="
+          ls -R . | grep -E "\.so|\.a" || true
           
           echo "=== Searching for client libraries ==="
           find . -name "libfreerdp-client*" -o -name "freerdp-client*" || true
