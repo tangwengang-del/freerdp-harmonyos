@@ -389,12 +389,16 @@ export class RdpSessionManager {
    */
   private async registerScreenLockListener(): Promise<void> {
     try {
-      // Check if screen is currently locked
-      const isLocked: boolean = await screenLock.isScreenLocked();
-      console.info(`${TAG}: Initial screen lock state: ${isLocked}`);
-      
-      // Update the local state
-      sessionIsScreenLocked = isLocked;
+      // Check if screen is currently locked using callback API
+      screenLock.isScreenLocked((err: BusinessError, isLocked: boolean) => {
+        if (err) {
+          console.error(`${TAG}: Failed to check screen lock: ${err.code}`);
+          sessionIsScreenLocked = false;
+        } else {
+          console.info(`${TAG}: Initial screen lock state: ${isLocked}`);
+          sessionIsScreenLocked = isLocked;
+        }
+      });
       
       // Note: screenLock event listener registration depends on API version
       // This is a placeholder for the actual implementation
@@ -432,13 +436,29 @@ export class RdpSessionManager {
   /**
    * Check if screen is currently locked
    */
-  static async isScreenLocked(): Promise<boolean> {
-    try {
-      const isLocked: boolean = await screenLock.isScreenLocked();
-      return isLocked;
-    } catch (error) {
-      return false;
-    }
+  static isScreenLocked(): boolean {
+    // Return cached state since screenLock.isScreenLocked is async
+    return sessionIsScreenLocked;
+  }
+  
+  /**
+   * Check if screen is currently locked (async version)
+   */
+  static async isScreenLockedAsync(): Promise<boolean> {
+    return new Promise<boolean>((resolve) => {
+      try {
+        screenLock.isScreenLocked((err: BusinessError, isLocked: boolean) => {
+          if (err) {
+            resolve(false);
+          } else {
+            sessionIsScreenLocked = isLocked;
+            resolve(isLocked);
+          }
+        });
+      } catch (error) {
+        resolve(false);
+      }
+    });
   }
   
   /**

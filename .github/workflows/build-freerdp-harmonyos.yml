@@ -156,11 +156,15 @@ jobs:
           tar xzf openssl-${OPENSSL_VERSION}.tar.gz
           cd openssl-${OPENSSL_VERSION}
           
+          # CRITICAL FIX: Use HarmonyOS sandbox path for openssldir to prevent
+          # "absolute path check ns accessible failed" errors at runtime.
+          # Also disable modules/engines to prevent dynamic loading issues.
           CC="$OHOS_CC" CXX="$OHOS_CXX" AR="$OHOS_AR" RANLIB="$OHOS_RANLIB" \
           ./Configure linux-aarch64 \
             --prefix=${{ github.workspace }}/install/openssl \
-            --openssldir=${{ github.workspace }}/install/openssl/ssl \
-            no-shared no-tests no-asm -fPIC -O2
+            --openssldir=/data/storage/el2/base/files/ssl \
+            no-shared no-tests no-asm no-engine no-module -fPIC -O2 \
+            -DOPENSSL_NO_AUTOLOAD_CONFIG
           
           make -j$(nproc) || make -j2
           make install_sw
@@ -506,13 +510,18 @@ jobs:
           
           # Create README
           cat > README.txt << EOF
-          FreeRDP HarmonyOS Libraries (v1.1.7)
+          FreeRDP HarmonyOS Libraries (v1.2.4)
           Built: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
           FreeRDP: $FREERDP_VERSION
-          OpenSSL: $OPENSSL_VERSION (static)
+          OpenSSL: $OPENSSL_VERSION (static, no-engine, no-module)
           zlib: $ZLIB_VERSION (static)
           Toolchain: OpenHarmony NDK (musl libc)
           Target: arm64-v8a
+          
+          Changes in v1.2.4:
+          - Fixed OpenSSL openssldir path (was hardcoding build machine path)
+          - Disabled OpenSSL engine/module loading to prevent runtime errors
+          - Added OPENSSL_NO_AUTOLOAD_CONFIG to prevent config file issues
           EOF
           
           echo "=== Artifacts ==="
@@ -570,15 +579,21 @@ jobs:
         with:
           files: release/*
           body: |
-            ## FreeRDP HarmonyOS Native Libraries (v1.1.7)
+            ## FreeRDP HarmonyOS Native Libraries (v1.2.4)
             
             Built with OpenHarmony NDK (musl libc compatible)
             
             ### Libraries
             - libfreerdp3.so - FreeRDP core
             - libwinpr3.so - WinPR library
-            - libfreerdp-client3.so - Client core (FIXED size issue)
+            - libfreerdp-client3.so - Client core
             - libfreerdp_harmonyos.so - NAPI wrapper
+            
+            ### Changes in v1.2.4
+            - **CRITICAL FIX**: Fixed OpenSSL openssldir hardcoded path issue
+            - Disabled OpenSSL engine/module loading (no-engine, no-module)
+            - Added OPENSSL_NO_AUTOLOAD_CONFIG to prevent runtime config errors
+            - This should fix the "absolute path check ns accessible failed" error
             
             ### Usage
             Copy to `entry/libs/arm64-v8a/` and build

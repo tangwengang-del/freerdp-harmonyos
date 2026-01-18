@@ -22,12 +22,7 @@ let onAudioFocusLostCallback: (() => void) | null = null;
 let onAudioFocusGainedCallback: (() => void) | null = null;
 let onAudioDuckCallback: ((shouldDuck: boolean) => void) | null = null;
 
-// 定义兼容性接口，解决 SDK 版本差异导致的 getVolume 不存在问题
-interface VolumeManagerCompat {
-  getVolume(type: audio.AudioVolumeType): Promise<number>;
-  isMute(type: audio.AudioVolumeType): Promise<boolean>;
-  getMaxVolume(type: audio.AudioVolumeType): Promise<number>;
-}
+// Note: Using callback-based APIs for better SDK compatibility
 
 /**
  * Audio Focus Manager
@@ -214,9 +209,17 @@ export class AudioFocusManager {
     try {
       const volumeManager = audioManager.getVolumeManager();
       if (volumeManager) {
-        const volMgr: VolumeManagerCompat = (volumeManager as Object) as VolumeManagerCompat;
-        const volume: number = await volMgr.getVolume(audio.AudioVolumeType.MEDIA);
-        return volume;
+        // Use callback-based getVolume API which is more widely supported
+        return new Promise<number>((resolve) => {
+          volumeManager.getVolume(audio.AudioVolumeType.MEDIA, (err: BusinessError, volume: number) => {
+            if (err) {
+              console.error(`${TAG}: Failed to get volume: ${err.code}`);
+              resolve(0);
+            } else {
+              resolve(volume);
+            }
+          });
+        });
       }
       return 0;
     } catch (error) {
@@ -236,9 +239,17 @@ export class AudioFocusManager {
     try {
       const volumeManager = audioManager.getVolumeManager();
       if (volumeManager) {
-        const volMgr: VolumeManagerCompat = (volumeManager as Object) as VolumeManagerCompat;
-        const muted: boolean = await volMgr.isMute(audio.AudioVolumeType.MEDIA);
-        return muted;
+        // Use callback-based isMute API which is more widely supported
+        return new Promise<boolean>((resolve) => {
+          volumeManager.isMute(audio.AudioVolumeType.MEDIA, (err: BusinessError, muted: boolean) => {
+            if (err) {
+              console.error(`${TAG}: Failed to check mute: ${err.code}`);
+              resolve(false);
+            } else {
+              resolve(muted);
+            }
+          });
+        });
       }
       return false;
     } catch (error) {
@@ -258,9 +269,17 @@ export class AudioFocusManager {
     try {
       const volumeManager = audioManager.getVolumeManager();
       if (volumeManager) {
-        const volMgr: VolumeManagerCompat = (volumeManager as Object) as VolumeManagerCompat;
-        const maxVolume: number = await volMgr.getMaxVolume(audio.AudioVolumeType.MEDIA);
-        return maxVolume;
+        // Use callback-based getMaxVolume API which is more widely supported
+        return new Promise<number>((resolve) => {
+          volumeManager.getMaxVolume(audio.AudioVolumeType.MEDIA, (err: BusinessError, maxVolume: number) => {
+            if (err) {
+              console.error(`${TAG}: Failed to get max volume: ${err.code}`);
+              resolve(15);
+            } else {
+              resolve(maxVolume);
+            }
+          });
+        });
       }
       return 15;
     } catch (error) {

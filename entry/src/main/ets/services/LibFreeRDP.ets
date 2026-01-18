@@ -54,9 +54,8 @@ function resolveNativeModule(): FreerdpNative | null {
   }
 
   if (freerdpNativeImport) {
-    // Explicitly cast using ESObject as an intermediate step to satisfy ArkTS strict mode
-    const temp: ESObject = freerdpNativeImport as ESObject;
-    freerdpNative = temp as FreerdpNative;
+    // Direct cast to FreerdpNative interface - ArkTS strict mode compatible
+    freerdpNative = freerdpNativeImport as FreerdpNative;
     return freerdpNative;
   }
 
