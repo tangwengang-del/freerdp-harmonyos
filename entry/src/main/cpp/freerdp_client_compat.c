@@ -26,6 +26,7 @@
 #include <winpr/thread.h>
 #include <winpr/wlog.h>
 
+#include <winpr/sysinfo.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -44,7 +45,6 @@
 
 /* OHOS/musl 兼容: GetTickCount64 替代实现 */
 #if !defined(_WIN32)
-#include <time.h>
 static inline UINT64 GetTickCount64_compat(void) {
     struct timespec ts;
     if (clock_gettime(CLOCK_MONOTONIC, &ts) == 0) {
@@ -52,8 +52,9 @@ static inline UINT64 GetTickCount64_compat(void) {
     }
     return 0;
 }
-#undef GetTickCount64
-#define GetTickCount64() GetTickCount64_compat()
+#ifndef GetTickCount64
+#define GetTickCount64 GetTickCount64_compat
+#endif
 #endif
 
 /* 

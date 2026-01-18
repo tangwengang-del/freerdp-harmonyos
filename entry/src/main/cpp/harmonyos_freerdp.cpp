@@ -20,6 +20,7 @@
 #ifdef OHOS_PLATFORM
 #include <hilog/log.h>
 #include <time.h>
+#include <winpr/sysinfo.h>
 #define LOG_TAG "FreeRDP"
 #define LOGI(...) OH_LOG_INFO(LOG_APP, __VA_ARGS__)
 #define LOGW(...) OH_LOG_WARN(LOG_APP, __VA_ARGS__)
@@ -28,7 +29,6 @@
 
 /* OHOS/musl 兼容: GetTickCount64 替代实现 */
 #if !defined(_WIN32)
-#include <time.h>
 static inline UINT64 GetTickCount64_compat(void) {
     struct timespec ts;
     if (clock_gettime(CLOCK_MONOTONIC, &ts) == 0) {
@@ -36,8 +36,9 @@ static inline UINT64 GetTickCount64_compat(void) {
     }
     return 0;
 }
-#undef GetTickCount64
-#define GetTickCount64() GetTickCount64_compat()
+#ifndef GetTickCount64
+#define GetTickCount64 GetTickCount64_compat
+#endif
 #endif
 
 #else
