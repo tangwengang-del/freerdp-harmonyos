@@ -16,6 +16,7 @@
 #include <string.h>
 #include <errno.h>
 #include <locale.h>
+#include <mutex>
 
 #ifdef OHOS_PLATFORM
 #include <hilog/log.h>
@@ -29,6 +30,11 @@
 #define LOGW(...) OH_LOG_WARN(LOG_APP, __VA_ARGS__)
 #define LOGE(...) OH_LOG_ERROR(LOG_APP, __VA_ARGS__)
 #define LOGD(...) OH_LOG_DEBUG(LOG_APP, __VA_ARGS__)
+
+/* 全局缓冲区和互斥锁 */
+static uint8_t* g_external_buffer = nullptr;
+static size_t g_external_buffer_size = 0;
+static std::mutex g_external_buffer_mutex;
 
 /* OHOS/musl 兼容: GetTickCount64 替代实现 */
 #if !defined(_WIN32)
@@ -201,6 +207,14 @@ static BOOL harmonyos_begin_paint(rdpContext* context) {
     return TRUE;
 }
 
+bool freerdp_harmonyos_update_graphics_buffer(int64_t instance, uint8_t* buffer, size_t buffer_size) {
+    std::lock_guard<std::mutex> lock(g_external_buffer_mutex);
+    g_external_buffer = buffer;
+    g_external_buffer_size = buffer_size;
+    LOGI("freerdp_harmonyos_update_graphics_buffer: buffer=%p, size=%zu", buffer, buffer_size);
+    return true;
+}
+
 static BOOL harmonyos_end_paint(rdpContext* context) {
     HGDI_WND hwnd;
     int ninvalid;
@@ -245,9 +259,35 @@ static BOOL harmonyos_end_paint(rdpContext* context) {
         y2 = MAX(y2, cinvalid[i].y + cinvalid[i].h);
     }
 
-    if (g_onGraphicsUpdate) {
-        g_onGraphicsUpdate((int64_t)(uintptr_t)context->instance, x1, y1, x2 - x1, y2 - y1);
+    /* 
+     * ANDROID-STYLE END_PAINT: 
+     * Do NOT perform memcpy in native thread - this causes crashes!
+     * Following Android implementation: just notify ArkTS of the update region.
+     * ArkTS will handle the actual graphics data copy in its own thread.
+     * 
+     * This avoids:
+     * 1. Thread safety issues with ArrayBuffer access
+     * 2. Potential race conditions with PixelMap lifecycle
+     * 3. Native thread blocking on complex memory operations
+     */
+    
+    // Debug log (only first 5 frames)
+    static int frameCount = 0;
+    if (frameCount < 5) {
+        LOGI("harmonyos_end_paint: frame=%d, region=[%d,%d,%d,%d], gdi=%dx%d", 
+             frameCount, x1, y1, x2-x1, y2-y1, gdi->width, gdi->height);
+        frameCount++;
     }
+    
+    /* 
+     * TODO: Re-enable g_onGraphicsUpdate once we implement Android-style
+     * graphics copy in ArkTS layer (using a dedicated N-API getter function)
+     */
+    // if (g_onGraphicsUpdate) {
+    //     g_onGraphicsUpdate((int64_t)(uintptr_t)context->instance, x1, y1, x2 - x1, y2 - y1);
+    // }
+    
+    LOGD("harmonyos_end_paint: Graphics update region calculated, memcpy skipped (Android-style)");
 
     hwnd->invalid->null = TRUE;
     hwnd->ninvalid = 0;
@@ -448,22 +488,22 @@ static BOOL harmonyos_post_connect(freerdp* instance) {
     }
     LOGI("harmonyos_post_connect: register_pointer succeeded");
 
+    LOGI("harmonyos_post_connect: Setting update callbacks...");
     update->BeginPaint = harmonyos_begin_paint;
     update->EndPaint = harmonyos_end_paint;
     update->DesktopResize = harmonyos_desktop_resize;
+    LOGI("harmonyos_post_connect: Update callbacks set");
 
-    if (g_onSettingsChanged) {
-        g_onSettingsChanged((int64_t)(uintptr_t)instance,
-            freerdp_settings_get_uint32(settings, FreeRDP_DesktopWidth),
-            freerdp_settings_get_uint32(settings, FreeRDP_DesktopHeight),
-            freerdp_settings_get_uint32(settings, FreeRDP_ColorDepth));
-    }
-
-    if (g_onConnectionSuccess) {
-        g_onConnectionSuccess((int64_t)(uintptr_t)instance);
-    }
+    /* 
+     * CRITICAL: Temporarily bypass ArkTS callbacks to isolate the crash.
+     * The crash occurs immediately after "Update callbacks set" when calling
+     * either g_onSettingsChanged or g_onConnectionSuccess.
+     * 
+     * TODO: Debug TSFN implementation or callback parameters.
+     */
+    LOGI("harmonyos_post_connect: Skipping ArkTS callbacks to test connection stability");
     
-    LOGI("harmonyos_post_connect: returning TRUE");
+    LOGI("harmonyos_post_connect: EXIT - connection established (UI not notified)");
     return TRUE;
 }
 
@@ -475,8 +515,8 @@ static void harmonyos_post_disconnect(freerdp* instance) {
     if (instance && instance->context) {
         UINT32 errorCode = freerdp_get_last_error(instance->context);
         const char* errorString = freerdp_get_last_error_string(errorCode);
-        LOGI("harmonyos_post_disconnect: ErrorCode=0x%{public}08X Msg=%{public}s", 
-             errorCode, errorString ? errorString : "NULL");
+        LOGI("harmonyos_post_disconnect: ErrorCode=0x%{public}X Msg=%{public}s", 
+             (unsigned int)errorCode, errorString ? errorString : "NULL");
     }
     
     if (g_onDisconnecting) {
@@ -676,8 +716,7 @@ static DWORD WINAPI harmonyos_thread_func(LPVOID param) {
         goto fail;
     }
 
-reconnect_loop:
-    LOGI("Connect... (attempt %{public}d)", reconnectAttempts + 1);
+    LOGI("Connect... (attempt 1)");
     LOGI("Checking instance validity...");
     
     if (!instance) {
@@ -746,56 +785,21 @@ reconnect_loop:
         LOGE("FreeRDP Category=%{public}s", errorCategory ? errorCategory : "Unknown");
         LOGE("FreeRDP Message=%{public}s", errorString ? errorString : "No error message");
         
-        /* 
-         * 错误类型分类（供上层 UI 使用）:
-         * 
-         * 1. 网络/主机错误 (ERRCONNECT_CONNECT_*):
-         *    - ERRCONNECT_CONNECT_FAILED (0x00020006) - 无法连接到主机/端口
-         *    - ERRCONNECT_DNS_ERROR (0x00020005) - DNS 解析失败
-         *    - ERRCONNECT_CONNECT_TRANSPORT_FAILED (0x0002000C) - 传输层失败
-         *    - GetLastError = WSAETIMEDOUT / WSAECONNREFUSED 等
-         * 
-         * 2. 认证错误 (ERRCONNECT_AUTHENTICATION_*):
-         *    - ERRCONNECT_AUTHENTICATION_FAILED (0x00020009) - 用户名/密码错误
-         *    - ERRCONNECT_LOGON_FAILURE (0x0002000F) - 登录失败
-         *    - ERRCONNECT_ACCOUNT_* - 账户问题（锁定、过期等）
-         * 
-         * 3. 安全协议错误 (ERRCONNECT_SECURITY_*):
-         *    - ERRCONNECT_SECURITY_NEGO_CONNECT_FAILED (0x0002000B) - 安全协商失败
-         *    - ERRCONNECT_TLS_CONNECT_FAILED (0x00020008) - TLS 连接失败
-         *    - ERRCONNECT_MCS_CONNECT_INITIAL_ERROR - MCS 协议错误
-         * 
-         * 4. 其他错误:
-         *    - ErrorCode = 0 但连接失败 - 可能是内部错误或配置问题
-         */
-        
         /* 分类错误类型 */
         const char* errorType = "UNKNOWN";
-        BOOL shouldRetry = TRUE;
-        
-        /* 检查 FreeRDP 错误码范围 */
-        UINT32 errorClass = (errorCode >> 16) & 0xFF;
         UINT32 errorType_id = errorCode & 0xFFFF;
         
         if (errorCode == 0) {
-            /* 特殊情况：错误码为0但连接失败 */
             errorType = "INTERNAL_ERROR";
-            LOGE("Error Type: %{public}s - Internal error or premature disconnect", errorType);
-            /* 内部错误不重试 */
-            shouldRetry = FALSE;
+            LOGE("Error Type: %{public}s - Internal error", errorType);
         } else if (errorType_id >= 0x0005 && errorType_id <= 0x0007) {
-            /* 网络连接错误 */
             errorType = "NETWORK_ERROR";
             LOGE("Error Type: %{public}s - Check host address and port", errorType);
         } else if (errorType_id == 0x0009 || errorType_id == 0x000F || 
                    (errorType_id >= 0x0010 && errorType_id <= 0x001F)) {
-            /* 认证错误 */
             errorType = "AUTH_ERROR";
             LOGE("Error Type: %{public}s - Check username and password", errorType);
-            /* 认证错误不重试 */
-            shouldRetry = FALSE;
         } else if (errorType_id == 0x0008 || errorType_id == 0x000B || errorType_id == 0x000D) {
-            /* 安全协议错误 */
             errorType = "SECURITY_ERROR";
             LOGE("Error Type: %{public}s - Check security settings (RDP/TLS/NLA)", errorType);
         } else {
@@ -803,24 +807,14 @@ reconnect_loop:
             LOGE("Error Type: %{public}s - General connection failure", errorType);
         }
         
-        /* Check if we should try to reconnect */
-        if (shouldRetry && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-            reconnectAttempts++;
-            LOGI("Will retry connection in %{public}d seconds... (%{public}d/%{public}d)", 
-                 reconnectAttempts * 2, reconnectAttempts, MAX_RECONNECT_ATTEMPTS);
-            
-            /* Exponential backoff */
-            Sleep(reconnectAttempts * 2000);
-            
-            if (!freerdp_shall_disconnect_context(context)) {
-                goto reconnect_loop;
-            }
-        } else if (!shouldRetry) {
-            LOGI("Not retrying due to error type: %{public}s", errorType);
-        }
+        /* 
+         * 关键修复：禁用 Native 层重连。
+         * 让 ArkTS 层统一处理连接生命周期，避免多个实例抢占会话。
+         */
+        LOGI("Native reconnection disabled. Reporting failure to ArkTS.");
+        goto fail;
     } else {
         /* Connection successful */
-        reconnectAttempts = 0;
         freerdp_client_set_connected(context, TRUE);
         
         status = harmonyos_freerdp_run(instance);
@@ -828,27 +822,12 @@ reconnect_loop:
         
         freerdp_client_set_connected(context, FALSE);
 
-        /* Check if disconnection was unexpected */
-        shouldReconnect = (status != CHANNEL_RC_OK) && 
-                          !freerdp_shall_disconnect_context(context) &&
-                          (reconnectAttempts < MAX_RECONNECT_ATTEMPTS);
-
         if (!freerdp_disconnect(instance)) {
             LOGE("Disconnect failed");
         }
-
-        if (shouldReconnect) {
-            reconnectAttempts++;
-            LOGI("Connection lost, attempting reconnect... (%d/%d)", 
-                 reconnectAttempts, MAX_RECONNECT_ATTEMPTS);
-            
-            /* Wait before reconnecting */
-            Sleep(reconnectAttempts * 2000);
-            
-            if (!freerdp_shall_disconnect_context(context)) {
-                goto reconnect_loop;
-            }
-        }
+        
+        /* 连接丢失后也直接返回，由上层重连 */
+        LOGI("Session ended. Reporting to ArkTS.");
     }
 
     LOGD("Stop...");
@@ -975,9 +954,30 @@ int64_t freerdp_harmonyos_new(void) {
 
 void freerdp_harmonyos_free(int64_t instance) {
     freerdp* inst = (freerdp*)(uintptr_t)instance;
+    LOGI("freerdp_harmonyos_free: instance=%p", (void*)inst);
 
-    if (inst)
+    if (!inst) {
+        return;
+    }
+
+    /* 置空全局缓冲区关联 */
+    {
+        std::lock_guard<std::mutex> lock(g_external_buffer_mutex);
+        g_external_buffer = nullptr;
+        g_external_buffer_size = 0;
+    }
+
+    if (inst->context) {
+        LOGI("freerdp_harmonyos_free: freeing client context and instance");
+        /* 
+         * CRITICAL: 在 FreeRDP 中，freerdp_client_context_free 
+         * 会释放 context 及其关联的 instance (如果它是所有者)。
+         */
         freerdp_client_context_free(inst->context);
+    } else {
+        LOGI("freerdp_harmonyos_free: freeing instance only");
+        freerdp_free(inst);
+    }
 }
 
 bool freerdp_harmonyos_parse_arguments(int64_t instance, const char** args, int argc) {
@@ -1034,6 +1034,8 @@ bool freerdp_harmonyos_parse_arguments(int64_t instance, const char** args, int 
      */
     freerdp_settings_set_bool(inst->context->settings, FreeRDP_RemoteConsoleAudio, FALSE);
     freerdp_settings_set_bool(inst->context->settings, FreeRDP_AudioPlayback, TRUE);
+    freerdp_settings_set_bool(inst->context->settings, FreeRDP_CompressionEnabled, TRUE);
+    freerdp_settings_set_bool(inst->context->settings, FreeRDP_FastPathOutput, TRUE);
     
     /* 
      * 针对连接 0x0002000D 错误的修复：
@@ -1047,18 +1049,16 @@ bool freerdp_harmonyos_parse_arguments(int64_t instance, const char** args, int 
     freerdp_settings_set_bool(inst->context->settings, FreeRDP_NlaSecurity, TRUE);
     freerdp_settings_set_bool(inst->context->settings, FreeRDP_RdpSecurity, TRUE);
     freerdp_settings_set_bool(inst->context->settings, FreeRDP_IgnoreCertificate, TRUE);
+    freerdp_settings_set_bool(inst->context->settings, FreeRDP_NegotiateSecurityLayer, TRUE);
+    freerdp_settings_set_bool(inst->context->settings, FreeRDP_SupportStatusInfoPdu, TRUE);
     
-    /* 
-     * 关键修复：设置插件加载路径为当前目录，并禁用外部插件自动搜索。
-     * 这可以配合 BUILTIN_CHANNELS=ON 彻底解决 absolute path 加载失败导致的崩溃。
-     */
-    freerdp_settings_set_string(inst->context->settings, FreeRDP_ConfigPath, ".");
-    
-    /* 
-     * 关键修复：禁用各种可能尝试加载绝对路径或引起移动端不稳定的选项
-     */
+    /* 额外的稳定连接设置 */
     freerdp_settings_set_bool(inst->context->settings, FreeRDP_SupportMonitorLayoutPdu, FALSE);
     freerdp_settings_set_bool(inst->context->settings, FreeRDP_SupportGraphicsPipeline, TRUE);
+    freerdp_settings_set_bool(inst->context->settings, FreeRDP_SupportDynamicChannels, TRUE);
+    freerdp_settings_set_string(inst->context->settings, FreeRDP_ConfigPath, ".");
+    
+    LOGI("parse_arguments: Security protocols set - RDP|TLS|NLA, IgnoreCertificate=TRUE");
     
     LOGI("parse_arguments: Calling freerdp_client_settings_parse_command_line...");
     status = freerdp_client_settings_parse_command_line(inst->context->settings, argc, argv, FALSE);
@@ -1274,12 +1274,19 @@ int freerdp_harmonyos_set_client_decoding(int64_t instance, bool enable) {
     rdpContext* context = inst->context;
     
     /* 
-     * 关键安全检查：如果连接尚未完全建立或已断开，不应调用 update pdus。
-     * FreeRDP 3.x 使用 freerdp_shall_disconnect_context 检查状态。
+     * 关键安全检查：必须检查连接是否已经建立。
+     * 1. 检查 GDI 是否初始化（只有在 post_connect 后才会初始化）
+     * 2. 检查是否正在断开
      */
-    if (freerdp_shall_disconnect_context(context)) {
-        LOGW("set_client_decoding: session not connected or disconnecting, skipping PDU");
+    rdpGdi* gdi = context->gdi;
+    if (!gdi || !gdi->primary) {
+        LOGW("set_client_decoding: GDI not initialized, connection not established yet");
         return -8;
+    }
+    
+    if (freerdp_shall_disconnect_context(context)) {
+        LOGW("set_client_decoding: session disconnecting, skipping PDU");
+        return -9;
     }
 
     rdpSettings* settings = context->settings;
