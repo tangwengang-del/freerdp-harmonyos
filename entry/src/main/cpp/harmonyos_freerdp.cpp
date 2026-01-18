@@ -158,7 +158,6 @@ static int identify_cursor_type(rdpPointer* pointer) {
 
 /* Channel event handlers */
 static void harmonyos_OnChannelConnectedEventHandler(void* context, const ChannelConnectedEventArgs* e) {
-    rdpSettings* settings;
     harmonyosContext* afc;
 
     if (!context || !e) {
@@ -167,7 +166,7 @@ static void harmonyos_OnChannelConnectedEventHandler(void* context, const Channe
     }
 
     afc = (harmonyosContext*)context;
-    settings = afc->common.context.settings;
+    // settings = afc->common.context.settings; // Unused
 
     if (strcmp(e->name, CLIPRDR_SVC_CHANNEL_NAME) == 0) {
         // TODO: Initialize clipboard
@@ -178,7 +177,6 @@ static void harmonyos_OnChannelConnectedEventHandler(void* context, const Channe
 }
 
 static void harmonyos_OnChannelDisconnectedEventHandler(void* context, const ChannelDisconnectedEventArgs* e) {
-    rdpSettings* settings;
     harmonyosContext* afc;
 
     if (!context || !e) {
@@ -187,7 +185,7 @@ static void harmonyos_OnChannelDisconnectedEventHandler(void* context, const Cha
     }
 
     afc = (harmonyosContext*)context;
-    settings = afc->common.context.settings;
+    // settings = afc->common.context.settings; // Unused
 
     if (strcmp(e->name, CLIPRDR_SVC_CHANNEL_NAME) == 0) {
         // TODO: Uninitialize clipboard
@@ -199,6 +197,7 @@ static void harmonyos_OnChannelDisconnectedEventHandler(void* context, const Cha
 
 /* Paint handlers */
 static BOOL harmonyos_begin_paint(rdpContext* context) {
+    (void)context;
     return TRUE;
 }
 
@@ -390,7 +389,8 @@ static BOOL harmonyos_Pointer_SetDefault(rdpContext* context) {
 }
 
 static BOOL harmonyos_register_pointer(rdpGraphics* graphics) {
-    rdpPointer pointer = { 0 };
+    rdpPointer pointer;
+    memset(&pointer, 0, sizeof(rdpPointer));
 
     if (!graphics)
         return FALSE;
@@ -522,6 +522,9 @@ static DWORD harmonyos_verify_changed_certificate_ex(freerdp* instance, const ch
                                                      const char* issuer, const char* new_fingerprint,
                                                      const char* old_subject, const char* old_issuer,
                                                      const char* old_fingerprint, DWORD flags) {
+    (void)old_subject;
+    (void)old_issuer;
+    (void)old_fingerprint;
     return harmonyos_verify_certificate_ex(instance, host, port, common_name, subject,
                                            issuer, new_fingerprint, flags);
 }
@@ -552,7 +555,6 @@ static int harmonyos_freerdp_run(freerdp* instance) {
     DWORD status = WAIT_FAILED;
     HANDLE handles[MAXIMUM_WAIT_OBJECTS];
     HANDLE inputEvent = NULL;
-    const rdpSettings* settings = instance->context->settings;
     rdpContext* context = instance->context;
     DWORD waitTimeout;
     DWORD consecutiveTimeouts = 0;
@@ -1032,9 +1034,13 @@ bool freerdp_harmonyos_parse_arguments(int64_t instance, const char** args, int 
     /* 
      * 针对连接 0x0002000D 错误的修复：
      * 默认启用多种安全协议协商 (RDP + TLS + NLA)，以提高服务器兼容性。
+     * 
+     * 注意：FreeRDP 3.x 中的常量定义可能在某些头文件组合下不可见。
+     * 这里使用标准 RDP 协议值以确保编译通过并实现最大兼容性：
+     * RDP = 0x1, SSL/TLS = 0x2, NLA/Hybrid = 0x4
      */
     freerdp_settings_set_uint32(inst->context->settings, FreeRDP_RequestedProtocols, 
-                                PROT_NLA | PROT_TLS | PROT_RDP);
+                                0x00000001 | 0x00000002 | 0x00000004);
     
     /* 
      * 关键修复：设置插件加载路径为当前目录，并禁用外部插件自动搜索。
@@ -1050,7 +1056,7 @@ bool freerdp_harmonyos_parse_arguments(int64_t instance, const char** args, int 
     
     LOGI("parse_arguments: Calling freerdp_client_settings_parse_command_line...");
     status = freerdp_client_settings_parse_command_line(inst->context->settings, argc, argv, FALSE);
-    LOGI("parse_arguments: freerdp_client_settings_parse_command_line returned %lu", (unsigned long)status);
+    LOGI("parse_arguments: freerdp_client_settings_parse_command_line returned %u", (unsigned int)status);
 
     for (int i = 0; i < argc; i++)
         free(argv[i]);
@@ -1079,7 +1085,6 @@ bool freerdp_harmonyos_connect(int64_t instance) {
 
 bool freerdp_harmonyos_disconnect(int64_t instance) {
     freerdp* inst = (freerdp*)(uintptr_t)instance;
-    harmonyosContext* ctx;
     HARMONYOS_EVENT* event;
 
     if (!inst || !inst->context) {
@@ -1087,7 +1092,6 @@ bool freerdp_harmonyos_disconnect(int64_t instance) {
         return false;
     }
 
-    ctx = (harmonyosContext*)inst->context;
     event = (HARMONYOS_EVENT*)harmonyos_event_disconnect_new();
 
     if (!event)
@@ -1291,7 +1295,7 @@ int freerdp_harmonyos_set_client_decoding(int64_t instance, bool enable) {
 
     BOOL allowDisplayUpdates = enable ? TRUE : FALSE;
     
-    RECTANGLE_16 rect = { 0 };
+    RECTANGLE_16 rect = { 0, 0, 0, 0 };
     rect.left = 0;
     rect.top = 0;
     rect.right = (UINT16)freerdp_settings_get_uint32(settings, FreeRDP_DesktopWidth);
@@ -1371,7 +1375,7 @@ bool freerdp_harmonyos_enter_background_mode(int64_t instance) {
     freerdp_settings_set_bool(settings, FreeRDP_DeactivateClientDecoding, TRUE);
     
     /* Send SuppressOutput PDU to tell server to stop sending graphics */
-    RECTANGLE_16 rect = { 0 };
+    RECTANGLE_16 rect = { 0, 0, 0, 0 };
     rect.left = 0;
     rect.top = 0;
     rect.right = (UINT16)freerdp_settings_get_uint32(settings, FreeRDP_DesktopWidth);
@@ -1417,7 +1421,7 @@ bool freerdp_harmonyos_exit_background_mode(int64_t instance) {
     UINT32 width = freerdp_settings_get_uint32(settings, FreeRDP_DesktopWidth);
     UINT32 height = freerdp_settings_get_uint32(settings, FreeRDP_DesktopHeight);
     
-    RECTANGLE_16 rect = { 0 };
+    RECTANGLE_16 rect = { 0, 0, 0, 0 };
     rect.left = 0;
     rect.top = 0;
     rect.right = (UINT16)width;
@@ -1603,7 +1607,7 @@ bool freerdp_harmonyos_request_refresh(int64_t instance) {
     
     LOGI("Requesting full screen refresh (%ux%u)", width, height);
     
-    RECTANGLE_16 rect = { 0 };
+    RECTANGLE_16 rect = { 0, 0, 0, 0 };
     rect.left = 0;
     rect.top = 0;
     rect.right = (UINT16)width;
@@ -1662,7 +1666,7 @@ bool freerdp_harmonyos_request_refresh_rect(int64_t instance, int x, int y, int 
         return false;
     }
     
-    RECTANGLE_16 rect = { 0 };
+    RECTANGLE_16 rect = { 0, 0, 0, 0 };
     rect.left = (UINT16)x;
     rect.top = (UINT16)y;
     rect.right = (UINT16)(x + width);

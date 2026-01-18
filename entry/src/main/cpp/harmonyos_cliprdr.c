@@ -12,6 +12,9 @@
 
 #ifdef OHOS_PLATFORM
 #include <hilog/log.h>
+#ifdef LOG_TAG
+#undef LOG_TAG
+#endif
 #define LOG_TAG "FreeRDP.Clipboard"
 #define LOGI(...) OH_LOG_INFO(LOG_APP, __VA_ARGS__)
 #define LOGW(...) OH_LOG_WARN(LOG_APP, __VA_ARGS__)
