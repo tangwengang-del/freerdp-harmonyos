@@ -661,6 +661,10 @@ static DWORD WINAPI harmonyos_thread_func(LPVOID param) {
     BOOL connectResult = FALSE;
     int reconnectAttempts = 0;
     const int MAX_RECONNECT_ATTEMPTS = 5;
+    UINT64 connectStartTime = 0;
+    UINT64 connectEndTime = 0;
+    UINT64 connectDuration = 0;
+    int savedErrno = 0;
     
     LOGD("Start...");
 
@@ -712,16 +716,16 @@ reconnect_loop:
     errno = 0;
     
     /* 记录连接开始时间 */
-    UINT64 connectStartTime = GetTickCount64();
+    connectStartTime = GetTickCount64();
     
     connectResult = freerdp_connect(instance);
     
     /* 立即保存 errno，避免被后续调用覆盖 */
-    int savedErrno = errno;
+    savedErrno = errno;
     
     /* 计算连接耗时 */
-    UINT64 connectEndTime = GetTickCount64();
-    UINT64 connectDuration = connectEndTime - connectStartTime;
+    connectEndTime = GetTickCount64();
+    connectDuration = connectEndTime - connectStartTime;
     
     LOGI("freerdp_connect returned: %{public}s (took %{public}llu ms)", 
          connectResult ? "TRUE" : "FALSE", (unsigned long long)connectDuration);
