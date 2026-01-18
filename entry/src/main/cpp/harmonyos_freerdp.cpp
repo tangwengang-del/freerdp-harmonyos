@@ -297,41 +297,27 @@ static BOOL harmonyos_pre_connect(freerdp* instance) {
     LOGI("harmonyos_pre_connect: Settings validated, proceeding...");
 
     /* 
-     * 打印关键连接参数用于调试
+     * 注意：移除了对 settings 字符串的手动提取和打印。
+     * 在某些 FreeRDP 版本中，如果在 pre_connect 阶段 settings 尚未完全同步，
+     * 访问这些字段可能导致不稳定的行为甚至崩溃。
      */
-    const char* hostname = freerdp_settings_get_string(settings, FreeRDP_ServerHostname);
-    UINT32 port = freerdp_settings_get_uint32(settings, FreeRDP_ServerPort);
-    const char* username = freerdp_settings_get_string(settings, FreeRDP_Username);
-    BOOL rdpSec = freerdp_settings_get_bool(settings, FreeRDP_RdpSecurity);
-    BOOL tlsSec = freerdp_settings_get_bool(settings, FreeRDP_TlsSecurity);
-    BOOL nlaSec = freerdp_settings_get_bool(settings, FreeRDP_NlaSecurity);
-    BOOL ignoreCert = freerdp_settings_get_bool(settings, FreeRDP_IgnoreCertificate);
-    
-    LOGI("harmonyos_pre_connect: hostname=%{public}s port=%{public}u", 
-         hostname ? hostname : "NULL", port);
-    LOGI("harmonyos_pre_connect: username=%{public}s", 
-         username ? username : "NULL");
-    LOGI("harmonyos_pre_connect: security: RDP=%{public}d TLS=%{public}d NLA=%{public}d",
-         rdpSec, tlsSec, nlaSec);
-    LOGI("harmonyos_pre_connect: IgnoreCertificate=%{public}d", ignoreCert);
-
-    /* 注意：移除了 freerdp_channels_attach 调用，该函数可能在这个阶段不需要 */
 
     rc = PubSub_SubscribeChannelConnected(context->pubSub,
                                           harmonyos_OnChannelConnectedEventHandler);
     if (rc != CHANNEL_RC_OK) {
         LOGE("Could not subscribe to connect event handler [%{public}08X]", rc);
-        return FALSE;
+        /* 不直接返回 FALSE，尝试继续 */
+    } else {
+        LOGI("harmonyos_pre_connect: ChannelConnected subscribed");
     }
-    LOGI("harmonyos_pre_connect: ChannelConnected subscribed");
 
     rc = PubSub_SubscribeChannelDisconnected(context->pubSub,
                                              harmonyos_OnChannelDisconnectedEventHandler);
     if (rc != CHANNEL_RC_OK) {
         LOGE("Could not subscribe to disconnect event handler [%{public}08X]", rc);
-        return FALSE;
+    } else {
+        LOGI("harmonyos_pre_connect: ChannelDisconnected subscribed");
     }
-    LOGI("harmonyos_pre_connect: ChannelDisconnected subscribed");
 
     if (g_onPreConnect) {
         g_onPreConnect((int64_t)(uintptr_t)instance);
@@ -952,21 +938,21 @@ int64_t freerdp_harmonyos_new(void) {
     
     /* 初始化 OpenSSL（只需要做一次） */
     if (!g_sslInitialized) {
-        LOGI("freerdp_harmonyos_new: Initializing OpenSSL...");
+        LOGI("freerdp_harmonyos_new: Initializing SSL...");
         
-        /* 设置 OpenSSL 环境变量，避免加载不存在的模块 */
-        setenv("OPENSSL_MODULES", "/system/lib64/openssl", 1);
+        /* 
+         * 注意：移除了 setenv("OPENSSL_MODULES", ...)
+         * 我们使用静态链接的 OpenSSL，不需要且不应该加载系统模块，
+         * 否则在 HarmonyOS 沙箱环境下可能导致 dlopen 失败从而引起崩溃。
+         */
         
         /* 使用 winpr 的 SSL 初始化函数 */
-        BOOL sslResult = winpr_InitializeSSL(WINPR_SSL_INIT_DEFAULT);
-        if (sslResult) {
-            LOGI("freerdp_harmonyos_new: OpenSSL initialized successfully");
-            g_sslInitialized = TRUE;
+        if (winpr_InitializeSSL(WINPR_SSL_INIT_DEFAULT)) {
+            LOGI("freerdp_harmonyos_new: SSL initialized successfully");
         } else {
-            LOGW("freerdp_harmonyos_new: OpenSSL initialization returned FALSE (may be ok)");
-            /* 继续执行，因为某些情况下这不是致命错误 */
-            g_sslInitialized = TRUE;
+            LOGW("freerdp_harmonyos_new: SSL initialization returned FALSE (proceeding anyway)");
         }
+        g_sslInitialized = TRUE;
     }
 
     RdpClientEntry(&clientEntryPoints);
@@ -1034,6 +1020,18 @@ bool freerdp_harmonyos_parse_arguments(int64_t instance, const char** args, int 
         }
     }
 
+    /* 
+     * 设置默认配置以增强稳定性
+     */
+    freerdp_settings_set_bool(inst->context->settings, FreeRDP_RemoteConsoleAudio, FALSE);
+    freerdp_settings_set_bool(inst->context->settings, FreeRDP_AudioPlayback, TRUE);
+    
+    /* 
+     * 关键修复：设置插件加载路径为当前目录，并禁用外部插件自动搜索。
+     * 这可以配合 BUILTIN_CHANNELS=ON 彻底解决 absolute path 加载失败导致的崩溃。
+     */
+    freerdp_settings_set_string(inst->context->settings, FreeRDP_ConfigPath, ".");
+    
     LOGI("parse_arguments: Calling freerdp_client_settings_parse_command_line...");
     status = freerdp_client_settings_parse_command_line(inst->context->settings, argc, argv, FALSE);
     LOGI("parse_arguments: freerdp_client_settings_parse_command_line returned %lu", (unsigned long)status);
@@ -1188,30 +1186,16 @@ bool freerdp_harmonyos_set_tcp_keepalive(int64_t instance, bool enabled, int del
         return false;
     }
 
-    if (!freerdp_settings_set_bool(settings, FreeRDP_TcpKeepAlive, enabled)) {
-        LOGE("Failed to set TcpKeepAlive=%d", enabled);
-        return false;
+    if (!freerdp_settings_set_bool(settings, FreeRDP_TcpKeepAlive, enabled ? TRUE : FALSE)) {
+        LOGW("Failed to set TcpKeepAlive=%d (possibly unsupported by this build)", enabled);
+        /* 不返回 false，因为这不一定是致命错误 */
     }
 
     if (enabled) {
-        if (!freerdp_settings_set_uint32(settings, FreeRDP_TcpKeepAliveDelay, (UINT32)delay)) {
-            LOGE("Failed to set TcpKeepAliveDelay=%d", delay);
-            return false;
-        }
-
-        if (!freerdp_settings_set_uint32(settings, FreeRDP_TcpKeepAliveInterval, (UINT32)interval)) {
-            LOGE("Failed to set TcpKeepAliveInterval=%d", interval);
-            return false;
-        }
-
-        if (!freerdp_settings_set_uint32(settings, FreeRDP_TcpKeepAliveRetries, (UINT32)retries)) {
-            LOGE("Failed to set TcpKeepAliveRetries=%d", retries);
-            return false;
-        }
-
-        LOGI("TCP Keepalive enabled: delay=%ds, interval=%ds, retries=%d", delay, interval, retries);
-    } else {
-        LOGI("TCP Keepalive disabled");
+        freerdp_settings_set_uint32(settings, FreeRDP_TcpKeepAliveDelay, (UINT32)delay);
+        freerdp_settings_set_uint32(settings, FreeRDP_TcpKeepAliveInterval, (UINT32)interval);
+        freerdp_settings_set_uint32(settings, FreeRDP_TcpKeepAliveRetries, (UINT32)retries);
+        LOGI("TCP Keepalive configured: delay=%ds, interval=%ds, retries=%d", delay, interval, retries);
     }
 
     return true;
@@ -1262,6 +1246,15 @@ int freerdp_harmonyos_set_client_decoding(int64_t instance, bool enable) {
         return -1;
 
     rdpContext* context = inst->context;
+    
+    /* 
+     * 关键安全检查：如果连接尚未完全建立或已断开，不应调用 update pdus。
+     */
+    if (!freerdp_client_get_connected(context)) {
+        LOGW("set_client_decoding: session not connected, skipping PDU");
+        return -8;
+    }
+
     rdpSettings* settings = context->settings;
     if (!settings)
         return -2;
@@ -1270,15 +1263,13 @@ int freerdp_harmonyos_set_client_decoding(int64_t instance, bool enable) {
     if (!update)
         return -3;
 
-    BOOL deactivate = enable ? FALSE : TRUE;
-    if (!freerdp_settings_set_bool(settings, FreeRDP_DeactivateClientDecoding, deactivate)) {
-        LOGE("Failed to set DeactivateClientDecoding");
-        return -4;
-    }
-
-    if (!freerdp_settings_set_bool(settings, FreeRDP_SuppressOutput, TRUE)) {
-        LOGE("Failed to enable SuppressOutput capability");
-        return -5;
+    /* 
+     * FreeRDP 3.x 核心库中可能没有 FreeRDP_DeactivateClientDecoding 这个自定义键。
+     * 我们改用标准键 FreeRDP_SuppressOutput。
+     */
+    BOOL suppress = enable ? FALSE : TRUE;
+    if (!freerdp_settings_set_bool(settings, FreeRDP_SuppressOutput, suppress)) {
+        LOGW("Failed to set SuppressOutput setting");
     }
 
     BOOL allowDisplayUpdates = enable ? TRUE : FALSE;

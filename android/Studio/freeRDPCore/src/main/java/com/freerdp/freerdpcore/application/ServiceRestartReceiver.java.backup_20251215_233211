@@ -1,0 +1,287 @@
+/*
+   Service Restart Receiver
+
+   Copyright 2024 FreeRDP Android
+
+   This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+   If a copy of the MPL was not distributed with this file, You can obtain one at
+   http://mozilla.org/MPL/2.0/.
+*/
+
+package com.freerdp.freerdpcore.application;
+
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.os.Build;
+import android.util.Log;
+
+import androidx.core.app.NotificationCompat;
+
+import com.freerdp.freerdpcore.R;
+import com.freerdp.freerdpcore.services.RdpAudioService;
+
+/**
+ * 服务重启接收器
+ * 接收 onDestroy() 安排的重启请求，执行重启并通知用户
+ * 每次重启都会通知用户，让用户了解服务状态
+ */
+public class ServiceRestartReceiver extends BroadcastReceiver {
+    private static final String TAG = "ServiceRestartReceiver";
+    private static final String CHANNEL_ID = "service_auto_restart";
+    private static final String PREFS_NAME = "service_restart";
+    
+    @Override
+    public void onReceive(Context context, Intent intent) {
+        if (!"com.freerdp.RESTART_SERVICE".equals(intent.getAction())) {
+            return;
+        }
+        
+        Log.i(TAG, "Received service restart request");
+        
+        // 检查是否有活跃会话
+        SharedPreferences rdpPrefs = context.getSharedPreferences("rdp_state", Context.MODE_PRIVATE);
+        if (!rdpPrefs.getBoolean("has_active_session", false)) {
+            Log.d(TAG, "No active session, skip restart");
+            return;
+        }
+        
+        // 检查服务是否真的停止了（二次确认）
+        if (RdpAudioService.isRunning()) {
+            Log.d(TAG, "Service is already running, no need to restart");
+            return;
+        }
+        
+        // 记录重启次数（用于通知显示）
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        int restartCount = prefs.getInt("restart_count", 0);
+        long lastRestartTime = prefs.getLong("last_restart_time", 0);
+        long now = System.currentTimeMillis();
+        
+        // 如果距离上次重启超过5分钟，重置计数器（不是连续失败）
+        if (now - lastRestartTime > 5 * 60 * 1000) {
+            restartCount = 0;
+            Log.i(TAG, "Reset restart count (last restart was " + 
+                       ((now - lastRestartTime) / 60000) + " minutes ago)");
+        }
+        
+        restartCount++;
+        
+        prefs.edit()
+            .putInt("restart_count", restartCount)
+            .putLong("last_restart_time", now)
+            .apply();
+        
+        // 执行重启
+        try {
+            RdpAudioService.start(context);
+            Log.i(TAG, "✓ Service restarted successfully (count: " + restartCount + ")");
+            
+            // 自动拉起 Activity
+            launchSessionActivity(context, rdpPrefs, restartCount);
+            
+            // 每次都通知用户
+            showRestartNotification(context, restartCount, lastRestartTime);
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to restart service", e);
+            showErrorNotification(context, restartCount);
+        }
+    }
+    
+    /**
+     * 自动启动 SessionActivity
+     */
+    private void launchSessionActivity(Context context, SharedPreferences rdpPrefs, int restartCount) {
+        try {
+            // 获取保存的会话实例ID
+            long sessionInstance = rdpPrefs.getLong("session_instance", -1);
+            
+            if (sessionInstance == -1) {
+                Log.w(TAG, "No session instance found, cannot launch activity");
+                return;
+            }
+            
+            // 创建启动 Intent
+            Intent activityIntent = new Intent(context, 
+                com.freerdp.freerdpcore.presentation.SessionActivity.class);
+            
+            // 关键标志：
+            // - FLAG_ACTIVITY_NEW_TASK: 从非Activity上下文启动必需
+            // - FLAG_ACTIVITY_SINGLE_TOP: 如果Activity已存在则复用，不创建新实例
+            // - FLAG_ACTIVITY_CLEAR_TOP: 清除上层Activity，确保SessionActivity在顶部
+            activityIntent.setFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK | 
+                Intent.FLAG_ACTIVITY_SINGLE_TOP |
+                Intent.FLAG_ACTIVITY_CLEAR_TOP
+            );
+            
+            // 传递会话实例ID，让Activity恢复会话
+            activityIntent.putExtra(
+                com.freerdp.freerdpcore.presentation.SessionActivity.PARAM_INSTANCE, 
+                sessionInstance
+            );
+            
+            // 标记这是自动恢复启动
+            activityIntent.putExtra("auto_recovery", true);
+            activityIntent.putExtra("restart_count", restartCount);
+            
+            // 启动 Activity
+            context.startActivity(activityIntent);
+            
+            Log.i(TAG, "✓ SessionActivity launched automatically (instance: " + 
+                  sessionInstance + ", restart: " + restartCount + ")");
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to launch SessionActivity", e);
+        }
+    }
+    
+    /**
+     * 显示服务重启通知（每次都显示）
+     */
+    private void showRestartNotification(Context context, int restartCount, long restartTime) {
+        NotificationManager nm = (NotificationManager) 
+            context.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (nm == null) return;
+        
+        // 创建通知渠道（Android 8.0+）
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                CHANNEL_ID,
+                "后台服务自动恢复",
+                NotificationManager.IMPORTANCE_DEFAULT
+            );
+            channel.setDescription("后台服务被系统终止后自动恢复的通知");
+            nm.createNotificationChannel(channel);
+        }
+        
+        // 创建点击通知后的Intent
+        Intent notificationIntent = new Intent(context, 
+            com.freerdp.freerdpcore.presentation.SessionActivity.class);
+        notificationIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        
+        PendingIntent pendingIntent = PendingIntent.getActivity(
+            context,
+            0,
+            notificationIntent,
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
+                ? PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
+                : PendingIntent.FLAG_UPDATE_CURRENT
+        );
+        
+        // 根据重启次数调整通知内容和重要性
+        String title;
+        String content;
+        String bigText;
+        int priority;
+        
+        if (restartCount == 1) {
+            // 第一次重启：普通通知
+            title = "✓ 后台服务已自动恢复";
+            content = "检测到服务被系统终止，已自动重启";
+            bigText = "检测到后台服务被系统终止（可能由于内存不足），已自动重启。\n\n" +
+                     "您的远程桌面连接和音频传输将继续保持。";
+            priority = NotificationCompat.PRIORITY_DEFAULT;
+            
+        } else if (restartCount <= 3) {
+            // 2-3次重启：提醒注意
+            title = "⚠️ 后台服务再次恢复";
+            content = "服务已重启 " + restartCount + " 次，请注意";
+            bigText = "后台服务已重启 " + restartCount + " 次。\n\n" +
+                     "如果频繁重启，可能是：\n" +
+                     "• 设备内存不足\n" +
+                     "• 系统主动清理后台应用\n\n" +
+                     "建议：\n" +
+                     "• 关闭其他应用释放内存\n" +
+                     "• 将本应用加入电池优化白名单";
+            priority = NotificationCompat.PRIORITY_HIGH;
+            
+        } else {
+            // 4次以上：警告
+            title = "❌ 服务频繁重启（" + restartCount + "次）";
+            content = "检测到异常，请检查应用状态";
+            bigText = "⚠️ 警告：后台服务已重启 " + restartCount + " 次！\n\n" +
+                     "这表明可能存在问题：\n" +
+                     "• 设备内存严重不足\n" +
+                     "• 系统强制清理应用\n" +
+                     "• 应用可能存在异常\n\n" +
+                     "建议：\n" +
+                     "1. 重启应用\n" +
+                     "2. 清理设备内存\n" +
+                     "3. 检查系统设置\n" +
+                     "4. 如持续出现请联系技术支持";
+            priority = NotificationCompat.PRIORITY_MAX;
+        }
+        
+        // 构建通知
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.drawable.icon_launcher_freerdp)
+            .setContentTitle(title)
+            .setContentText(content)
+            .setStyle(new NotificationCompat.BigTextStyle().bigText(bigText))
+            .setPriority(priority)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true); // 点击后消失
+        
+        // 如果是第4次以上，添加震动和声音
+        if (restartCount >= 4) {
+            builder.setDefaults(NotificationCompat.DEFAULT_ALL);
+        }
+        
+        // 显示通知（使用时间戳作为ID，确保每次都是新通知）
+        int notificationId = (int) (restartTime % Integer.MAX_VALUE);
+        nm.notify(notificationId, builder.build());
+        
+        Log.i(TAG, "Restart notification sent (count: " + restartCount + ")");
+    }
+    
+    /**
+     * 显示重启失败通知
+     */
+    private void showErrorNotification(Context context, int restartCount) {
+        NotificationManager nm = (NotificationManager) 
+            context.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (nm == null) return;
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                CHANNEL_ID,
+                "后台服务自动恢复",
+                NotificationManager.IMPORTANCE_HIGH
+            );
+            nm.createNotificationChannel(channel);
+        }
+        
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.drawable.icon_launcher_freerdp)
+            .setContentTitle("❌ 服务重启失败")
+            .setContentText("无法自动恢复后台服务，请手动重新连接")
+            .setStyle(new NotificationCompat.BigTextStyle()
+                .bigText("尝试自动重启后台服务失败（第 " + restartCount + " 次）。\n\n" +
+                        "请手动打开应用并重新连接远程桌面。"))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .setAutoCancel(true);
+        
+        nm.notify((int) System.currentTimeMillis(), builder.build());
+    }
+    
+    /**
+     * 重置重启计数（在SessionActivity连接成功时调用）
+     */
+    public static void resetRestartCount(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        prefs.edit()
+            .putInt("restart_count", 0)
+            .putLong("last_restart_time", 0)
+            .apply();
+        Log.d(TAG, "Service restart count reset (count=0, time=0)");
+    }
+}
+
+

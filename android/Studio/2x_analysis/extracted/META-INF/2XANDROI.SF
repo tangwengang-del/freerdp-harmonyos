@@ -1,0 +1,2007 @@
+Signature-Version: 1.0
+SHA1-Digest-Manifest-Main-Attributes: NP7v3c51f/CiJY29pV+onmY0uFs=
+Created-By: 1.6.0_27 (Sun Microsystems Inc.)
+SHA1-Digest-Manifest: 0q5BWgX8IJRSeJe30o/CaYITyA8=
+
+Name: res/drawable-mdpi-v4/ic_action_search.png
+SHA1-Digest: voy6jO7wdbG6tR1sv6lNHaIqz1E=
+
+Name: res/drawable-xxxhdpi-v4/icon.png
+SHA1-Digest: qRB8fnpYnMYMnfkdYzYvAl0WnJs=
+
+Name: res/drawable-ldpi-v4/sym_keyboard_left.png
+SHA1-Digest: ldgyKVuKtXnk7PE7VxMCDOenX0A=
+
+Name: res/drawable-ldpi-v4/ic_action_edit.png
+SHA1-Digest: kURXdC+nwiYIiB3DKydbs8/bOKM=
+
+Name: res/drawable-mdpi-v4/sym_keyboard_wnd_feedback.png
+SHA1-Digest: CImdqhVEk1/nSF3/XlRLm2RLaY0=
+
+Name: res/xml/kb_spanishspaininternationalsortesspanish_chars_shift_ca
+ ps_altgr.xml
+SHA1-Digest: 9+kZl7FeOIGOiC2Zs0Y6XHTFXQs=
+
+Name: res/layout/farm_properties.xml
+SHA1-Digest: aFaKxnj0VSpZ+vy4TGst2a9Ub7E=
+
+Name: res/xml/kb_germangermanydegerman_symbols_shift_caps_altgr.xml
+SHA1-Digest: JZ5BhvBitz0l1MDyLB9Q4zt3jW4=
+
+Name: res/drawable/fingers_2.png
+SHA1-Digest: OaIEYhKCKko3RP3aMYo3kRUEVpw=
+
+Name: res/xml/kb_russianrussiarurussian_chars_caps.xml
+SHA1-Digest: fJAq+WgpoP6L2qvmrmzQbrgqkb0=
+
+Name: res/xml/kb_germangermanydegerman_fn.xml
+SHA1-Digest: BeHdz2XJh+bjy4DUoEoGgsIAazE=
+
+Name: res/xml/kb_italianitalyititalian_symbols_shift.xml
+SHA1-Digest: z5rcWNXk8QzwIEiacFlvpUKESZM=
+
+Name: res/menu-v11/apps_list.xml
+SHA1-Digest: CtmbtDLUIMVqbE6f4xIKLJHU4wM=
+
+Name: res/xml/kb_italianitalyititalian_symbols_none.xml
+SHA1-Digest: fveDtkP7ly60fQXdG4/P22KSHoY=
+
+Name: res/xml/kb_portugueseportugalptportuguese_chars_shift_caps.xml
+SHA1-Digest: tRir1xoltuqwT3UT12sW7vnWjS8=
+
+Name: res/xml/kb_italianitalyititalian_fn.xml
+SHA1-Digest: KnXS9tvoZwh92NoHfVuSbDQWr1w=
+
+Name: res/xml/kb_englishunitedkingdomenunitedkingdom_numeric_lock.xml
+SHA1-Digest: Fx0FfEhC3aEs1JkZ3iPs704mPj8=
+
+Name: res/drawable-ldpi-v4/sym_keyboard_wnd_feedback.png
+SHA1-Digest: EJTFWQEVyhEMpikA8HU4lVxg+9I=
+
+Name: res/xml/kb_frenchfrancefrfrench_symbols_caps.xml
+SHA1-Digest: Q0m0SFvHoG0WfvwcZ2/uvWaHSJ4=
+
+Name: res/xml/kb_englishunitedkingdomenunitedkingdom_symbols_caps_altg
+ r.xml
+SHA1-Digest: 9l3SuvBvqQSptnZ2mLnCVHyItuA=
+
+Name: res/drawable-hdpi-v4/ic_status.png
+SHA1-Digest: ZtqNtQ96Rb0ixxMDrvdW0ywBzXM=
+
+Name: res/drawable-xhdpi-v4/ic_network.png
+SHA1-Digest: TifbzIvXf7ZU0aoRcnW9T0aguq4=
+
+Name: res/drawable/fingers_6.png
+SHA1-Digest: wL75RClSHtFjckKQ5D3DsaTbV9g=
+
+Name: res/xml/kb_swedishswedensvswedish_symbols_altgr.xml
+SHA1-Digest: 0Wjl2YFychh9xro6m1osWwjSiR0=
+
+Name: res/drawable-mdpi-v4/ic_action_keyboard.png
+SHA1-Digest: LpWYIYcfZPUPx4ufj16tkA7VAX0=
+
+Name: res/xml/kb_portugueseportugalptportuguese_chars_altgr.xml
+SHA1-Digest: mDrz/xPXsNnb5jxyuGx1njOOaCk=
+
+Name: res/drawable-ldpi-v4/btn_mouse_plus.png
+SHA1-Digest: RtNc5plQ4oXbL4ldEU92SDEUPjc=
+
+Name: res/drawable-hdpi-v4/ic_remove.png
+SHA1-Digest: bR6mc+I7qElZL0AZQKG3nBzL/zY=
+
+Name: res/drawable-hdpi-v4/rdpconn.png
+SHA1-Digest: QRPLu1ZMxh9KoJcbiRGYTNBYFZs=
+
+Name: res/drawable-ldpi-v4/sym_keyboard_wnd.png
+SHA1-Digest: S4/ts0xA54aoKaPV9tpYDpsuQ+o=
+
+Name: res/drawable-mdpi-v4/ic_authentication.png
+SHA1-Digest: OcSgnd5bvfTrN100z/II8EdBmFM=
+
+Name: res/xml/kb_swedishswedensvswedish_chars_altgr.xml
+SHA1-Digest: g1Vm+TExoIXTlo89ZOivYchUqXU=
+
+Name: res/drawable-mdpi-v4/sym_keyboard_shift.png
+SHA1-Digest: 3czlDnlpbGIkbjii4RLAbaVTRy0=
+
+Name: res/layout/dont_show_again_dlg.xml
+SHA1-Digest: r3ClZ8Vz7GCAhRdwStgxaIdUkIk=
+
+Name: res/xml/kb_japanesejapanjapanese_numeric_none.xml
+SHA1-Digest: N74zjyJeJF1ivoNBWF/3ofpo588=
+
+Name: res/drawable/card_background.xml
+SHA1-Digest: PFHrEhg75rACvr8pYyToBvDNcN8=
+
+Name: res/xml/kb_englishunitedstatesenus_symbols_shift.xml
+SHA1-Digest: wIpafth5M/bmAhZkyUoqnHuK2dg=
+
+Name: res/drawable/fingers_3.png
+SHA1-Digest: nBO5OhjL2/eNzFwKPlh0VRWR+HY=
+
+Name: res/xml-large-v4/kb_japanesejapanjapanese_chars_shift.xml
+SHA1-Digest: i5z1MVP9RfFEoSyk+VMlhuveAPA=
+
+Name: res/drawable-xhdpi-v4/ic_more_light.png
+SHA1-Digest: i0CTVmSkT4VseSn0NbXBqBPC92Y=
+
+Name: res/drawable-ldpi-v4/sym_keyboard_delete.png
+SHA1-Digest: N7GnDcFuphHXeEAJsaovshma9hU=
+
+Name: res/xml/kb_spanishspaininternationalsortesspanish_symbols_altgr.
+ xml
+SHA1-Digest: Q5U9McU+enj2UA8vNsotwAd10aI=
+
+Name: res/xml/kb_germangermanydegerman_symbols_shift_caps.xml
+SHA1-Digest: W/x6mZecV/eB+Ppv1t+v3vO45wY=
+
+Name: res/xml/kb_swedishswedensvswedish_symbols_none.xml
+SHA1-Digest: co6yJ0tpU2aiSLJcgqK/mRdDM80=
+
+Name: res/xml/qwerty_jap.xml
+SHA1-Digest: Ala4B6xsrumOpu6gwknEXgc34ms=
+
+Name: res/drawable/ic_status_api8.xml
+SHA1-Digest: vrqkijSw6Tx9Msc1a6HePo9KVo8=
+
+Name: res/xml/kb_maltesemaltamlmaltese48key_symbols_shift_caps_altgr.x
+ ml
+SHA1-Digest: RplAcqsQb8Z1sEyOw3l/EgM4iOA=
+
+Name: res/xml/kb_portugueseportugalptportuguese_chars_none.xml
+SHA1-Digest: Ykp4xN4u5wIGZcu6q8Vn3eleyLE=
+
+Name: res/drawable-hdpi-v4/ic_advanced.png
+SHA1-Digest: G/dRPgetHH0TsZAJHCx0zJsZQqQ=
+
+Name: res/xml/farm_properties_local_resources.xml
+SHA1-Digest: Vc+6LG0TPQH9CHpCSxD/oKOs2/U=
+
+Name: res/drawable-mdpi-v4/ic_remove.png
+SHA1-Digest: ZkqgYcbmEOm8FDiZozO+oydi9xs=
+
+Name: res/drawable-hdpi-v4/ic_menu_keyboard.png
+SHA1-Digest: kjtel/J9AMUmiMIgmsbCFe/uWmc=
+
+Name: res/drawable/three_fingers_up.png
+SHA1-Digest: YmI8JYyoSkQWG3PYu9jYdOjjKaQ=
+
+Name: res/xml/symbols_shift.xml
+SHA1-Digest: BvfW5IN2zgBjrPDWpW6Hm1bxv5Q=
+
+Name: res/drawable-hdpi-v4/ic_more_light.png
+SHA1-Digest: LU9piHMUbaUrB9P9UEahruQdbss=
+
+Name: res/xml-large-v4/kb_japanesejapanjapanese_symbols_none.xml
+SHA1-Digest: hJ0HbI597HF0Urm3Xfx65MfE5XY=
+
+Name: res/xml/kb_portuguesebrazilptportuguesebrazilian_numeric_lock.xm
+ l
+SHA1-Digest: dHa/I1f+FQ7IH6Sb+oPvSCN5KCg=
+
+Name: res/drawable-ldpi-v4/ic_action_keyboard.png
+SHA1-Digest: uffyCiMo1cmV7b3nP4ddKBB+2MU=
+
+Name: res/drawable-ldpi-v4/sym_keyboard_feedback_shift.png
+SHA1-Digest: RmSWJIBehnnFffF2CuQlJmueVbw=
+
+Name: res/xml/kb_russianrussiarurussian_chars_shift.xml
+SHA1-Digest: W5y3gKPtOvktCdwCFSbdn+gAONQ=
+
+Name: res/xml/kb_germangermanydegerman_chars_caps.xml
+SHA1-Digest: +LS0nRfa+Jr8nBG1Pqw6GM5ubZM=
+
+Name: res/xml-large-v4/kb_japanesejapanjapanese_chars_shift_caps.xml
+SHA1-Digest: vsfgkPCq1jmMEYa4c/fI7NVGMQg=
+
+Name: res/xml/kb_norwegiannynorsknorwaynonorwegian_chars_caps.xml
+SHA1-Digest: DKQkbuEIEkUcBjIUzwCh39v4j8E=
+
+Name: res/drawable-ldpi-v4/sym_keyboard_feedback_shift_locked.png
+SHA1-Digest: +QO/dOisLfneYCFWj3ZlJ4a3iaU=
+
+Name: res/xml/kb_englishunitedkingdomenunitedkingdom_chars_caps.xml
+SHA1-Digest: FxuCX/eNMO7c/2yVy64sVYgpz7Q=
+
+Name: res/xml/kb_frenchcanadafrcanadianfrench_symbols_caps_altgr.xml
+SHA1-Digest: BMGaB6+sw/lGUFNW1nXl1PKf6PQ=
+
+Name: res/drawable-mdpi-v4/ic_menu_help.png
+SHA1-Digest: WHxhrBO+9M3Whv9Dswv/2Oe+8ok=
+
+Name: res/xml/kb_frenchfrancefrfrench_symbols_altgr.xml
+SHA1-Digest: RGMM4M2E5+eA6f8PHBjspRcUU6E=
+
+Name: res/xml/kb_portugueseportugalptportuguese_symbols_altgr.xml
+SHA1-Digest: jjXg3YheaiDjY3GZQF3U990m2+g=
+
+Name: res/drawable-mdpi-v4/btn_keyboard_key_pressed_off.9.png
+SHA1-Digest: CVzlbw5L/a+655Gx1KIHqwsgMA8=
+
+Name: res/drawable/fingers_5.png
+SHA1-Digest: kLYNMgHl6++X9E0ucVtoFmQ4qdo=
+
+Name: res/xml/kb_russianrussiarurussian_symbols_caps_altgr.xml
+SHA1-Digest: rr+WCH3ytIv1H6ga1pJYV8wztp8=
+
+Name: res/xml/kb_japanesejapanjapanese_symbols_shift.xml
+SHA1-Digest: HjCqb3Zzth+uUp89Ba12nFF/TIg=
+
+Name: res/drawable-hdpi-v4/ic_action_new.png
+SHA1-Digest: y4QFji2ZuERiRpldefhSEhy7BZ4=
+
+Name: res/drawable-ldpi-v4/ic_menu_mouse.png
+SHA1-Digest: hY9ioryItqW25rvfSg7T/ZMFjJI=
+
+Name: res/xml-large-v4/kb_japanesejapanjapanese_symbols_shift.xml
+SHA1-Digest: BXYrg/4wJpKC7zhl8AHm1tns/Dg=
+
+Name: res/xml/kb_italianitalyititalian_symbols_shift_altgr.xml
+SHA1-Digest: uifXfzcOKzdt+eeshFc1eRoCjP8=
+
+Name: res/drawable-mdpi-v4/sym_keyboard_feedback_space.png
+SHA1-Digest: 2QUekMbkKSNAfGbztUACa5TwIDg=
+
+Name: res/xml/kb_spanishspaininternationalsortesspanish_symbols_shift_
+ altgr.xml
+SHA1-Digest: ngZeuIhCb0I3i7dLIc9djZ5FPRw=
+
+Name: res/xml/kb_norwegiannynorsknorwaynonorwegian_chars_none.xml
+SHA1-Digest: Whx4IrmzWfmU3rm2eMkhMK6gErY=
+
+Name: res/drawable/banner_1024_60.png
+SHA1-Digest: j2cNTp8a4QTE+QFUPRcWLACiHl8=
+
+Name: res/xml/kb_englishunitedstatesenus_chars_caps_altgr.xml
+SHA1-Digest: hbNeNR2FLm1fj3nc8hD2cBiUta4=
+
+Name: res/drawable-hdpi-v4/sym_keyboard_feedback_return.png
+SHA1-Digest: bYt42rHbWDSiRLBBEssH2yKZciw=
+
+Name: res/xml/kb_germangermanydegerman_symbols_none.xml
+SHA1-Digest: IOB3qDW29guYs3LPBB7oPfQsfxk=
+
+Name: res/drawable-hdpi-v4/sym_keyboard_left.png
+SHA1-Digest: nizksasCQCkd6CqvcE1CNa68gv4=
+
+Name: res/drawable-mdpi-v4/sym_keyboard_left_feedback.png
+SHA1-Digest: EuxNMm+932qa8Dkel2AEet6yKzs=
+
+Name: res/drawable-mdpi-v4/rdpconn.png
+SHA1-Digest: eKWylsA2FdurXnbY/piFm+p8gYs=
+
+Name: res/xml-large-v4/kb_japanesejapanjapanese_numeric_none.xml
+SHA1-Digest: 6yhOqJLz0fFKnx0SUyGmdM2iMDE=
+
+Name: res/xml/fn.xml
+SHA1-Digest: hBOM0G6GxxUYnxzhLlL2MjW4SsE=
+
+Name: res/xml/settings_statistics.xml
+SHA1-Digest: jDHg15BO3EOvtVcytsVZMZh7nXs=
+
+Name: res/layout/settings_statistics_info.xml
+SHA1-Digest: r8hQikx+GGQuZmiuxSMiLFGCC74=
+
+Name: res/layout-v13/shortcut_dlg.xml
+SHA1-Digest: HBuqsej5PZQiv++VGfyxJpE8tCo=
+
+Name: res/drawable-mdpi-v4/sym_keyboard_lang.png
+SHA1-Digest: m/AuG1I7zCHWRrnHUsMo+Xx9Smc=
+
+Name: res/drawable-hdpi-v4/sym_keyboard_feedback_delete.png
+SHA1-Digest: 80Zgj4A38yLAEi/eqpXsI2j0kM8=
+
+Name: res/xml/kb_frenchcanadafrcanadianfrench_chars_altgr.xml
+SHA1-Digest: HbqI1Spzzv+9f5GCeqHJrcAqGU4=
+
+Name: res/drawable-mdpi-v4/sym_keyboard_feedback_delete.png
+SHA1-Digest: LTV7vPfmWyqsZ7EO728gw0z9C0Y=
+
+Name: res/drawable-mdpi-v4/ic_action_accept.png
+SHA1-Digest: PBwkEnSDoy1KvRH4BkqLmXJVFqU=
+
+Name: res/xml/kb_russianrussiarurussian_symbols_none.xml
+SHA1-Digest: wqoFtOUmweYlVNifCwTn0zHWcmY=
+
+Name: res/xml/symbols_jap.xml
+SHA1-Digest: +pib6BRh3m/Tewutwc+ysAyeasA=
+
+Name: res/drawable-ldpi-v4/sym_keyboard_up.png
+SHA1-Digest: FSslJiWKAq0Rvht4/Z5tj5fKY/Y=
+
+Name: res/xml/kb_spanishspaininternationalsortesspanish_numeric_lock.x
+ ml
+SHA1-Digest: XnDU+4H2NdspEkMc901sq01fVuc=
+
+Name: res/menu/farm_properties.xml
+SHA1-Digest: ll2wC7GHkrwC1NPZk9viYj+D2cI=
+
+Name: res/drawable-xhdpi-v4/icon.png
+SHA1-Digest: KLlORxRsmWaQBMEihgPROfoAtMw=
+
+Name: res/xml/kb_englishunitedkingdomenunitedkingdom_chars_shift_altgr
+ .xml
+SHA1-Digest: M1GZK2LPmgOUDJ0ueZZ4zR8NMXE=
+
+Name: res/drawable-xhdpi-v4/ic_gesture.png
+SHA1-Digest: CjKa6OpuslqWiaYN/AcqSP+j3L8=
+
+Name: res/xml/kb_norwegiannynorsknorwaynonorwegian_symbols_caps_altgr.
+ xml
+SHA1-Digest: Q03ob0U6BrZTMRYBC7JPcVwkvBs=
+
+Name: res/xml/kb_norwegiannynorsknorwaynonorwegian_numeric_lock.xml
+SHA1-Digest: eSaSivvwDqzpmFi5vX+XRWBmSaQ=
+
+Name: res/drawable-hdpi-v4/sym_keyboard_space.png
+SHA1-Digest: n37uxJm/Jk3/NW6Ok6Q8uxstzzE=
+
+Name: res/drawable-hdpi-v4/ic_action_edit.png
+SHA1-Digest: wecudAThcyJFUzAFYczLyKwwiKQ=
+
+Name: res/drawable-mdpi-v4/ic_more_dark.png
+SHA1-Digest: qx6davMgw5Uea7WTpovqgwhPb30=
+
+Name: res/drawable-hdpi-v4/btn_keyboard_key_normal_off.9.png
+SHA1-Digest: 76mfu+2wI6NIQFEQQI8dCDHBRts=
+
+Name: res/xml/kb_dutchnetherlandsnldutch_chars_shift.xml
+SHA1-Digest: Z7OMuEgwQx1586T7/vIVNXMhgCA=
+
+Name: res/drawable-ldpi-v4/sym_keyboard_right_feedback.png
+SHA1-Digest: 4NyqqkV2eJMes20kxRUqD3FcDJ8=
+
+Name: res/xml/kb_japanesejapanjapanese_chars_none.xml
+SHA1-Digest: Agz+O5Q3k4iHWSRv84fVfEm3EME=
+
+Name: res/drawable-mdpi-v4/tuxconn.png
+SHA1-Digest: +e38WqIPjPcWL0Cfz68dlVJYm7c=
+
+Name: res/drawable-hdpi-v4/ic_menu_help.png
+SHA1-Digest: w5oyq1RfWvF0O3LPUiCwA01sP5A=
+
+Name: res/drawable-mdpi-v4/btn_mouse_keyboard.png
+SHA1-Digest: eC40kCw/MhVapU5BLRlBd8x0R1Q=
+
+Name: res/drawable-ldpi-v4/ic_cube_outline.png
+SHA1-Digest: cYG2dN9j+0nMDJn1dQpBsDaObhY=
+
+Name: res/xml/kb_swedishswedensvswedish_chars_shift.xml
+SHA1-Digest: X+krL1gLKZz2MK7CitHmdiRySMk=
+
+Name: res/xml-large-v4/kb_japanesejapanjapanese_symbols_shift_caps.xml
+SHA1-Digest: nUdHTbP0AD9fS5i2vLIPUsaeCl0=
+
+Name: res/layout-v17/about_tab.xml
+SHA1-Digest: Ri+7XjTLz+KD6E5bWqoO1KRyDbE=
+
+Name: res/drawable-hdpi-v4/sym_keyboard_wnd_feedback.png
+SHA1-Digest: LC9yGZTwKCqqzR8nbTnCCIKa+64=
+
+Name: res/drawable-xhdpi-v4/ic_more_dark.png
+SHA1-Digest: F/l9dvl6x463QhhyHIXLUX939Hw=
+
+Name: res/xml/kb_maltesemaltamlmaltese48key_chars_altgr.xml
+SHA1-Digest: PaOIYRd1c7yHenB80ZDCeoqPfus=
+
+Name: res/xml/kb_frenchfrancefrfrench_chars_shift_caps_altgr.xml
+SHA1-Digest: VUkBvDVc0L1+1krshKN+kx4pHBk=
+
+Name: res/xml/kb_japanesejapanjapanese_chars_shift.xml
+SHA1-Digest: rYmjHvsLlMWsaeCRp9o13pS6VNI=
+
+Name: res/xml/kb_maltesemaltamlmaltese48key_symbols_caps_altgr.xml
+SHA1-Digest: O90yYdr5P5tF15T2moO3LF3S7qY=
+
+Name: res/xml/kb_italianitalyititalian_chars_shift_altgr.xml
+SHA1-Digest: CiQzoWpQf0nXQW5GIaDG4a17iZw=
+
+Name: res/xml/kb_russianrussiarurussian_symbols_shift_caps_altgr.xml
+SHA1-Digest: haC8mHWTGLeHjrb43ZSPwzSpR6I=
+
+Name: res/drawable-hdpi-v4/ic_info.png
+SHA1-Digest: bvcFFLr+SdDZ9kp04PeCSyatM5E=
+
+Name: res/drawable-xhdpi-v4/btn_keyboard_key_pressed_off.9.png
+SHA1-Digest: blSpjaPm3d9VhDZL+TDLBFpJB14=
+
+Name: res/drawable-xhdpi-v4/sym_keyboard_shift_locked.png
+SHA1-Digest: /KjVIPH1yqrR4B1yLa3816w3iPw=
+
+Name: res/xml-large-v4/kb_japanesejapanjapanese_symbols_shift_caps_alt
+ gr.xml
+SHA1-Digest: qRxXTuZcXDZc7sPqRxZv5IGuMBQ=
+
+Name: res/xml/kb_frenchfrancefrfrench_chars_altgr.xml
+SHA1-Digest: WcYdsM09r5oeneUSp06DObL6TsU=
+
+Name: res/xml/kb_japanesejapanjapanese_symbols_shift_altgr.xml
+SHA1-Digest: rDu7rjl7MQVRohhD4PBlqlmRhZ4=
+
+Name: res/xml/kb_norwegiannynorsknorwaynonorwegian_chars_shift.xml
+SHA1-Digest: istF5EeeGWwpQ0Rsbu7DVHp+I14=
+
+Name: res/drawable-hdpi-v4/sym_keyboard_feedback_shift_locked.png
+SHA1-Digest: YiP+gWmpzBsLU/UlbPtg6/9WLcY=
+
+Name: res/xml/kb_norwegiannynorsknorwaynonorwegian_chars_shift_caps.xm
+ l
+SHA1-Digest: Pl2WbkhqRocfsq2YIUx0LyJggG8=
+
+Name: res/xml/kb_japanesejapanjapanese_chars_shift_altgr.xml
+SHA1-Digest: ghGDvl9qVkhI/zjShzD5JRH1kBc=
+
+Name: res/drawable/banner_480_60.png
+SHA1-Digest: Gc9fIcJeGw/xIPTruRH8cZI9tQE=
+
+Name: res/drawable-mdpi-v4/sym_keyboard_feedback_lang.png
+SHA1-Digest: L5kchY5pcsy5cuF8OMhPIS0psHc=
+
+Name: lib/armeabi-v7a/libtuxrdp.so
+SHA1-Digest: e+09kRtO9ojFeZbNwtmZprUhhyg=
+
+Name: res/drawable/card_background_pressed.xml
+SHA1-Digest: URgmnnJmyEUvr8inTYCK7fIaIqU=
+
+Name: res/drawable-ldpi-v4/ic_status.png
+SHA1-Digest: RXF/8RMOae8RTv6snDvIv1CtUcA=
+
+Name: res/drawable-mdpi-v4/ic_picture.png
+SHA1-Digest: 4b6rZBqHlA7Dz12jwVUXXEvHr+0=
+
+Name: res/drawable-mdpi-v4/ic_action_mouse.png
+SHA1-Digest: oRBznG8yDV61UCvf2FJOOw3HL2M=
+
+Name: res/xml-large-v4/kb_japanesejapanjapanese_chars_altgr.xml
+SHA1-Digest: KfaK+KZ7nB6bBAnPAjXzDRO9P88=
+
+Name: res/xml/kb_frenchcanadafrcanadianfrench_symbols_none.xml
+SHA1-Digest: 0WJjWYiIIl+91LdA6lCy9UdZTIs=
+
+Name: res/xml/kb_portuguesebrazilptportuguesebrazilian_chars_shift.xml
+SHA1-Digest: VPrGZV+QKg9ej3FCeti1LI4Dp1I=
+
+Name: res/xml/kb_englishunitedstatesenus_chars_shift_caps.xml
+SHA1-Digest: H0xmJ3Qw4yuSqkty8JwzRlCzMdM=
+
+Name: res/xml/kb_italianitalyititalian_chars_none.xml
+SHA1-Digest: dV/JUBe7NRjNdq2uihqN8e0D/L8=
+
+Name: res/xml/kb_portugueseportugalptportuguese_symbols_caps_altgr.xml
+SHA1-Digest: X1FLkPPegWMRCiDh3N7BrNV1y8w=
+
+Name: res/drawable-hdpi-v4/ic_keyboard.png
+SHA1-Digest: P+Ivu36dmIFdEd+37EE7GmmVh08=
+
+Name: res/drawable-hdpi-v4/tuxconn.png
+SHA1-Digest: EUek2AiLjCBYjN0ib8y1hZHaYuM=
+
+Name: res/xml/kb_italianitalyititalian_chars_shift_caps.xml
+SHA1-Digest: cKgQGHi5c0DW5zVFIdl2dVhOiGQ=
+
+Name: res/drawable-hdpi-v4/ic_connection.png
+SHA1-Digest: 7dQD1A6PgeNsKTQMOhHFL9b01XQ=
+
+Name: res/drawable-hdpi-v4/sym_keyboard_return.png
+SHA1-Digest: eygtCKeIUUimp4GfnjLr5eN6t3Y=
+
+Name: res/drawable/list_selector.xml
+SHA1-Digest: nU+ygt3nt5ygWEL0nWAdfQiTg6A=
+
+Name: res/drawable/button_selector_dark.xml
+SHA1-Digest: Nw1oCAxOU68W2oyOCRK8VJEfmYA=
+
+Name: res/drawable-hdpi-v4/sym_keyboard_feedback_space.png
+SHA1-Digest: RgG32M1UnUpYmOm/kNaaMziWZRY=
+
+Name: res/drawable-ldpi-v4/tuxconn.png
+SHA1-Digest: lswV8QFCWVNXmDzB3S0osgFSEPg=
+
+Name: res/xml/kb_italianitalyititalian_chars_caps.xml
+SHA1-Digest: K5BtncZqsKaJJO/SksvOnuJDUwU=
+
+Name: res/xml/farm_properties_display.xml
+SHA1-Digest: GYLScKPAx1eGjmy4jgyv5LjwBGI=
+
+Name: res/drawable-xhdpi-v4/ic_logoff_light.png
+SHA1-Digest: yJLtClhNkG4RQ+16KNvuk7IxMzE=
+
+Name: res/drawable-xhdpi-v4/btn_keyboard_key_normal_off.9.png
+SHA1-Digest: CBMiWR5jvFfSHUHO3b6IrM253i8=
+
+Name: res/xml/kb_italianitalyititalian_symbols_shift_caps_altgr.xml
+SHA1-Digest: gps8W2ShTMS7zuN5S9BG1MdfhGc=
+
+Name: res/xml/kb_dutchnetherlandsnldutch_symbols_none.xml
+SHA1-Digest: xO8tua6qla08Pj38kVFij6vUlxM=
+
+Name: res/xml/kb_portuguesebrazilptportuguesebrazilian_symbols_shift.x
+ ml
+SHA1-Digest: yEphTqZWGXXTgl0/HhspeeInhCM=
+
+Name: res/xml/kb_dutchnetherlandsnldutch_symbols_shift_caps.xml
+SHA1-Digest: EQl+/rIgYaulFRO+FgKLfhdZlYU=
+
+Name: res/drawable-hdpi-v4/sym_keyboard_right.png
+SHA1-Digest: 4mpx5BTDgG4g3YLzh6iErvJotpM=
+
+Name: res/drawable/card_selector.xml
+SHA1-Digest: WJJh/WtTmhMHi+rXlGpC/KiS76o=
+
+Name: res/xml/kb_portuguesebrazilptportuguesebrazilian_chars_altgr.xml
+SHA1-Digest: bLTFTzKvdDkr+plo8/NdOJJ4s4Q=
+
+Name: res/xml/kb_portuguesebrazilptportuguesebrazilian_symbols_altgr.x
+ ml
+SHA1-Digest: 5k/LJk9QYFzDqzpDyo3jcvduLls=
+
+Name: res/xml/kb_dutchnetherlandsnldutch_chars_shift_caps_altgr.xml
+SHA1-Digest: xtnECmsFd7Vq2OGUjLJgHGmLg04=
+
+Name: res/xml/kb_englishunitedkingdomenunitedkingdom_symbols_shift_cap
+ s.xml
+SHA1-Digest: SUTIW4D2CqIqrY8Mbbg83zBMV90=
+
+Name: res/drawable-xhdpi-v4/rdpconn.png
+SHA1-Digest: N8sAePWur2SL1pwt9ES0HLDYBqI=
+
+Name: res/drawable-ldpi-v4/sym_keyboard_feedback_lang.png
+SHA1-Digest: SKY+8Qq+cvQ4RcRrDJzNhCv81Qg=
+
+Name: res/xml/kb_germangermanydegerman_chars_shift_caps_altgr.xml
+SHA1-Digest: JnCMUBDNfbxjY1rpkzQbry5jj54=
+
+Name: res/xml/farm_properties_connection.xml
+SHA1-Digest: Qhwunivv5uP4t+JY19pqsHwpbAk=
+
+Name: res/layout/farm_props_categories_item.xml
+SHA1-Digest: m8RktdJ3FwvHPPROi+VoXkY0kIM=
+
+Name: res/drawable-hdpi-v4/ic_logoff_light.png
+SHA1-Digest: qYyX5DFMYa3x6g+Xc/Ao5sMCv4U=
+
+Name: res/drawable-ldpi-v4/rdpconn.png
+SHA1-Digest: h+FBiHFFQ8knhpg1eLfLDRH39UE=
+
+Name: res/drawable-hdpi-v4/sym_keyboard_down_feedback.png
+SHA1-Digest: GloRLJHEuQAnL2U17aEa3NDSNhY=
+
+Name: res/xml/kb_portugueseportugalptportuguese_numeric_none.xml
+SHA1-Digest: uThaN8A3JsF+YXx18l4lCQylic0=
+
+Name: res/xml/kb_italianitalyititalian_numeric_none.xml
+SHA1-Digest: HBcT7hAft/qZdSgS+cA9eLQFLTo=
+
+Name: res/xml/kb_japanesejapanjapanese_symbols_none.xml
+SHA1-Digest: TuEJa8qlXoQ/L364KfgLYuqGf5A=
+
+Name: res/menu-v11/shortcuts_menu.xml
+SHA1-Digest: 5Xcl5JSs5LpBpxqPq19iHGAU6sU=
+
+Name: res/xml/kb_germangermanydegerman_numeric_none.xml
+SHA1-Digest: 0DPqIMN93vjAKDK9YuuRhqj1puU=
+
+Name: res/xml/kb_englishunitedstatesenus_chars_shift.xml
+SHA1-Digest: KGnjCBQk4Y+szC6+1vElF1MZb0s=
+
+Name: res/drawable-hdpi-v4/sym_keyboard_delete.png
+SHA1-Digest: ikS5hFsiBt6RL1UsZt1lhZ/jQeE=
+
+Name: res/xml/kb_maltesemaltamlmaltese48key_chars_shift.xml
+SHA1-Digest: gCj1v3o2R8YQHrF5xvtf9QqYOlw=
+
+Name: res/xml/kb_russianrussiarurussian_symbols_shift_caps.xml
+SHA1-Digest: UGdInpq2bkkHEuiXU3N3kvuMtxI=
+
+Name: res/menu/shortcuts_menu.xml
+SHA1-Digest: usIyS9B2gU55s7CVVIUkOghIcq0=
+
+Name: res/xml/kb_spanishspaininternationalsortesspanish_chars_caps.xml
+SHA1-Digest: rezbcj2HL26TYq+DY5H+mHVEi3Q=
+
+Name: res/xml/kb_englishunitedstatesenus_numeric_none.xml
+SHA1-Digest: Rcqak3c0Qq0r6ntWAbY+a+pIxjc=
+
+Name: res/drawable/key_selector.xml
+SHA1-Digest: VrDb0zW9ujJVDkXuVTDQaLg9Dug=
+
+Name: res/xml/kb_spanishspaininternationalsortesspanish_chars_shift_al
+ tgr.xml
+SHA1-Digest: 4C1el/jrG1NVU8ZCG24lKb9E8MM=
+
+Name: res/drawable-mdpi-v4/btn_keyboard_key_normal_off.9.png
+SHA1-Digest: ujd5iOyeaDRtC0gzJOwD26RNYXs=
+
+Name: res/xml/kb_spanishspaininternationalsortesspanish_symbols_shift_
+ caps_altgr.xml
+SHA1-Digest: TEDhHJlQUK7ayFjyb1RNZ0vHCVU=
+
+Name: res/xml-large-v4/kb_japanesejapanjapanese_chars_caps_altgr.xml
+SHA1-Digest: I2aObII5six+6gjeXvdmLdtvJL8=
+
+Name: res/xml/kb_germangermanydegerman_chars_none.xml
+SHA1-Digest: m+CYvYPUfhbz901/LaYNDG6v4gU=
+
+Name: res/xml/kb_japanesejapanjapanese_symbols_shift_caps.xml
+SHA1-Digest: 0qQKtmHEDpPyaUIan5uieTXbwq8=
+
+Name: res/xml-large-v4/kb_japanesejapanjapanese_chars_shift_caps_altgr
+ .xml
+SHA1-Digest: Gzbs89J98FBFOz8Zh5NPq75u+to=
+
+Name: AndroidManifest.xml
+SHA1-Digest: F4K6h4uTfjroskuvFpUv4DopysQ=
+
+Name: res/xml/kb_frenchfrancefrfrench_chars_shift_altgr.xml
+SHA1-Digest: lo3worPw+to5BZE5bqTJmzSXFXQ=
+
+Name: res/drawable-mdpi-v4/sym_keyboard_space.png
+SHA1-Digest: ivzQAYcmIgnx3rTcBNbtW9ZeF7E=
+
+Name: res/drawable-xhdpi-v4/ic_stats.png
+SHA1-Digest: sMmdD3o8txPC3NIyvg7njCpD6Rs=
+
+Name: res/drawable-xhdpi-v4/ic_keyboard.png
+SHA1-Digest: MnYHWF++AGOYu+Hz7ZtEPJBVpJE=
+
+Name: res/drawable-xxhdpi-v4/ic_cube_outline.png
+SHA1-Digest: /xnVsa7sQX8K3VfAU34aboC05P4=
+
+Name: res/xml/kb_spanishspaininternationalsortesspanish_fn.xml
+SHA1-Digest: BbU/jc22oEpoCisTUKZL19dc238=
+
+Name: res/xml/kb_russianrussiarurussian_symbols_caps.xml
+SHA1-Digest: Cbt7+eLJWWx2cTybA16P9YT3oIE=
+
+Name: res/layout/promo_banner.xml
+SHA1-Digest: 6d43kmjM0nYwxPIReieihhfPJHs=
+
+Name: res/xml/kb_germangermanydegerman_chars_shift.xml
+SHA1-Digest: g0Hm/vkd1BKO3U9Fk3gYNMj1RmY=
+
+Name: res/xml/kb_maltesemaltamlmaltese48key_symbols_shift_caps.xml
+SHA1-Digest: ReGUET+50oL7Cm9C+AYaPzsAY4c=
+
+Name: res/drawable-ldpi-v4/sym_keyboard_space.png
+SHA1-Digest: R7Qdfv2yCyu8VxrUWX6SMacVw3M=
+
+Name: res/xml/kb_spanishspaininternationalsortesspanish_symbols_caps_a
+ ltgr.xml
+SHA1-Digest: XZB3A06YqyhroLN0OP3BwufrriQ=
+
+Name: res/drawable-hdpi-v4/sym_keyboard_shift_locked.png
+SHA1-Digest: Vo/x6VgdXZqCegYAE+lmJ8d0w1s=
+
+Name: res/menu/session.xml
+SHA1-Digest: FbrSwBkp88/PcsJLIIa1aMWwlDQ=
+
+Name: res/menu-v11/session.xml
+SHA1-Digest: otERDh7Xenw6q8EBynPo5m92m50=
+
+Name: res/drawable-ldpi-v4/sym_keyboard_feedback_return.png
+SHA1-Digest: YwcOPMeU+6rPygdYfGIREZ5oYKQ=
+
+Name: classes.dex
+SHA1-Digest: jZTDxkrVTvqC12Bk5y+KmCVSlwE=
+
+Name: nbproject/genfiles.properties
+SHA1-Digest: dhA02/bagCeT/kEawiA+JccbfHU=
+
+Name: res/drawable-mdpi-v4/ic_logoff_light.png
+SHA1-Digest: jgxcVuXYQLmYIpbXLmzJlBbNwQ8=
+
+Name: res/xml/kb_swedishswedensvswedish_chars_shift_altgr.xml
+SHA1-Digest: kUAQdRCtU0OiR+WgphQZvfOrGXY=
+
+Name: res/drawable-mdpi-v4/ic_action_discard.png
+SHA1-Digest: eolVTDnw9I4yaANzeJojouQN3ps=
+
+Name: res/menu-v11/farms_list.xml
+SHA1-Digest: 7S19+552y50qW3Wjy1TVEYb9jBo=
+
+Name: res/drawable-v11/list_selector.xml
+SHA1-Digest: 47kdWtPU1RDSPI3n6abLrde62yE=
+
+Name: res/xml/kb_japanesejapanjapanese_fn.xml
+SHA1-Digest: ZeYkyfkmp5kYo18orZKFJGyB88M=
+
+Name: res/drawable/banner_960_120.png
+SHA1-Digest: z7+BjgKoGV2zATzvFyjWn9vgyFA=
+
+Name: res/xml/kb_russianrussiarurussian_chars_shift_caps.xml
+SHA1-Digest: EsbKGc+dLgZq9yIAcaoTx1efPJE=
+
+Name: res/xml/kb_spanishspaininternationalsortesspanish_symbols_shift_
+ caps.xml
+SHA1-Digest: k83/TrV/FlSopPOGrK2RNbUUSRQ=
+
+Name: assets/fonts/roboto-light.ttf
+SHA1-Digest: 4j4uYiMF0Oq2xTCwAqrOQXAhPg0=
+
+Name: res/xml/kb_spanishspaininternationalsortesspanish_chars_none.xml
+SHA1-Digest: 9qrtU7ZkBllgRmvmI9Y1GQD8KT4=
+
+Name: res/xml-v11/settings_headers.xml
+SHA1-Digest: umDV3GhUClFtzJx0aJbzDceratE=
+
+Name: res/xml/kb_englishunitedstatesenus_chars_shift_altgr.xml
+SHA1-Digest: +iBRb/IbXwdByn6w53F3re3Iyzw=
+
+Name: res/xml-large-v4/kb_japanesejapanjapanese_symbols_caps.xml
+SHA1-Digest: TabhvM3SV7HEuIcjDcqXXQukh3I=
+
+Name: res/xml/kb_spanishspaininternationalsortesspanish_chars_caps_alt
+ gr.xml
+SHA1-Digest: kLgKoOMm4bbS4yQlLT7iJhLRXwE=
+
+Name: res/layout/logon_dlg.xml
+SHA1-Digest: 5KCJ8cSmHqAnCmp1eMB40bS6KP4=
+
+Name: res/xml/kb_japanesejapanjapanese_chars_caps_altgr.xml
+SHA1-Digest: 3jYsh8lZGHPlnsb/BbjfaoNE7pc=
+
+Name: res/drawable/button_selector_transparent.xml
+SHA1-Digest: 9EHiv1lAFGne0PAfoduYhmbnF+c=
+
+Name: res/xml/kb_spanishspaininternationalsortesspanish_chars_shift_ca
+ ps.xml
+SHA1-Digest: CAMjQ2j5HYLiMjgalfR3f6kaKuE=
+
+Name: res/xml/kb_frenchcanadafrcanadianfrench_chars_shift_caps.xml
+SHA1-Digest: LV+Ra7cOPveZTxIQkbCbikD3aBA=
+
+Name: res/xml/kb_portugueseportugalptportuguese_chars_shift.xml
+SHA1-Digest: Z50R6WGc54vb+z5npCKpAQ66mck=
+
+Name: res/drawable-hdpi-v4/btn_mouse_rightclick.png
+SHA1-Digest: uSpvLCIZFXB5K5Iye18lioEKyio=
+
+Name: res/xml/kb_englishunitedkingdomenunitedkingdom_numeric_none.xml
+SHA1-Digest: HfKT/GbEIFsVlJS/7yjIyvEbf4o=
+
+Name: res/xml/kb_englishunitedkingdomenunitedkingdom_chars_shift_caps.
+ xml
+SHA1-Digest: RD0vzxsCrq8a5hyYRgEzi91xPtk=
+
+Name: res/drawable-ldpi-v4/btn_mouse_keyboard.png
+SHA1-Digest: xrIV1ktrZH/SVRyXRAFAvpVSQiU=
+
+Name: res/drawable-hdpi-v4/ic_more_dark.png
+SHA1-Digest: p1Qxl4yDkiwqb4TcEIRn+9qSBYw=
+
+Name: res/drawable-hdpi-v4/sym_keyboard_feedback_lang.png
+SHA1-Digest: XOrbvO8MAnaPwjgYX0PdyWap8+k=
+
+Name: res/xml/kb_russianrussiarurussian_chars_altgr.xml
+SHA1-Digest: eKp0nuLIN/Bg+uy8rIIn1P/J2sQ=
+
+Name: res/xml/kb_englishunitedstatesenus_chars_altgr.xml
+SHA1-Digest: uoFo4R08kTWZnpaH6EzE31jr8jU=
+
+Name: nbproject/build-impl.xml
+SHA1-Digest: JSLL5Y+ElvLMIC2H/5Ai1/CZm0Y=
+
+Name: res/xml/kb_frenchfrancefrfrench_chars_shift_caps.xml
+SHA1-Digest: 7uz6gOP69U1MnP3nJ0cTuaUXoj4=
+
+Name: res/drawable-mdpi-v4/sym_keyboard_right_feedback.png
+SHA1-Digest: xWoQ7aL9eoKuUHor7sa6iA9DTes=
+
+Name: res/layout/item_grid.xml
+SHA1-Digest: NKjBuYl7tRzGs1OXPcoXqIBTtaI=
+
+Name: res/xml/kb_germangermanydegerman_symbols_altgr.xml
+SHA1-Digest: 6rCJtypUsWGPbYMpWSeBPRMabBQ=
+
+Name: res/xml/kb_frenchcanadafrcanadianfrench_fn.xml
+SHA1-Digest: sCfUJTvzXqag9qrAyLGTUYVnui8=
+
+Name: res/layout/shortcut_dlg.xml
+SHA1-Digest: 2RHrL8CCPoCQ3F6Ryngn+hRnoNg=
+
+Name: res/xml/kb_englishunitedstatesenus_symbols_caps_altgr.xml
+SHA1-Digest: 95bvwLyH+0Z7IoOJ1EeZ+ErH0LE=
+
+Name: res/drawable-hdpi-v4/btn_mouse_minus.png
+SHA1-Digest: /eDdEPkgfsIZNuWVo1mrUUONnyg=
+
+Name: res/xml/qwerty.xml
+SHA1-Digest: dCw5MzBd//iLW5S4bl5sbicBmWc=
+
+Name: nbproject/project.xml
+SHA1-Digest: 3FHUe0q15kF9ISfLi3QdSaXAM7k=
+
+Name: res/xml-large-v4/kb_japanesejapanjapanese_chars_shift_altgr.xml
+SHA1-Digest: d7yT+MItQtHXeMLCaH94/iP+Z4k=
+
+Name: res/xml/kb_germangermanydegerman_chars_altgr.xml
+SHA1-Digest: YlKvNHdZwdVAd9AssvfVZYO6rfE=
+
+Name: res/layout/preference_list_content.xml
+SHA1-Digest: aLE3pdZJk5p54S2QlnGF+lOGvj0=
+
+Name: res/xml/kb_englishunitedstatesenus_chars_shift_caps_altgr.xml
+SHA1-Digest: u/TBiyru83SAGU1vwz8H/7n7upg=
+
+Name: nbproject/project.properties
+SHA1-Digest: 7Ig2bqL5qQBVVo+jpGKlYfOaQSo=
+
+Name: res/layout/session_cert_info_dlg.xml
+SHA1-Digest: +hmf3Ja0Z5Jae7o/CkmvGUTGh9M=
+
+Name: res/drawable-xhdpi-v4/ic_display.png
+SHA1-Digest: 6XsdloqMw//kxopXHGVtPWb7ds4=
+
+Name: res/layout/clear_dlg.xml
+SHA1-Digest: 33B+M5WrLwQ3hx4cpnAr8LfBA3w=
+
+Name: res/xml/kb_portuguesebrazilptportuguesebrazilian_numeric_none.xm
+ l
+SHA1-Digest: 8wi/Ou18TfvdEtxsmEDoOyOOsb4=
+
+Name: res/xml/kb_japanesejapanjapanese_symbols_altgr.xml
+SHA1-Digest: XRn0iM98IxUT5svRwK2LijDNsKU=
+
+Name: res/xml/kb_russianrussiarurussian_fn.xml
+SHA1-Digest: etfBCiTdqcgiBlyiHSgw7sxz1F0=
+
+Name: res/drawable-hdpi-v4/ic_authentication.png
+SHA1-Digest: UhmS/Mh5oluSwEnJeycCWOHAGTA=
+
+Name: res/xml/kb_germangermanydegerman_symbols_caps.xml
+SHA1-Digest: AG/UJSuRmOCYiRwrSnjOLYo9Tmo=
+
+Name: res/drawable/keyboard_popup_bg.xml
+SHA1-Digest: XH0kWmuw6Yy1d41nOwsgqGH9IuA=
+
+Name: res/xml/kb_portuguesebrazilptportuguesebrazilian_chars_shift_alt
+ gr.xml
+SHA1-Digest: tqxuuZdTefKOMdJl6q2791AjBS8=
+
+Name: res/xml/kb_dutchnetherlandsnldutch_symbols_caps_altgr.xml
+SHA1-Digest: UDCu/4zSZHVTKg9qIFmYRB18SFs=
+
+Name: res/xml/settings_gestures.xml
+SHA1-Digest: NyLLslOjLkMJVYDs3z4OuGdesJ4=
+
+Name: res/xml/kb_spanishspaininternationalsortesspanish_numeric_none.x
+ ml
+SHA1-Digest: inI3sbTodU41WZ0b84nK54g+HJ4=
+
+Name: res/xml/kb_russianrussiarurussian_symbols_shift_altgr.xml
+SHA1-Digest: v4gWcTpzq4vfj215OzkOfCr4D+o=
+
+Name: res/xml/kb_russianrussiarurussian_chars_shift_caps_altgr.xml
+SHA1-Digest: y89QeufZ8tTRMeBtEQksVQxmpdI=
+
+Name: res/drawable/fingers_1.png
+SHA1-Digest: VNvU4MOkA6hcnsd/zJVqUxlsvdo=
+
+Name: res/xml/kb_maltesemaltamlmaltese48key_fn.xml
+SHA1-Digest: qbNTqPTJ8+pQXsJH8wrZqCH54pA=
+
+Name: res/xml/kb_dutchnetherlandsnldutch_numeric_none.xml
+SHA1-Digest: rQ7LHqcmVyaU2qE1tovzs2CUxAY=
+
+Name: res/layout/shortcut_grid.xml
+SHA1-Digest: lTPsqgwrMH8+/52LTIK1dh9v2Ek=
+
+Name: res/xml-large-v4/kb_japanesejapanjapanese_chars_caps.xml
+SHA1-Digest: f7MgMy3qYZPlPxl97MRhxUsK57E=
+
+Name: res/xml/settings_input.xml
+SHA1-Digest: buFvnS/AnCNN2ECAteSILySAjbw=
+
+Name: res/drawable/banner_2048_120.png
+SHA1-Digest: EX3Wz0ZUvuYW2H1+tyxGmvkwXJg=
+
+Name: res/drawable-mdpi-v4/ic_printing.png
+SHA1-Digest: cLm0bMV1/lOie+zYqkZ8B1LaepQ=
+
+Name: res/xml/kb_russianrussiarurussian_numeric_none.xml
+SHA1-Digest: lb7avpdPOIe+eXXgJ/j4W6LRF7c=
+
+Name: res/layout/about_tab.xml
+SHA1-Digest: ch5TE6D9xHlwfCb0PaENdG+2euA=
+
+Name: res/xml/kb_portuguesebrazilptportuguesebrazilian_symbols_shift_a
+ ltgr.xml
+SHA1-Digest: LCJzHsDeP521hSxElyB9wscUKrI=
+
+Name: res/drawable-mdpi-v4/ic_network.png
+SHA1-Digest: mYkQAbMf2Te98rxCU6osieiWKYg=
+
+Name: res/xml/kb_maltesemaltamlmaltese48key_symbols_caps.xml
+SHA1-Digest: DcLJlKa8/yyybtFxvKkdh0nFBD0=
+
+Name: res/drawable-xxhdpi-v4/icon.png
+SHA1-Digest: ip846CRBAsYVoIeDSEJgGVKydvM=
+
+Name: res/xml/kb_dutchnetherlandsnldutch_chars_none.xml
+SHA1-Digest: cntpmogDV+p4Czo51pFM6kSVk4w=
+
+Name: res/xml/kb_swedishswedensvswedish_chars_caps.xml
+SHA1-Digest: vwnn/T5XPHp7bH6RZw9bY23AVyM=
+
+Name: res/drawable-ldpi-v4/sym_keyboard_up_feedback.png
+SHA1-Digest: Bc99EYC4UM0nIZvaaoo0u2LaRUY=
+
+Name: res/xml/kb_dutchnetherlandsnldutch_chars_shift_altgr.xml
+SHA1-Digest: vxVbTGTHoyS1Iva79ucAoF0jPAs=
+
+Name: res/xml/kb_frenchcanadafrcanadianfrench_symbols_shift_altgr.xml
+SHA1-Digest: kyNywKsaxjNw9frES4rAEq/Ls8w=
+
+Name: res/drawable-mdpi-v4/ic_connection.png
+SHA1-Digest: H50GhEL3zFFuxzfSzIwgGFMbEaw=
+
+Name: res/drawable-hdpi-v4/sym_keyboard_shift.png
+SHA1-Digest: a6qBknXhT/ZnOSmIe06+gHYJoug=
+
+Name: res/xml/kb_frenchcanadafrcanadianfrench_symbols_shift_caps_altgr
+ .xml
+SHA1-Digest: 5NwzeBpmOi1+/x57mg9ANyovwRE=
+
+Name: res/xml/kb_japanesejapanjapanese_symbols_caps.xml
+SHA1-Digest: BPK3MwYfJ+MHhnvSQDtWQZCANZI=
+
+Name: res/menu/apps_list.xml
+SHA1-Digest: 4yJtsyxSfxnYlXXfC+9s3mMa03k=
+
+Name: res/xml/kb_dutchnetherlandsnldutch_chars_caps_altgr.xml
+SHA1-Digest: Z/Xe9JweYhmxuWFSvHwFhLv9rZ4=
+
+Name: res/xml-v11/settings_input.xml
+SHA1-Digest: yikuWuWBXwDYIEg38wgsK9UF3C4=
+
+Name: res/xml/kb_englishunitedkingdomenunitedkingdom_chars_shift_caps_
+ altgr.xml
+SHA1-Digest: ZFoJRnFfYuoXLGSxBygwnl8WK2c=
+
+Name: res/xml/kb_englishunitedkingdomenunitedkingdom_chars_caps_altgr.
+ xml
+SHA1-Digest: 5ejPyFpqPP5rc1LPTjF58W+Wjm4=
+
+Name: res/xml-v11/settings_gestures.xml
+SHA1-Digest: f/ldIHFYOk2NTstUDxaSHH6eXAA=
+
+Name: res/xml/kb_maltesemaltamlmaltese48key_symbols_shift_altgr.xml
+SHA1-Digest: gbapx66qawaszIm2Q88FWF2V568=
+
+Name: res/drawable-mdpi-v4/ic_cube_outline.png
+SHA1-Digest: M+GdX47TOIFLlmGOvHGhWfwyV0E=
+
+Name: res/menu-v11/session_plus_hide.xml
+SHA1-Digest: vUKs95kTssZ5YoQsiwWqlYYfsoA=
+
+Name: res/xml/kb_dutchnetherlandsnldutch_symbols_shift.xml
+SHA1-Digest: IabY3OZxK98M/oLivueiDIH9rGY=
+
+Name: res/drawable-mdpi-v4/btn_mouse_plus.png
+SHA1-Digest: tYeG6cXeD17x7Z6lQJSQtJpI4OE=
+
+Name: res/drawable-hdpi-v4/sym_keyboard_lang.png
+SHA1-Digest: fUpFroC1Z3Oa941dXGs4TXZufdg=
+
+Name: res/layout/drawing_dlg.xml
+SHA1-Digest: k/JCw3QYCsEl2os5LX6mqcf1pQY=
+
+Name: res/xml-large-v4/kb_japanesejapanjapanese_chars_none.xml
+SHA1-Digest: yeFGtcG1QrpVW2B1ZeWzGrMEDKE=
+
+Name: res/xml/kb_maltesemaltamlmaltese48key_chars_shift_altgr.xml
+SHA1-Digest: qHS4H7XcT8XQ3dHIoz07/xIZc9Q=
+
+Name: res/xml/kb_frenchcanadafrcanadianfrench_symbols_caps.xml
+SHA1-Digest: O9/aMqP/49oacnIG6fnXw2gQONw=
+
+Name: res/drawable-hdpi-v4/ic_cube_outline.png
+SHA1-Digest: Iw2Q2nBpR7qWbpBHrozP5C2KzRE=
+
+Name: res/xml/kb_swedishswedensvswedish_symbols_shift.xml
+SHA1-Digest: sissjUcadNf/oJOxw5JHWWK5MN4=
+
+Name: res/xml/kb_maltesemaltamlmaltese48key_chars_caps.xml
+SHA1-Digest: ABXCkt2An9zhkXbiV9P3MO1Avsw=
+
+Name: res/xml/kb_italianitalyititalian_symbols_caps_altgr.xml
+SHA1-Digest: aFeU9gYj3+yf9DaTX/OWfhefR2U=
+
+Name: res/layout/changepwd_dlg.xml
+SHA1-Digest: n0P6H7chJBsY9BeIZJUgTCFx6n4=
+
+Name: res/drawable-hdpi-v4/ic_picture.png
+SHA1-Digest: SDqRWxorTo71cUhaUUhUaGM1sAA=
+
+Name: res/xml/kb_germangermanydegerman_numeric_lock.xml
+SHA1-Digest: gsAWDQVfnlnnMGPUsTugq+gBmfw=
+
+Name: res/xml/kb_portuguesebrazilptportuguesebrazilian_fn.xml
+SHA1-Digest: ZHnXJqGZIughEO7Sr4I1DTw7GEI=
+
+Name: res/xml-large-v4/kb_japanesejapanjapanese_fn.xml
+SHA1-Digest: drWCW1ixrRrNwu9cZTZjI4t/bmA=
+
+Name: res/xml/kb_swedishswedensvswedish_symbols_shift_altgr.xml
+SHA1-Digest: glrP4SjbgjNdaQCSRJYgSAXtejg=
+
+Name: res/xml/kb_portugueseportugalptportuguese_chars_caps_altgr.xml
+SHA1-Digest: MqBHV2BhkZ3+6Sxcq1DcKVfoO3A=
+
+Name: res/xml/kb_japanesejapanjapanese_chars_caps.xml
+SHA1-Digest: Odl/WI03p+j71SEkn+fjrqq8Vhc=
+
+Name: res/xml/kb_swedishswedensvswedish_fn.xml
+SHA1-Digest: nEFu0YClYK8NtPxm2djWqhtnXyc=
+
+Name: res/drawable-hdpi-v4/icon.png
+SHA1-Digest: /xNDtk2gibg5Uh9eSJ8AJW3y1QM=
+
+Name: res/layout-sw600dp-v13/connectiontype_act.xml
+SHA1-Digest: ORqYU/2LxelTSPebigC0SM6RpEY=
+
+Name: res/drawable-xhdpi-v4/ic_redirection.png
+SHA1-Digest: NCac2Qpn3KrWbX8Ra8dU3A3Vkk0=
+
+Name: res/xml/kb_englishunitedstatesenus_chars_caps.xml
+SHA1-Digest: 2RADAIeFA1jxl9JRNVzVR7Arnmw=
+
+Name: res/xml/symbols.xml
+SHA1-Digest: ZF90YtaM8zjeSxKHrkcANgGCVUs=
+
+Name: res/drawable-xhdpi-v4/ic_info.png
+SHA1-Digest: C0pHZuskR/QZS19pg+HkEOvci6c=
+
+Name: res/menu/farms_list.xml
+SHA1-Digest: aE8Hp07+babX5sixm06UqHdtAuc=
+
+Name: res/xml/kb_maltesemaltamlmaltese48key_symbols_none.xml
+SHA1-Digest: Cv6xcUkyxuboxJnBG44hpju9yyU=
+
+Name: res/xml/kb_spanishspaininternationalsortesspanish_chars_shift.xm
+ l
+SHA1-Digest: 6ohnSipQbWrODSPVjtCNXDOEJQ0=
+
+Name: res/xml/kb_norwegiannynorsknorwaynonorwegian_symbols_shift_altgr
+ .xml
+SHA1-Digest: lOi6LhCl2ebpDSWe5EJQhpkraZw=
+
+Name: res/drawable-xhdpi-v4/sym_keyboard_lang.png
+SHA1-Digest: 1PYpRdbG0GyqPPdWL/Bn9DT5ra8=
+
+Name: res/xml/kb_maltesemaltamlmaltese48key_chars_caps_altgr.xml
+SHA1-Digest: syyzwS/MvbzPD5yYT5zUMZ/2jDg=
+
+Name: res/drawable-mdpi-v4/ic_info.png
+SHA1-Digest: ILXSUby4nrRFVwp4E7qLOhepwJA=
+
+Name: res/drawable-ldpi-v4/ic_menu_settings.png
+SHA1-Digest: 8ik02SrEbsTHpFJ/+UWD3Gn1v7A=
+
+Name: res/drawable-mdpi-v4/sym_keyboard_left.png
+SHA1-Digest: VBfD+MY5Wh/TCfwmmp26+8yRWhQ=
+
+Name: res/xml/kb_portugueseportugalptportuguese_symbols_shift.xml
+SHA1-Digest: qXBaZXWAAWzaebCBkqHRufnxblo=
+
+Name: res/xml/kb_italianitalyititalian_symbols_altgr.xml
+SHA1-Digest: 36PAkHWMoaR7+nlq49dAieSfbec=
+
+Name: res/xml/kb_norwegiannynorsknorwaynonorwegian_symbols_caps.xml
+SHA1-Digest: KO/dVz8vo4kCnY01Hbn3nbw9OPE=
+
+Name: res/xml/kb_dutchnetherlandsnldutch_symbols_shift_altgr.xml
+SHA1-Digest: 20RBJL4ENhyYg0WVgrNUhwuXJ8g=
+
+Name: res/xml/kb_frenchfrancefrfrench_chars_caps.xml
+SHA1-Digest: BOEx11vzNz3HmhnlBC9tm0mBwXE=
+
+Name: res/xml/kb_portugueseportugalptportuguese_symbols_shift_caps.xml
+SHA1-Digest: cXSu8ufgESLjqCEMnCeK127NBGs=
+
+Name: res/drawable-xhdpi-v4/btn_keyboard_key_pressed_on.9.png
+SHA1-Digest: nrTQz384+dtBke2QUaTwqle9oVI=
+
+Name: res/drawable-xhdpi-v4/tuxconn.png
+SHA1-Digest: 6PH0Xv6hqbxS+EeOhpIWAYuxRLY=
+
+Name: res/drawable-xxhdpi-v4/ic_status.png
+SHA1-Digest: OPPvP9iCVyw1dMImUJOX4cgE1jk=
+
+Name: res/anim/slide_to_bottom.xml
+SHA1-Digest: FcvSwOWbnASjlhlEaCOslMuJ+Zg=
+
+Name: res/drawable-ldpi-v4/sym_keyboard_feedback_delete.png
+SHA1-Digest: UyJf+vbjtdiNoa/RhiK+B5FoWrg=
+
+Name: res/drawable-mdpi-v4/ic_redirection.png
+SHA1-Digest: B0qL9YSa1PPXMtfTTV5t9VIWUpg=
+
+Name: res/drawable-hdpi-v4/ic_stats.png
+SHA1-Digest: KGnkWXpNnJeMthWQMET8AwotmQI=
+
+Name: res/xml/settings_appearance.xml
+SHA1-Digest: xJXh++n11R2N6NYhHtIH12iyzis=
+
+Name: res/xml/kb_maltesemaltamlmaltese48key_chars_shift_caps_altgr.xml
+SHA1-Digest: g7Ebe9MhvvVIZa0930Syn+CnRDo=
+
+Name: res/xml/kb_swedishswedensvswedish_numeric_none.xml
+SHA1-Digest: VwL7a1z709Pd9D7adm7/tucEkY4=
+
+Name: res/xml/kb_russianrussiarurussian_chars_caps_altgr.xml
+SHA1-Digest: bG6GCc7hreGjqwP0Egq+FIJbcd0=
+
+Name: res/drawable-hdpi-v4/btn_mouse_plus.png
+SHA1-Digest: PjdpcFRgY0wUXOMHdIip07FxqFs=
+
+Name: res/xml/kb_frenchfrancefrfrench_numeric_none.xml
+SHA1-Digest: H2lVq3le71oPcvTGP+ySet6r5SE=
+
+Name: res/xml/farm_properties_authentication.xml
+SHA1-Digest: Dh4yuNACHzrxYYGgst+9uf9nsMU=
+
+Name: res/drawable-xhdpi-v4/ic_action_refresh.png
+SHA1-Digest: RjLmO4roQgRdwZhrnjIrBPr3v0U=
+
+Name: res/drawable-mdpi-v4/btn_keyboard_key_normal_on.9.png
+SHA1-Digest: O/n+HuhHHB4QdOkTpzZTmwPolDo=
+
+Name: res/drawable-xhdpi-v4/ic_remove.png
+SHA1-Digest: DUHSy+vFsUfNwN669NT+huTHu98=
+
+Name: res/drawable-ldpi-v4/btn_mouse_minus.png
+SHA1-Digest: APuAWX4mFdFmi2uB5pmKeGKlAkk=
+
+Name: res/xml/kb_dutchnetherlandsnldutch_fn.xml
+SHA1-Digest: oFdicDBIqOzVDxMkx/xXDq3VQvg=
+
+Name: res/xml/kb_portugueseportugalptportuguese_chars_shift_altgr.xml
+SHA1-Digest: Ud504AI480Q8HZEhmxxwbKtm0j4=
+
+Name: res/drawable-ldpi-v4/sym_keyboard_feedback_space.png
+SHA1-Digest: d+QlUoJRAHLX6nK7XedFVnzF5hg=
+
+Name: res/xml/kb_dutchnetherlandsnldutch_symbols_shift_caps_altgr.xml
+SHA1-Digest: OzscIDKL/3Va61DZOvhays/St7c=
+
+Name: res/xml/kb_swedishswedensvswedish_numeric_lock.xml
+SHA1-Digest: 5wevxorGSSyPOZcd5LR4MRN7mEU=
+
+Name: res/xml/kb_russianrussiarurussian_symbols_shift.xml
+SHA1-Digest: 74q5gNY6bHIuBBcIbhddDsj2STg=
+
+Name: res/xml/kb_norwegiannynorsknorwaynonorwegian_symbols_altgr.xml
+SHA1-Digest: D3ANHcneZuMLV+lSPhOTeAuBTYw=
+
+Name: res/drawable-hdpi-v4/ic_menu_settings.png
+SHA1-Digest: PmGlQ865r3SwSoDS0+VWyvMlVfg=
+
+Name: res/drawable-mdpi-v4/ic_display.png
+SHA1-Digest: OE6ZZUtunI7bA/CvqUWfQH9I7gY=
+
+Name: res/xml/kb_italianitalyititalian_chars_altgr.xml
+SHA1-Digest: aroj2/kc1PzuPDRP6jMRvZKvvkU=
+
+Name: res/xml/kb_englishunitedstatesenus_symbols_shift_caps_altgr.xml
+SHA1-Digest: R1j1kxbFleAYn/T88aBLt5Uf6E4=
+
+Name: res/xml/kb_englishunitedkingdomenunitedkingdom_symbols_shift.xml
+SHA1-Digest: dKU1hEQKqEddLVV+x20/nBUQtVE=
+
+Name: res/menu/session_plus_hide.xml
+SHA1-Digest: bOwKVarcC1yc9GzlP/b2FQ+PFck=
+
+Name: res/drawable-hdpi-v4/ic_action_keyboard.png
+SHA1-Digest: 0sv8Etle380Rg6xs7IjniXg+0lI=
+
+Name: res/drawable-xhdpi-v4/btn_keyboard_key_normal_on.9.png
+SHA1-Digest: RbJEFNkEVpenR9rpzUwQ20Nd1HA=
+
+Name: res/xml/kb_frenchfrancefrfrench_chars_caps_altgr.xml
+SHA1-Digest: GX4IISptHFK0yGppC66XmHestb4=
+
+Name: res/drawable/fingers_4.png
+SHA1-Digest: wum7spYQMsz7/H39eiSHOSzr+xs=
+
+Name: res/drawable-hdpi-v4/sym_keyboard_down.png
+SHA1-Digest: fo13NCe+INE57Y1g0m2tJ4tXQjo=
+
+Name: res/drawable-ldpi-v4/icon.png
+SHA1-Digest: OlZhhik9nQ63DHSZBv+eHvO3/tQ=
+
+Name: res/drawable-xhdpi-v4/ic_action_search.png
+SHA1-Digest: cwPeaPd4RFA5d4AY7IDjaEQZTgc=
+
+Name: res/xml/kb_portuguesebrazilptportuguesebrazilian_chars_shift_cap
+ s.xml
+SHA1-Digest: tVTB37+qSn6hnejaOUQW/T6xEQg=
+
+Name: res/xml/kb_maltesemaltamlmaltese48key_numeric_none.xml
+SHA1-Digest: Eub7dmalGj+jwHuSSHa5jNSpAtY=
+
+Name: res/layout-xlarge-port-v11/farm_properties.xml
+SHA1-Digest: DCqffjYTyTT5FEvROQNRJvJhY78=
+
+Name: res/xml/kb_englishunitedkingdomenunitedkingdom_chars_altgr.xml
+SHA1-Digest: EbjzZy6Re32qCG3LYi4lOZ11u4E=
+
+Name: res/drawable-mdpi-v4/btn_keyboard_key_pressed_on.9.png
+SHA1-Digest: 4LDPImpy+M8WWsLiTEx/aI88WVQ=
+
+Name: res/drawable-xhdpi-v4/ic_authentication.png
+SHA1-Digest: p+i6ict3Ru9U6WWS3ZyWSMgi1mY=
+
+Name: res/drawable-mdpi-v4/ic_keyboard.png
+SHA1-Digest: ly0J34R5GPrxJKlkx26ZedlVchY=
+
+Name: res/xml/kb_portuguesebrazilptportuguesebrazilian_symbols_none.xm
+ l
+SHA1-Digest: ZG2cnp8swEI446GEjzNRrhf+HqM=
+
+Name: res/drawable-mdpi-v4/sym_keyboard_feedback_shift.png
+SHA1-Digest: M3uAxzdqLlcDEPkIkHtuzGMNhnU=
+
+Name: res/xml/kb_frenchfrancefrfrench_symbols_shift_caps_altgr.xml
+SHA1-Digest: dseMWeYBOzyHKB7f8WRL1jvP6GE=
+
+Name: res/layout/editable_item.xml
+SHA1-Digest: PrW3K8UTWQVL9Hl9vCGxetMAEho=
+
+Name: res/drawable-xhdpi-v4/btn_keyboard_key_pressed.9.png
+SHA1-Digest: 3Ij4k6gdsj3h/+HdpTd+gc+em3k=
+
+Name: res/drawable-hdpi-v4/ic_display.png
+SHA1-Digest: RLUGCiWLcy7erNB3huQ+JnHb3OU=
+
+Name: res/drawable-mdpi-v4/sym_keyboard_down_feedback.png
+SHA1-Digest: 57/iku7FacUTMyYDP1xcezfMJ8A=
+
+Name: res/drawable/banner_768_60.png
+SHA1-Digest: FB9llK0G6B2QD6xSU3axAjNoBcM=
+
+Name: res/xml/kb_frenchfrancefrfrench_numeric_lock.xml
+SHA1-Digest: MH+e1zSPq37dE4iMMbqBBpecq/k=
+
+Name: res/xml/kb_russianrussiarurussian_numeric_lock.xml
+SHA1-Digest: ERvmLwu6FaLdFP3u0MLoRi6SyR4=
+
+Name: res/xml/kb_dutchnetherlandsnldutch_chars_altgr.xml
+SHA1-Digest: a2J/en2jm0j4nEpWHAQMX3+l6FY=
+
+Name: res/layout/directory_list.xml
+SHA1-Digest: Ye1blM3PKxpFMDqP5z9asYPJl58=
+
+Name: res/drawable-ldpi-v4/sym_keyboard_down_feedback.png
+SHA1-Digest: 8GeMnEoKpSNrXcUXHSMeN4jDiXs=
+
+Name: res/xml/kb_frenchfrancefrfrench_symbols_shift.xml
+SHA1-Digest: 2DJcRfHKYte8umz2mpAGZ9kFp+Q=
+
+Name: res/drawable-ldpi-v4/sym_keyboard_lang.png
+SHA1-Digest: e7LLptbufP1mZy0/lBZlvhZhi+E=
+
+Name: res/xml/kb_portugueseportugalptportuguese_symbols_none.xml
+SHA1-Digest: MCb6EM+otf7tqF9jBQvjUwVhw6g=
+
+Name: res/drawable-mdpi-v4/sym_keyboard_wnd.png
+SHA1-Digest: 2EUsYLOstOo4GZ18blg6bq1oiJQ=
+
+Name: res/xml/kb_spanishspaininternationalsortesspanish_symbols_none.x
+ ml
+SHA1-Digest: EHdzr86wJ669nrF5SogQBjows2M=
+
+Name: res/drawable/ic_new.png
+SHA1-Digest: yKWgscLbPs297GPtFRsOTE59F7o=
+
+Name: res/drawable-xhdpi-v4/ic_action_discard.png
+SHA1-Digest: VFfi0P6m8R5qtoRe2dkZ3b8FZU0=
+
+Name: res/xml/kb_swedishswedensvswedish_symbols_shift_caps.xml
+SHA1-Digest: RdyM/LtjfIRzU8VCSUzCyRpGLkY=
+
+Name: res/xml-large-v4/kb_japanesejapanjapanese_numeric_lock.xml
+SHA1-Digest: ZFICUltKdjSYWZa9o949f6VbPsI=
+
+Name: res/xml/kb_frenchfrancefrfrench_chars_shift.xml
+SHA1-Digest: L1qDDN9bNfc/k+j1P02wGh8lKi8=
+
+Name: res/layout/actionbar_preferencelist.xml
+SHA1-Digest: eNM3JJQe9K7iBhZlZtnggaxSvUw=
+
+Name: res/xml/kb_spanishspaininternationalsortesspanish_chars_altgr.xm
+ l
+SHA1-Digest: pY2TNjm4tQmY3Suj9eOh/o5DirI=
+
+Name: res/xml/kb_italianitalyititalian_numeric_lock.xml
+SHA1-Digest: /w3yIg/qVYuyIQib861FeU70jXI=
+
+Name: res/xml/kb_portuguesebrazilptportuguesebrazilian_chars_shift_cap
+ s_altgr.xml
+SHA1-Digest: zPHqHE3FNJ/0HIzgFtwBJJ82HYQ=
+
+Name: res/xml/kb_frenchcanadafrcanadianfrench_chars_shift_caps_altgr.x
+ ml
+SHA1-Digest: rmJLrMqPcdRD0QK5XuGEyNbaUT8=
+
+Name: res/layout/app_list.xml
+SHA1-Digest: Y6GOW6DRMLifwu3nnproi6tm2kA=
+
+Name: res/xml/kb_swedishswedensvswedish_symbols_shift_caps_altgr.xml
+SHA1-Digest: extmtctCK32oTINqVAfag8rkTLk=
+
+Name: res/xml/farm_properties_printing.xml
+SHA1-Digest: hHeGVK5fku0QxyY3FYdb9HSNBQ4=
+
+Name: res/drawable-mdpi-v4/sym_keyboard_feedback_return.png
+SHA1-Digest: zJF8tiwPmoW0juG99xi4vsAXjeI=
+
+Name: res/xml/kb_englishunitedkingdomenunitedkingdom_chars_shift.xml
+SHA1-Digest: YDXZmZkqILdmzuG/EnGThwOTO+Y=
+
+Name: res/xml/kb_englishunitedstatesenus_symbols_none.xml
+SHA1-Digest: ysszLGPd4cODZp2vlrZtM7euy0w=
+
+Name: res/xml/farm_properties_network.xml
+SHA1-Digest: B783drsrXf3g02eD/iGiat87MxA=
+
+Name: res/drawable-ldpi-v4/sym_keyboard_return.png
+SHA1-Digest: IgfwWNu+xN2CHWXL4rue7gWufck=
+
+Name: res/xml/settings_connection.xml
+SHA1-Digest: fLbHi9+yXlGkM0l4bKEcqtcAWe4=
+
+Name: res/drawable-hdpi-v4/sym_keyboard_feedback_shift.png
+SHA1-Digest: 4QJriQ4TGMMlZLzCJmXAyHEqbYg=
+
+Name: res/xml/kb_germangermanydegerman_symbols_shift_altgr.xml
+SHA1-Digest: GkzTegjNVT6SG+QWm23ctafFTWI=
+
+Name: res/xml/kb_portuguesebrazilptportuguesebrazilian_symbols_shift_c
+ aps.xml
+SHA1-Digest: MAqUKebrfJxTj4zvm0nP8uzZzzI=
+
+Name: res/drawable-mdpi-v4/ic_action_edit.png
+SHA1-Digest: SWKFKaF4e52ebDelBqhnx3tX5o8=
+
+Name: res/xml/kb_norwegiannynorsknorwaynonorwegian_fn.xml
+SHA1-Digest: usMahSm3GQxoKlrV8un5aazJ2gI=
+
+Name: res/xml/kb_germangermanydegerman_chars_caps_altgr.xml
+SHA1-Digest: 4pAmGDh1dhU1RDFD+u/m08NJ2pc=
+
+Name: res/drawable-mdpi-v4/icon.png
+SHA1-Digest: aBcMNDfHeUqofrYQn8dOpWcE6MI=
+
+Name: res/xml/kb_norwegiannynorsknorwaynonorwegian_chars_shift_altgr.x
+ ml
+SHA1-Digest: 1GnVWi0TUifwNRw5mB5GyEmaIh0=
+
+Name: res/layout-v11/shortcut_dlg.xml
+SHA1-Digest: FSHMzLjUCLRoKhQRjhul1qbXzvk=
+
+Name: res/drawable-xhdpi-v4/ic_advanced.png
+SHA1-Digest: Ou3d0PLuSbi1q6C0UXUw8Dgri40=
+
+Name: res/drawable-hdpi-v4/ic_action_search.png
+SHA1-Digest: 8J2u1ikAPn9Y10Ot0fdE38aecDA=
+
+Name: res/drawable-mdpi-v4/sym_keyboard_shift_locked.png
+SHA1-Digest: 4HxPUBaFuNURpDOEAr7JESt2vso=
+
+Name: res/xml/kb_frenchcanadafrcanadianfrench_numeric_none.xml
+SHA1-Digest: ZSJ7IQteZJ52jyqCTs5GA90/quk=
+
+Name: res/drawable-ldpi-v4/btn_mouse_rightclick.png
+SHA1-Digest: gjdb3kbHQJj0kz5Kjk6apOlCF2Y=
+
+Name: res/xml/kb_portugueseportugalptportuguese_numeric_lock.xml
+SHA1-Digest: RL+w2z4egSIvt7PhhcsYFN55JzY=
+
+Name: res/drawable-xhdpi-v4/ic_picture.png
+SHA1-Digest: YC2YxiZYcOU2AZVj+MNnz6aVmIs=
+
+Name: res/drawable-mdpi-v4/sym_keyboard_down.png
+SHA1-Digest: Rz1P5ySq0sigRqOeWmKOX0YTqe0=
+
+Name: res/drawable-mdpi-v4/btn_keyboard_key_normal.9.png
+SHA1-Digest: JggsIuoKsh1S9IWGEyyVQgU7EU0=
+
+Name: res/drawable-xhdpi-v4/ic_action_keyboard.png
+SHA1-Digest: BrbxLLuQ1s5Tq95Aewcta+/a1LY=
+
+Name: res/drawable-hdpi-v4/about.png
+SHA1-Digest: wCtOfKv7X5cKD35LIeBhy18DN+w=
+
+Name: res/xml/kb_frenchcanadafrcanadianfrench_chars_caps.xml
+SHA1-Digest: zMZ0kntrfppnMT+wnhKznrWbSlU=
+
+Name: res/xml/kb_portuguesebrazilptportuguesebrazilian_chars_none.xml
+SHA1-Digest: bM0DFV6C0TnH/Wrh65+rD72UIDA=
+
+Name: res/drawable-ldpi-v4/sym_keyboard_left_feedback.png
+SHA1-Digest: lT2s/t7pDsl/NU3TlIcCt0TFPG0=
+
+Name: res/drawable/keyboard_bg.xml
+SHA1-Digest: Qvzi/cynW+VC4bhbLsqSNF7JJuo=
+
+Name: res/xml/symbols_shift_jap.xml
+SHA1-Digest: W8DszUk/yXlAJKTpl5kVlkjFc68=
+
+Name: res/layout/farm_properties_details.xml
+SHA1-Digest: JvShuAcFg1p+bj1uzS1yiFErSQk=
+
+Name: res/drawable-xxhdpi-v4/about.png
+SHA1-Digest: h7pJ+3+6athJPcW84siEagFMkFc=
+
+Name: res/drawable-mdpi-v4/ic_stats.png
+SHA1-Digest: UYGRrYJiXB6sxuNL4era9Bl/6PU=
+
+Name: res/xml/kb_germangermanydegerman_symbols_shift.xml
+SHA1-Digest: NiRClNXhN7dIpWXF24+E/BMdlhI=
+
+Name: res/drawable-hdpi-v4/sym_keyboard_wnd.png
+SHA1-Digest: INm8iyT3Gv4reAdhXH1cygkYtjw=
+
+Name: res/xml/kb_dutchnetherlandsnldutch_chars_caps.xml
+SHA1-Digest: Z9uEXswlAKNSKbnfx1NWqhYARB4=
+
+Name: res/xml/kb_norwegiannynorsknorwaynonorwegian_symbols_none.xml
+SHA1-Digest: gsGU8Fn8Bqs5ptaJzXdsajq9Slw=
+
+Name: res/xml/kb_englishunitedstatesenus_symbols_shift_altgr.xml
+SHA1-Digest: qK56ZV9E4GkJkAZcD3w9JJWkdFI=
+
+Name: res/xml-large-v4/kb_japanesejapanjapanese_symbols_altgr.xml
+SHA1-Digest: 36onX0FrWlRGlCibTdcb50WV6MI=
+
+Name: res/layout/account_info_dlg.xml
+SHA1-Digest: eNmgo0f+F0afTrGpmsBN296f0iU=
+
+Name: res/drawable-hdpi-v4/ic_menu_mouse.png
+SHA1-Digest: cDoHXjqhpD7/0GputTpXN9f/jSE=
+
+Name: res/layout-sw720dp-v13/shortcut_grid.xml
+SHA1-Digest: LKhZCKjBGcFoAuuJrYbZFU4aoIY=
+
+Name: res/layout-xlarge-v11/preference_list_content.xml
+SHA1-Digest: bbKaXWd46riqQTkAnionIYOqFAk=
+
+Name: res/drawable-mdpi-v4/sym_keyboard_up.png
+SHA1-Digest: 62Kf4/MClVlJyRIlVYi2Cbwn7U8=
+
+Name: res/xml-large-v4/kb_japanesejapanjapanese_symbols_shift_altgr.xm
+ l
+SHA1-Digest: eKMaWhTUGRjfmdxzxPLLirCE7ao=
+
+Name: res/xml/kb_frenchcanadafrcanadianfrench_chars_shift_altgr.xml
+SHA1-Digest: FDSCmz0Oo4tZSwQgPK3uuB06Z2Y=
+
+Name: res/drawable-mdpi-v4/sym_keyboard_up_feedback.png
+SHA1-Digest: 0y80ylMDpApg+ZWDW99anQeDImg=
+
+Name: res/layout/connection_item.xml
+SHA1-Digest: jes+7dE4Cecm8Lsoz1mgBdB+ISU=
+
+Name: res/drawable-xhdpi-v4/ic_action_edit.png
+SHA1-Digest: fQ8xRMwzO/JQE7xjLvzALONdK+w=
+
+Name: res/xml/kb_swedishswedensvswedish_chars_none.xml
+SHA1-Digest: XSCukkrJtIg185c5HIOds2f0rXs=
+
+Name: res/xml/kb_dutchnetherlandsnldutch_symbols_altgr.xml
+SHA1-Digest: vs2JY7avouUJPydRm3bnUj6wG5A=
+
+Name: res/layout/cert_info_dlg.xml
+SHA1-Digest: G89yGkyUm3VZANqZhy0wzR3RnUI=
+
+Name: res/xml/kb_portugueseportugalptportuguese_symbols_caps.xml
+SHA1-Digest: 7MzjtB2UGPUmbipkKsI83J+2VzE=
+
+Name: res/drawable/about.png
+SHA1-Digest: LPjVz5sDPA6fgIzvIh8wXwwqUiw=
+
+Name: res/drawable-ldpi-v4/sym_keyboard_shift_locked.png
+SHA1-Digest: wkoEQxeOz36xe1cvMewQpmZw2Iw=
+
+Name: res/xml/kb_norwegiannynorsknorwaynonorwegian_numeric_none.xml
+SHA1-Digest: 91gqPRmbx109qBKb/GKv8AVmut8=
+
+Name: res/xml/kb_frenchcanadafrcanadianfrench_chars_caps_altgr.xml
+SHA1-Digest: glToI/4S2BU0bTUZZih93fCc90A=
+
+Name: res/xml-v11/settings_appearance.xml
+SHA1-Digest: ymCreUWlDHbyxW4G8DqKHU8uFas=
+
+Name: lib/mips/libtuxrdp.so
+SHA1-Digest: Z6jN+riBNauDL2hu8fNHSQPh8HQ=
+
+Name: res/xml/kb_englishunitedkingdomenunitedkingdom_symbols_altgr.xml
+SHA1-Digest: WCM7gpIuz/ndar42RUujfAiIH08=
+
+Name: res/drawable-hdpi-v4/ic_action_mouse.png
+SHA1-Digest: bCzRCSh2mfQr5zZKx6mtqAeel4M=
+
+Name: res/layout/simple_logon_dlg.xml
+SHA1-Digest: 4ee5363ctMa+RTgccf2rrpzHPzM=
+
+Name: res/xml/kb_frenchfrancefrfrench_symbols_caps_altgr.xml
+SHA1-Digest: XL7O+H3bbE+dtXJHeveBCf0Lq3M=
+
+Name: res/drawable/banner_640_120.png
+SHA1-Digest: FyRHYC8nwAwkRfeeoMjS9wt9iBM=
+
+Name: res/xml/kb_germangermanydegerman_chars_shift_altgr.xml
+SHA1-Digest: eUotGc5yeljZTjI0KQZqB885DUc=
+
+Name: res/xml-v11/settings_input_keyboard.xml
+SHA1-Digest: TItcbzBD0mPnj8QIADITL7Icflg=
+
+Name: res/drawable-xhdpi-v4/ic_status.png
+SHA1-Digest: G2k5odYu8hUUeKSri+LSpAymrio=
+
+Name: res/drawable-xhdpi-v4/ic_printing.png
+SHA1-Digest: P2vlH3d+Kan95NLKI+uTkiZhhVo=
+
+Name: res/drawable/fragment_detail_bg.xml
+SHA1-Digest: 7foo0yGRn6hW51HtoAqQTfhEsgs=
+
+Name: res/drawable-xhdpi-v4/ic_connection.png
+SHA1-Digest: jLYRLqt4RHEUzkMopYWLjUqwIMY=
+
+Name: res/xml/kb_frenchfrancefrfrench_symbols_none.xml
+SHA1-Digest: dFzfEsasbaraUTJ7jpfhCy9JErc=
+
+Name: res/xml/kb_norwegiannynorsknorwaynonorwegian_symbols_shift_caps.
+ xml
+SHA1-Digest: T2tl8t0sY43awcHmlXpHba43/Dg=
+
+Name: res/xml/farm_properties_experience.xml
+SHA1-Digest: YXL+OxEpN9I6y6aROkWADeDU4tQ=
+
+Name: res/drawable-mdpi-v4/ic_advanced.png
+SHA1-Digest: oSdR/4K4a8fqrKwUPXhIKbmHdE0=
+
+Name: res/xml/kb_frenchfrancefrfrench_symbols_shift_caps.xml
+SHA1-Digest: Int5cGYrNmcEBuz95hkPpEPuT6s=
+
+Name: res/drawable-hdpi-v4/sym_keyboard_up_feedback.png
+SHA1-Digest: ogh8nMn5WL/NwaF8NJaa9rKApTI=
+
+Name: res/drawable-ldpi-v4/ic_action_mouse.png
+SHA1-Digest: 4OfFsje4p8KK62KSkswMHr9JNZ4=
+
+Name: lib/x86/libtuxrdp.so
+SHA1-Digest: 9zOxX0lhueqZSKKbYBSPnz6SbAg=
+
+Name: res/drawable-ldpi-v4/sym_keyboard_right.png
+SHA1-Digest: PlKIaeq7bSF5eY3eArBw7SsNkuQ=
+
+Name: res/xml/kb_norwegiannynorsknorwaynonorwegian_symbols_shift.xml
+SHA1-Digest: 5RM86kdHabrw+tLai+nMwildQpM=
+
+Name: res/xml/kb_spanishspaininternationalsortesspanish_symbols_shift.
+ xml
+SHA1-Digest: yJ+y9Mwk5N1I6cVxENXOiv92h34=
+
+Name: res/drawable-mdpi-v4/ic_action_refresh.png
+SHA1-Digest: 6NC6etkjhbySL8fZ+L4EYujJXRo=
+
+Name: res/xml/kb_russianrussiarurussian_chars_none.xml
+SHA1-Digest: 2YMmIKq0JKUOns+tFnoD23nvRfc=
+
+Name: res/xml/kb_swedishswedensvswedish_symbols_caps_altgr.xml
+SHA1-Digest: Y6mt8oZA7YYbBy07Et2PQBFa3ZY=
+
+Name: res/xml/kb_italianitalyititalian_chars_caps_altgr.xml
+SHA1-Digest: S+/NNCHiYqhR15cwz95FyzND0Ns=
+
+Name: res/xml/kb_japanesejapanjapanese_numeric_lock.xml
+SHA1-Digest: B92G7Ds38inLUJHndNmBK0IAIgQ=
+
+Name: res/layout/drawing_dlg_old.xml
+SHA1-Digest: Pmj2KNiKFX14Tm+xJfYfhoh9HII=
+
+Name: res/drawable-mdpi-v4/sym_keyboard_return.png
+SHA1-Digest: LuG3Xjw6XHGN1KchIgCn7nZAwOk=
+
+Name: res/drawable/banner_1136_120.png
+SHA1-Digest: EeyWiDQ5l7u9DQPQFfYh/GqBS5A=
+
+Name: res/xml/kb_englishunitedstatesenus_symbols_shift_caps.xml
+SHA1-Digest: gUP/24+Xd9wWSXEhLeYRHI3Y6uI=
+
+Name: res/xml/kb_portuguesebrazilptportuguesebrazilian_symbols_caps.xm
+ l
+SHA1-Digest: MF7wNxoY7ZQ7vn+QrqwGrLPzlCc=
+
+Name: res/drawable-mdpi-v4/btn_keyboard_key_pressed.9.png
+SHA1-Digest: 2GO2cPytuS0otuzuVw9B47ZIr+k=
+
+Name: res/layout/cert_info_basic.xml
+SHA1-Digest: zZz8qokixlG6SDN9DWSuMO1c49k=
+
+Name: res/xml/kb_norwegiannynorsknorwaynonorwegian_chars_altgr.xml
+SHA1-Digest: jM0lLwQV946LaSnrffBs81pxVfo=
+
+Name: res/xml/kb_maltesemaltamlmaltese48key_chars_shift_caps.xml
+SHA1-Digest: my9GuPTzoreVdvMDIb8tr35oHaU=
+
+Name: res/xml/farm_properties_advanced.xml
+SHA1-Digest: XGy4WpJK6MmRzJJWxGZ6eA3Ajxg=
+
+Name: res/xml/kb_frenchfrancefrfrench_fn.xml
+SHA1-Digest: iCghbAd9cjqDIL1FB7yPgnQFHeY=
+
+Name: res/xml/kb_portugueseportugalptportuguese_chars_shift_caps_altgr
+ .xml
+SHA1-Digest: HOjIou7oNyEhbuPm+aS1l+xbrzY=
+
+Name: resources.arsc
+SHA1-Digest: bf2AZdcYMRJeJYh3ds9CCRxVf7U=
+
+Name: res/xml/kb_englishunitedstatesenus_chars_none.xml
+SHA1-Digest: 9EkQLABJOsTkh1nn3jq41BCje9g=
+
+Name: res/layout/set_pwd_dlg.xml
+SHA1-Digest: JxFL5bYAzUdc1RDUy+a9jBvV3Rg=
+
+Name: res/drawable-mdpi-v4/ic_menu_settings.png
+SHA1-Digest: SG+XI3e16deI5sr6pJOtegDbcCU=
+
+Name: res/drawable-hdpi-v4/ic_network.png
+SHA1-Digest: 9tVAyGuFtODxeUOmVJcCyiwNyCg=
+
+Name: res/drawable-hdpi-v4/sym_keyboard_left_feedback.png
+SHA1-Digest: ijGeYfB84HRM/eGahtDzPgBXCII=
+
+Name: res/drawable-mdpi-v4/ic_status.png
+SHA1-Digest: b0NAvCSQ7bw16lqZ9P5h3yfcaIg=
+
+Name: res/drawable-ldpi-v4/sym_keyboard_down.png
+SHA1-Digest: 0YfWd98ctlCYh3ap0mnhv1Td8I4=
+
+Name: res/drawable-mdpi-v4/btn_mouse_minus.png
+SHA1-Digest: ud1y8f5H5rhVVSiMrSJzQn+2ptE=
+
+Name: res/drawable-mdpi-v4/sym_keyboard_delete.png
+SHA1-Digest: uqihrw16PJNXJ1c33SYeVt/Wuk4=
+
+Name: res/xml/kb_portuguesebrazilptportuguesebrazilian_symbols_caps_al
+ tgr.xml
+SHA1-Digest: jnHe3IBpiLbjEr24IbpSevnAAqU=
+
+Name: res/drawable-hdpi-v4/ic_gesture.png
+SHA1-Digest: DfKbFD0Rk6EwXqaO/7QJG6xa98Y=
+
+Name: res/xml/kb_englishunitedkingdomenunitedkingdom_symbols_caps.xml
+SHA1-Digest: CE/lY6zdUP0wEU+1PeGgscdgwYw=
+
+Name: res/xml/kb_germangermanydegerman_chars_shift_caps.xml
+SHA1-Digest: mgRu3qFKvuJRUlCaQtNjDpwEQzM=
+
+Name: res/drawable-mdpi-v4/ic_gesture.png
+SHA1-Digest: NHvtl1thymIJD87T6aKy6V9qSVM=
+
+Name: res/xml/kb_frenchcanadafrcanadianfrench_numeric_lock.xml
+SHA1-Digest: EcX1Snz3YNeMRYWLamjwy+nvNfc=
+
+Name: res/xml/kb_maltesemaltamlmaltese48key_symbols_shift.xml
+SHA1-Digest: 2dj7JZRlhW+IIcY6kwRxGYcayoI=
+
+Name: res/xml-large-v4/kb_japanesejapanjapanese_symbols_caps_altgr.xml
+SHA1-Digest: 90q9xeu3FdqgV/OATI0t4GPs1qU=
+
+Name: res/xml/kb_norwegiannynorsknorwaynonorwegian_chars_caps_altgr.xm
+ l
+SHA1-Digest: b1Ok2pMVqUDRjC80sjMrFk87SWU=
+
+Name: res/xml/kb_maltesemaltamlmaltese48key_chars_none.xml
+SHA1-Digest: +UWdhKv32OBX/vYaFeMhIhSDg/E=
+
+Name: res/drawable/banner_1536_120.png
+SHA1-Digest: GOgKPZ/Czben+uqlie6u6u6BIP0=
+
+Name: res/layout/activation_dlg.xml
+SHA1-Digest: hwBuDNH9bhTOabCoirB3Z46EWXQ=
+
+Name: res/drawable-mdpi-v4/ic_menu_mouse.png
+SHA1-Digest: jGkjUbqFl1acSYIl0XeXCtkmg44=
+
+Name: res/xml/kb_italianitalyititalian_chars_shift_caps_altgr.xml
+SHA1-Digest: WleodhsdEdsKa2DRgM0X97cXkJg=
+
+Name: res/drawable-xhdpi-v4/sym_keyboard_shift.png
+SHA1-Digest: JnRJEBXBUx0aDjBe6po6tWYxteE=
+
+Name: build.xml
+SHA1-Digest: 5q4R9CLSybVdlhdyEE+2kf8sW1A=
+
+Name: res/layout/farm_grid.xml
+SHA1-Digest: bey5Gpa/HZ5SLQ4tjsskEfsLp4Y=
+
+Name: res/xml/kb_dutchnetherlandsnldutch_numeric_lock.xml
+SHA1-Digest: 785U2crHnUsOB9q+PuEX5nLxl2Q=
+
+Name: res/xml/kb_russianrussiarurussian_chars_shift_altgr.xml
+SHA1-Digest: 322Bh3nRsGdc+CTClO0NnbrKW1s=
+
+Name: res/xml/kb_dutchnetherlandsnldutch_symbols_caps.xml
+SHA1-Digest: 0pDaQxQodjPxWSrAlTa0myyBfDk=
+
+Name: res/xml/kb_frenchfrancefrfrench_symbols_shift_altgr.xml
+SHA1-Digest: lh6s6j6zoz3O+1BcFx8rB0I/+Ps=
+
+Name: res/drawable/three_fingers_down.png
+SHA1-Digest: sZc8GcGgPFiWWSmk0aSKVAJCZRI=
+
+Name: res/drawable-mdpi-v4/sym_keyboard_right.png
+SHA1-Digest: w+9wxR7r5hafnWP88HQ7r6BuGqQ=
+
+Name: res/xml/kb_japanesejapanjapanese_symbols_shift_caps_altgr.xml
+SHA1-Digest: SajaZ6RbEPUTyZISU7ZePKXF2ms=
+
+Name: res/drawable-mdpi-v4/ic_menu_keyboard.png
+SHA1-Digest: wa7ayc2xegG3hSv611HrQizDdd8=
+
+Name: res/drawable-mdpi-v4/ic_action_new.png
+SHA1-Digest: VPwqFzlQ1jTzBZm6vlpnqFUSxWs=
+
+Name: res/drawable-mdpi-v4/dropdown_ic_arrow_normal_holo_light.png
+SHA1-Digest: J+tGqFCZXFTWFiAQ/q/1xKwyMs8=
+
+Name: res/xml/kb_norwegiannynorsknorwaynonorwegian_symbols_shift_caps_
+ altgr.xml
+SHA1-Digest: hvcq/KlyQnYRGKJuwMj4uT9sWP8=
+
+Name: res/xml/kb_frenchcanadafrcanadianfrench_chars_none.xml
+SHA1-Digest: XcEDc7V4ANOJ9d90JsZQ7vEFwG8=
+
+Name: res/xml/kb_portugueseportugalptportuguese_symbols_shift_altgr.xm
+ l
+SHA1-Digest: Bl1ZUvDysFCR6f1V6HuYzWRser8=
+
+Name: res/xml/kb_portuguesebrazilptportuguesebrazilian_symbols_shift_c
+ aps_altgr.xml
+SHA1-Digest: 7q8EX/Y/bNyYa1aCaVKSfre63yk=
+
+Name: res/xml/shortcuts.xml
+SHA1-Digest: sQlP2ShgMvogupiD5aARD7GOkv8=
+
+Name: res/xml/kb_swedishswedensvswedish_chars_shift_caps.xml
+SHA1-Digest: D/YDgwkFLKk02/MMLt7Fsgq9PbU=
+
+Name: res/xml/kb_englishunitedkingdomenunitedkingdom_chars_none.xml
+SHA1-Digest: m8RS0ZRh693IzfKQuxoOrlhXw14=
+
+Name: lib/armeabi/libtuxrdp.so
+SHA1-Digest: H99varuLUXHkC1zF7AUPeoC5K34=
+
+Name: res/xml/kb_japanesejapanjapanese_chars_shift_caps.xml
+SHA1-Digest: R4bVc/i7hAI+gafFyQutFLinLbE=
+
+Name: res/xml/kb_italianitalyititalian_chars_shift.xml
+SHA1-Digest: kcybUbudh41oBpm4x22R/H2cshM=
+
+Name: res/drawable-xhdpi-v4/ic_cube_outline.png
+SHA1-Digest: qJwwXOnPGk7H2uWsrf447HwdznI=
+
+Name: res/xml/kb_spanishspaininternationalsortesspanish_symbols_caps.x
+ ml
+SHA1-Digest: LLDpGuEbMfbBlRJA4gpPZdSvyh8=
+
+Name: res/xml/kb_italianitalyititalian_symbols_caps.xml
+SHA1-Digest: R9oFnRaQAucc5X0XKXbaTHbo1a8=
+
+Name: res/drawable-hdpi-v4/btn_keyboard_key_pressed.9.png
+SHA1-Digest: liPkTgs0gXjqyFYJN94ogRzh+FE=
+
+Name: res/drawable-mdpi-v4/sym_keyboard_feedback_shift_locked.png
+SHA1-Digest: TbUzSbYJVKupqbVdxZVpKbMkLsQ=
+
+Name: res/drawable-ldpi-v4/ic_menu_keyboard.png
+SHA1-Digest: CcrQ9DKozOIrj3rYXae/dqMaIq0=
+
+Name: res/xml/kb_englishunitedstatesenus_symbols_caps.xml
+SHA1-Digest: kAQLx8WeRgX7C5LC+4dmgVbN47o=
+
+Name: res/drawable-hdpi-v4/sym_keyboard_up.png
+SHA1-Digest: qscg+4DCDIPM3gJWFAavlNDCzRQ=
+
+Name: res/xml/kb_swedishswedensvswedish_symbols_caps.xml
+SHA1-Digest: cIn+geoVExQTymIJpzgrU5ILG24=
+
+Name: res/xml/kb_englishunitedkingdomenunitedkingdom_symbols_shift_cap
+ s_altgr.xml
+SHA1-Digest: na0v3qI1mZ+i5B+B1a1vuM8ZkrM=
+
+Name: res/xml/kb_frenchcanadafrcanadianfrench_symbols_altgr.xml
+SHA1-Digest: 1i17RjtkUdS7HaagX8yyikdztaY=
+
+Name: res/anim/slide_from_bottom.xml
+SHA1-Digest: MO1mullnsJxf8eoJj+ZC0bCgedg=
+
+Name: res/xml/kb_englishunitedstatesenus_symbols_altgr.xml
+SHA1-Digest: XQX2wgAHS/UazNNtS9xpATHOf9I=
+
+Name: res/xml/kb_swedishswedensvswedish_chars_shift_caps_altgr.xml
+SHA1-Digest: ldG5NyaexlHmhrEmOkMjIgn3apA=
+
+Name: res/xml/numpad.xml
+SHA1-Digest: tocRcHfFySo0Y5OYKuV+oXxHI9c=
+
+Name: res/xml/kb_portugueseportugalptportuguese_chars_caps.xml
+SHA1-Digest: 7W5zFSHe7b6sEMj65Wt6ETiMNW0=
+
+Name: res/xml/kb_frenchcanadafrcanadianfrench_symbols_shift_caps.xml
+SHA1-Digest: rZrpWkWWa6EA8TeBmP44PW+O1jk=
+
+Name: res/xml/kb_portugueseportugalptportuguese_fn.xml
+SHA1-Digest: 7letP5sB61u05e73OcU/izqAeus=
+
+Name: res/layout/tutorial.xml
+SHA1-Digest: Uk+qdQqErtoh0nZHWa8mUEu26uI=
+
+Name: res/layout-xlarge-v11/farm_properties.xml
+SHA1-Digest: 0lhZ099ITjn/CEcPLzSktjN+pc4=
+
+Name: res/xml/kb_frenchcanadafrcanadianfrench_symbols_shift.xml
+SHA1-Digest: 2mNO4w41BtwvriBBrDZtdK+a+fE=
+
+Name: res/xml/kb_norwegiannynorsknorwaynonorwegian_chars_shift_caps_al
+ tgr.xml
+SHA1-Digest: pEBA8MJPsZG34EJvBwg7InzSngU=
+
+Name: res/xml/kb_englishunitedkingdomenunitedkingdom_symbols_shift_alt
+ gr.xml
+SHA1-Digest: pW9KGNAP9axhwK0qPj3rB2TwrkQ=
+
+Name: res/drawable-hdpi-v4/ic_action_refresh.png
+SHA1-Digest: c3gbXyN8xdohGXEzcv5q3//oFck=
+
+Name: res/drawable-hdpi-v4/ic_action_accept.png
+SHA1-Digest: 6aawQR8KZSMp3yWjfP3BAXJ2iZI=
+
+Name: res/drawable-hdpi-v4/ic_redirection.png
+SHA1-Digest: UfAj4DlSmCgVK5LhmEITVyHdGkk=
+
+Name: res/xml/kb_maltesemaltamlmaltese48key_symbols_altgr.xml
+SHA1-Digest: OLEPLyffqejOWptutyI8FB2+8zg=
+
+Name: res/xml/kb_japanesejapanjapanese_symbols_caps_altgr.xml
+SHA1-Digest: QP8yEOcrEWgEWA4QONWlo617JmE=
+
+Name: res/drawable-mdpi-v4/btn_mouse_rightclick.png
+SHA1-Digest: SyzEcJgkJ6KCY5V4Usy9uVVdCm0=
+
+Name: res/xml/kb_germangermanydegerman_symbols_caps_altgr.xml
+SHA1-Digest: uMkLB1IVNp44Sp42L6hTxsLCz7Y=
+
+Name: res/xml/kb_portuguesebrazilptportuguesebrazilian_chars_caps.xml
+SHA1-Digest: LLI4LkRHR5RbR1rRxQNyzOgkcJQ=
+
+Name: res/layout/actionbar_info.xml
+SHA1-Digest: DBmzA0CxeevCjaRC8WY1NK8XSMU=
+
+Name: res/drawable-hdpi-v4/ic_printing.png
+SHA1-Digest: 2ga0FHHZ09bWi7wE/0+7a+gcWzs=
+
+Name: res/drawable-xhdpi-v4/ic_action_new.png
+SHA1-Digest: EehWJt/f0pbd1r577t6zubZZ+o0=
+
+Name: res/xml/kb_englishunitedstatesenus_numeric_lock.xml
+SHA1-Digest: K6Zd7ty4Y8CgkmmTs/oZfphZZDg=
+
+Name: res/xml/kb_frenchfrancefrfrench_chars_none.xml
+SHA1-Digest: zltSGyMPoVKvoqGeNO28P+5FQuI=
+
+Name: res/xml/kb_russianrussiarurussian_symbols_altgr.xml
+SHA1-Digest: d+hArwND66Y+vMxuWpsi3mUflDs=
+
+Name: lib/mips-r2/libtuxrdp.so
+SHA1-Digest: 1LcKV8Sv6fuaGltYCqYs9V8MWF0=
+
+Name: res/xml/kb_dutchnetherlandsnldutch_chars_shift_caps.xml
+SHA1-Digest: yFIZuRMZrjTTHRVbho7DYCd0d0g=
+
+Name: res/drawable-mdpi-v4/ic_more_light.png
+SHA1-Digest: g5OlmuWXws9XTLvqDKDSgCAYCTU=
+
+Name: res/xml/kb_maltesemaltamlmaltese48key_numeric_lock.xml
+SHA1-Digest: LvkpsWBW8xQDNJCkvyzHt7gjlAk=
+
+Name: res/menu-v11/farm_properties.xml
+SHA1-Digest: 0b8HUe4wRXwRB2I1HDoHrXgCS9I=
+
+Name: manifest.mf
+SHA1-Digest: 404KkPcJ+8bTeU4EIUk0JhRCxjs=
+
+Name: res/xml/kb_italianitalyititalian_symbols_shift_caps.xml
+SHA1-Digest: J9u9oaBze5yr4TwC12AkvFYTc2k=
+
+Name: res/xml/kb_frenchcanadafrcanadianfrench_chars_shift.xml
+SHA1-Digest: VWVwUuJXYOOf3UwwZFh8jyPiaqA=
+
+Name: res/xml/kb_japanesejapanjapanese_chars_altgr.xml
+SHA1-Digest: b2WzFDO2Y1BoAXAPWEpB9cCdu0k=
+
+Name: res/drawable-xhdpi-v4/about.png
+SHA1-Digest: jJylw84j6LeoFAu6tTpwfOn12sQ=
+
+Name: res/drawable-xhdpi-v4/btn_keyboard_key_normal.9.png
+SHA1-Digest: V2TsVhstrbegGoh2/zWCOUb98+c=
+
+Name: res/xml/kb_englishunitedstatesenus_fn.xml
+SHA1-Digest: Qg0MmjWb1YxIBmg848FhTtLp3ZQ=
+
+Name: res/xml/kb_japanesejapanjapanese_chars_shift_caps_altgr.xml
+SHA1-Digest: NygDromEXkMzchL8RwTO5hwXtts=
+
+Name: res/drawable-hdpi-v4/btn_keyboard_key_pressed_off.9.png
+SHA1-Digest: Y4nSX/8Txj+iMckk79IEIxPRwO8=
+
+Name: res/drawable-xhdpi-v4/dropdown_ic_arrow_normal_holo_light.png
+SHA1-Digest: /+iyRT6MYJECtXqdSbFqXZembnA=
+
+Name: res/layout/app_row.xml
+SHA1-Digest: eWWw4gdC1wq5zJn6kcdp5yoVvro=
+
+Name: res/drawable-xhdpi-v4/ic_menu_mouse.png
+SHA1-Digest: fxdI7F91hQDurNSUj9o/y8QIr30=
+
+Name: res/drawable-hdpi-v4/sym_keyboard_right_feedback.png
+SHA1-Digest: i1ItNZ2prvIvo+tek0lkokJa3Jo=
+
+Name: res/xml/kb_portugueseportugalptportuguese_symbols_shift_caps_alt
+ gr.xml
+SHA1-Digest: jKCy0NH5tgI2E/8DktfCXHEOJSI=
+
+Name: res/drawable/banner_320_60.png
+SHA1-Digest: RUsPIFRLnhvnVgPYqUIO15VRQVo=
+
+Name: res/xml/settings_headers.xml
+SHA1-Digest: 29HPZ4UC1f6PnNLGCRK5Exytp5I=
+
+Name: res/drawable-hdpi-v4/btn_keyboard_key_normal.9.png
+SHA1-Digest: pfvBhrP1cHG4allN21Lb7vowgFc=
+
+Name: res/drawable-hdpi-v4/btn_keyboard_key_normal_on.9.png
+SHA1-Digest: M7bLI1Wj6teQXSdB7tsdQiYxg14=
+
+Name: res/drawable-hdpi-v4/btn_keyboard_key_pressed_on.9.png
+SHA1-Digest: TX+tmCr0iPQg7b7VEGMaf7fNd1M=
+
+Name: res/drawable-hdpi-v4/ic_action_discard.png
+SHA1-Digest: REBRmaCA1jSrcNT4v1w5aHaS+2E=
+
+Name: res/xml/kb_portuguesebrazilptportuguesebrazilian_chars_caps_altg
+ r.xml
+SHA1-Digest: SfSCVW45Ot6gWggz9/tzX4g+aKs=
+
+Name: res/xml/kb_englishunitedkingdomenunitedkingdom_fn.xml
+SHA1-Digest: A+Ey5ssdollp2yDbUSEJ1x0BGkc=
+
+Name: res/drawable-hdpi-v4/btn_mouse_keyboard.png
+SHA1-Digest: 6yu4fiIP9Gi5l6UPFWcxjvCYvAo=
+
+Name: res/xml/kb_englishunitedkingdomenunitedkingdom_symbols_none.xml
+SHA1-Digest: u+gpMNuwRU6rN+tc8dK4GCrkgcc=
+
+Name: res/layout/connectiontype_act.xml
+SHA1-Digest: HkX0n7nbltT2Q1M5Dtvq80GMvqE=
+
+Name: res/drawable-ldpi-v4/sym_keyboard_shift.png
+SHA1-Digest: 9k9QuEc4jhmU9FPKW0Rf9TIPjns=
+
+Name: res/drawable-xhdpi-v4/sym_keyboard_feedback_lang.png
+SHA1-Digest: dJUj24uxYLhA7nHqbZ4U6B90qGM=
+
+Name: res/drawable-xhdpi-v4/ic_action_mouse.png
+SHA1-Digest: NKDxuj4nCe14PpplNgO/PXzYrC8=
+
+Name: res/xml/kb_swedishswedensvswedish_chars_caps_altgr.xml
+SHA1-Digest: FUlzoINsBrBpZbW4FGBTmrBgcDg=
+
+Name: res/drawable-xhdpi-v4/ic_action_accept.png
+SHA1-Digest: oS+64cua1AcbvlGBXfZ5W6Pl4FU=
+

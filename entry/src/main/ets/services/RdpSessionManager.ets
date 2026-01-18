@@ -28,7 +28,7 @@ const TAG = 'RdpSessionManager';
 let currentInstance: number = 0;
 let isSessionActive: boolean = false;
 let isInBackground: boolean = false;
-let isScreenLocked: boolean = false;
+let sessionIsScreenLocked: boolean = false;
 let backgroundService: RdpBackgroundService | null = null;
 
 // Keepalive timer
@@ -117,7 +117,7 @@ export class RdpSessionManager {
       });
       
       // Register screen lock listener
-      this.registerScreenLockListener();
+      await this.registerScreenLockListener();
       
       console.info(`${TAG}: Session manager initialized`);
       return true;
@@ -266,7 +266,7 @@ export class RdpSessionManager {
     }
     
     console.info(`${TAG}: Screen locked`);
-    isScreenLocked = true;
+    sessionIsScreenLocked = true;
     
     // Start background service if not already running
     if (backgroundService && !RdpBackgroundService.isServiceRunning()) {
@@ -293,7 +293,7 @@ export class RdpSessionManager {
     }
     
     console.info(`${TAG}: Screen unlocked`);
-    isScreenLocked = false;
+    sessionIsScreenLocked = false;
     
     // If app is in foreground, exit background mode
     if (!isInBackground) {
@@ -387,11 +387,14 @@ export class RdpSessionManager {
   /**
    * Register screen lock listener
    */
-  private registerScreenLockListener(): void {
+  private async registerScreenLockListener(): Promise<void> {
     try {
       // Check if screen is currently locked
-      const isLocked = screenLock.isLocked();
+      const isLocked: boolean = await screenLock.isScreenLocked();
       console.info(`${TAG}: Initial screen lock state: ${isLocked}`);
+      
+      // Update the local state
+      sessionIsScreenLocked = isLocked;
       
       // Note: screenLock event listener registration depends on API version
       // This is a placeholder for the actual implementation
@@ -401,7 +404,7 @@ export class RdpSessionManager {
       console.error(`${TAG}: Failed to register screen lock listener: ${err.code} - ${err.message}`);
     }
   }
-  
+
   /**
    * Get current battery level
    */
@@ -418,7 +421,7 @@ export class RdpSessionManager {
    */
   static isCharging(): boolean {
     try {
-      const status = batteryInfo.chargingStatus;
+      const status: batteryInfo.BatteryChargeState = batteryInfo.chargingStatus;
       return status === batteryInfo.BatteryChargeState.ENABLE || 
              status === batteryInfo.BatteryChargeState.FULL;
     } catch (error) {
@@ -429,9 +432,10 @@ export class RdpSessionManager {
   /**
    * Check if screen is currently locked
    */
-  static isScreenLocked(): boolean {
+  static async isScreenLocked(): Promise<boolean> {
     try {
-      return screenLock.isLocked();
+      const isLocked: boolean = await screenLock.isScreenLocked();
+      return isLocked;
     } catch (error) {
       return false;
     }
@@ -445,7 +449,7 @@ export class RdpSessionManager {
       return SessionState.DISCONNECTED;
     }
     
-    if (isScreenLocked) {
+    if (sessionIsScreenLocked) {
       return SessionState.LOCKED;
     }
     

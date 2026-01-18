@@ -291,6 +291,7 @@ jobs:
             -DBUILD_SHARED_LIBS=ON \
             -DWITH_CHANNELS=ON \
             -DWITH_CLIENT_CHANNELS=ON \
+            -DBUILTIN_CHANNELS=ON \
             -DWITH_CAIRO=OFF \
             -DWITH_SDL_IMAGE_DIALOGS=OFF \
             -DWITH_WEBVIEW=OFF \
@@ -309,7 +310,7 @@ jobs:
             -DCHANNEL_URBDRC=OFF \
             -DCHANNEL_SMARTCARD=OFF \
             -DCHANNEL_CLIPRDR=ON \
-            -DCHANNEL_RDPDR=OFF \
+            -DCHANNEL_RDPDR=ON \
             -DCHANNEL_RDPSND=ON \
             -DCHANNEL_RDPSND_CLIENT=ON \
             -DCHANNEL_DRDYNVC=ON \

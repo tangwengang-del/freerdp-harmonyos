@@ -124,6 +124,12 @@ Native 库需要在 GitHub Actions 上编译：
 hvigorw assembleHap
 ```
 
+### 3.1 使用 OHOS NDK 重新编译 FreeRDP（方案 A）
+
+如果要用 OHOS NDK 重新编译 FreeRDP + 依赖库，请参考：
+
+- `REBUILD_NATIVE_OHOS.md`
+
 ### 4. 安装测试
 
 ```bash

@@ -16,9 +16,37 @@ if(NOT DEFINED FREERDP_DIR)
     set(FREERDP_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../libs")
 endif()
 
-# OpenSSL is already linked into FreeRDP libraries, no need to find_package
-# Pre-compiled libraries are in libs/arm64-v8a directory
-set(LIBS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../libs/arm64-v8a")
+# Default prebuilt libs directory
+set(DEFAULT_LIBS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../libs/arm64-v8a")
+set(LIBS_DIR "${DEFAULT_LIBS_DIR}")
+
+# Prefer explicit lib dir or install prefix lib dirs when rebuilding
+if(DEFINED FREERDP_LIB_DIR AND EXISTS "${FREERDP_LIB_DIR}")
+    set(LIBS_DIR "${FREERDP_LIB_DIR}")
+elseif(DEFINED FREERDP_DIR)
+    if(EXISTS "${FREERDP_DIR}/lib")
+        set(LIBS_DIR "${FREERDP_DIR}/lib")
+    elseif(EXISTS "${FREERDP_DIR}/lib64")
+        set(LIBS_DIR "${FREERDP_DIR}/lib64")
+    endif()
+endif()
+
+# Optional extra dependency lib dirs (OpenSSL/FFmpeg/etc)
+set(EXTRA_LIB_DIRS "")
+if(DEFINED OPENSSL_DIR)
+    if(EXISTS "${OPENSSL_DIR}/lib")
+        list(APPEND EXTRA_LIB_DIRS "${OPENSSL_DIR}/lib")
+    elseif(EXISTS "${OPENSSL_DIR}/lib64")
+        list(APPEND EXTRA_LIB_DIRS "${OPENSSL_DIR}/lib64")
+    endif()
+endif()
+if(DEFINED FFMPEG_DIR)
+    if(EXISTS "${FFMPEG_DIR}/lib")
+        list(APPEND EXTRA_LIB_DIRS "${FFMPEG_DIR}/lib")
+    elseif(EXISTS "${FFMPEG_DIR}/lib64")
+        list(APPEND EXTRA_LIB_DIRS "${FFMPEG_DIR}/lib64")
+    endif()
+endif()
 
 # Include directories
 include_directories(
@@ -32,6 +60,7 @@ include_directories(
 link_directories(
     ${FREERDP_DIR}/lib
     ${LIBS_DIR}
+    ${EXTRA_LIB_DIRS}
 )
 
 # Source files

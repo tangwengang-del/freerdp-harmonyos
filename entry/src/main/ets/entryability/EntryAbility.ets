@@ -54,17 +54,18 @@ export default class EntryAbility extends UIAbility {
    * Handle session state changes
    */
   private onSessionStateChanged(state: SessionState): void {
-    const stateNames: Record<number, string> = {
-      [SessionState.DISCONNECTED]: 'DISCONNECTED',
-      [SessionState.CONNECTING]: 'CONNECTING',
-      [SessionState.CONNECTED]: 'CONNECTED',
-      [SessionState.RECONNECTING]: 'RECONNECTING',
-      [SessionState.BACKGROUND]: 'BACKGROUND',
-      [SessionState.LOCKED]: 'LOCKED',
-      [SessionState.ERROR]: 'ERROR'
-    };
+    let stateName = 'UNKNOWN';
+    switch (state) {
+      case SessionState.DISCONNECTED: stateName = 'DISCONNECTED'; break;
+      case SessionState.CONNECTING: stateName = 'CONNECTING'; break;
+      case SessionState.CONNECTED: stateName = 'CONNECTED'; break;
+      case SessionState.RECONNECTING: stateName = 'RECONNECTING'; break;
+      case SessionState.BACKGROUND: stateName = 'BACKGROUND'; break;
+      case SessionState.LOCKED: stateName = 'LOCKED'; break;
+      case SessionState.ERROR: stateName = 'ERROR'; break;
+    }
     
-    hilog.info(DOMAIN, TAG, 'Session state changed: %{public}s', stateNames[state] || 'UNKNOWN');
+    hilog.info(DOMAIN, TAG, 'Session state changed: %{public}s', stateName);
   }
 
   onDestroy(): void {

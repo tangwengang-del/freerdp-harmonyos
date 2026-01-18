@@ -35,17 +35,19 @@ extern "C" {
 static napi_env g_env = nullptr;
 static std::mutex g_callbackMutex;
 
-// Callback references
-static napi_ref g_onConnectionSuccessRef = nullptr;
-static napi_ref g_onConnectionFailureRef = nullptr;
-static napi_ref g_onPreConnectRef = nullptr;
-static napi_ref g_onDisconnectingRef = nullptr;
-static napi_ref g_onDisconnectedRef = nullptr;
-static napi_ref g_onSettingsChangedRef = nullptr;
-static napi_ref g_onGraphicsUpdateRef = nullptr;
-static napi_ref g_onGraphicsResizeRef = nullptr;
-static napi_ref g_onRemoteClipboardChangedRef = nullptr;
-static napi_ref g_onCursorTypeChangedRef = nullptr;
+// Thread-safe function handles
+static napi_threadsafe_function g_tsfnConnectionSuccess = nullptr;
+static napi_threadsafe_function g_tsfnConnectionFailure = nullptr;
+static napi_threadsafe_function g_tsfnPreConnect = nullptr;
+static napi_threadsafe_function g_tsfnDisconnecting = nullptr;
+static napi_threadsafe_function g_tsfnDisconnected = nullptr;
+static napi_threadsafe_function g_tsfnSettingsChanged = nullptr;
+static napi_threadsafe_function g_tsfnGraphicsUpdate = nullptr;
+static napi_threadsafe_function g_tsfnGraphicsResize = nullptr;
+static napi_threadsafe_function g_tsfnCursorTypeChanged = nullptr;
+
+// Mutex for protecting TSFN pointers
+static std::mutex g_tsfnMutex;
 
 // Instance state tracking
 static std::map<int64_t, bool> g_instanceConnected;
@@ -88,155 +90,172 @@ static bool GetBool(napi_env env, napi_value value) {
     return result;
 }
 
-// ==================== Callback implementations ====================
+// ==================== Callback Data Structures ====================
+
+struct CallbackData {
+    int64_t instance;
+    int32_t x = 0;
+    int32_t y = 0;
+    int32_t width = 0;
+    int32_t height = 0;
+    int32_t bpp = 0;
+    int32_t cursorType = 0;
+};
+
+// ==================== Thread-Safe Callbacks ====================
+
+static void CallJS_InstanceOnly(napi_env env, napi_value js_callback, void* context, void* data) {
+    if (!env || !js_callback || !data) return;
+    CallbackData* cbData = static_cast<CallbackData*>(data);
+    napi_value global, result, arg;
+    if (napi_get_global(env, &global) != napi_ok) {
+        delete cbData;
+        return;
+    }
+    napi_create_int64(env, cbData->instance, &arg);
+    napi_call_function(env, global, js_callback, 1, &arg, &result);
+    delete cbData;
+}
+
+static void CallJS_GraphicsUpdate(napi_env env, napi_value js_callback, void* context, void* data) {
+    if (!env || !js_callback || !data) return;
+    CallbackData* cbData = static_cast<CallbackData*>(data);
+    napi_value global, result;
+    if (napi_get_global(env, &global) != napi_ok) {
+        delete cbData;
+        return;
+    }
+    
+    napi_value args[5];
+    napi_create_int64(env, cbData->instance, &args[0]);
+    napi_create_int32(env, cbData->x, &args[1]);
+    napi_create_int32(env, cbData->y, &args[2]);
+    napi_create_int32(env, cbData->width, &args[3]);
+    napi_create_int32(env, cbData->height, &args[4]);
+    
+    napi_call_function(env, global, js_callback, 5, args, &result);
+    delete cbData;
+}
+
+static void CallJS_ResizeOrSettings(napi_env env, napi_value js_callback, void* context, void* data) {
+    if (!env || !js_callback || !data) return;
+    CallbackData* cbData = static_cast<CallbackData*>(data);
+    napi_value global, result;
+    if (napi_get_global(env, &global) != napi_ok) {
+        delete cbData;
+        return;
+    }
+    
+    napi_value args[4];
+    napi_create_int64(env, cbData->instance, &args[0]);
+    napi_create_int32(env, cbData->width, &args[1]);
+    napi_create_int32(env, cbData->height, &args[2]);
+    napi_create_int32(env, cbData->bpp, &args[3]);
+    
+    napi_call_function(env, global, js_callback, 4, args, &result);
+    delete cbData;
+}
+
+static void CallJS_CursorType(napi_env env, napi_value js_callback, void* context, void* data) {
+    if (!env || !js_callback || !data) return;
+    CallbackData* cbData = static_cast<CallbackData*>(data);
+    napi_value global, result;
+    if (napi_get_global(env, &global) != napi_ok) {
+        delete cbData;
+        return;
+    }
+    
+    napi_value args[2];
+    napi_create_int64(env, cbData->instance, &args[0]);
+    napi_create_int32(env, cbData->cursorType, &args[1]);
+    
+    napi_call_function(env, global, js_callback, 2, args, &result);
+    delete cbData;
+}
+
+// ==================== Native Callback Implementations (Bridge to TSFN) ====================
 
 static void OnConnectionSuccessImpl(int64_t instance) {
-    std::lock_guard<std::mutex> lock(g_callbackMutex);
-    if (!g_env || !g_onConnectionSuccessRef) return;
+    std::lock_guard<std::mutex> lock(g_tsfnMutex);
+    if (!g_tsfnConnectionSuccess) return;
+    CallbackData* data = new CallbackData{instance};
+    napi_call_threadsafe_function(g_tsfnConnectionSuccess, data, napi_tsfn_blocking);
     
-    napi_value callback, global, result;
-    napi_get_reference_value(g_env, g_onConnectionSuccessRef, &callback);
-    napi_get_global(g_env, &global);
-    
-    napi_value args[1];
-    napi_create_int64(g_env, instance, &args[0]);
-    
-    napi_call_function(g_env, global, callback, 1, args, &result);
-    
-    // Update instance state
     std::lock_guard<std::mutex> instLock(g_instanceMutex);
     g_instanceConnected[instance] = true;
 }
 
 static void OnConnectionFailureImpl(int64_t instance) {
-    std::lock_guard<std::mutex> lock(g_callbackMutex);
-    if (!g_env || !g_onConnectionFailureRef) return;
+    std::lock_guard<std::mutex> lock(g_tsfnMutex);
+    if (!g_tsfnConnectionFailure) return;
+    CallbackData* data = new CallbackData{instance};
+    napi_call_threadsafe_function(g_tsfnConnectionFailure, data, napi_tsfn_blocking);
     
-    napi_value callback, global, result;
-    napi_get_reference_value(g_env, g_onConnectionFailureRef, &callback);
-    napi_get_global(g_env, &global);
-    
-    napi_value args[1];
-    napi_create_int64(g_env, instance, &args[0]);
-    
-    napi_call_function(g_env, global, callback, 1, args, &result);
-    
-    // Update instance state
     std::lock_guard<std::mutex> instLock(g_instanceMutex);
     g_instanceConnected[instance] = false;
 }
 
 static void OnPreConnectImpl(int64_t instance) {
-    std::lock_guard<std::mutex> lock(g_callbackMutex);
-    if (!g_env || !g_onPreConnectRef) return;
-    
-    napi_value callback, global, result;
-    napi_get_reference_value(g_env, g_onPreConnectRef, &callback);
-    napi_get_global(g_env, &global);
-    
-    napi_value args[1];
-    napi_create_int64(g_env, instance, &args[0]);
-    
-    napi_call_function(g_env, global, callback, 1, args, &result);
+    std::lock_guard<std::mutex> lock(g_tsfnMutex);
+    if (!g_tsfnPreConnect) return;
+    CallbackData* data = new CallbackData{instance};
+    napi_call_threadsafe_function(g_tsfnPreConnect, data, napi_tsfn_blocking);
 }
 
 static void OnDisconnectingImpl(int64_t instance) {
-    std::lock_guard<std::mutex> lock(g_callbackMutex);
-    if (!g_env || !g_onDisconnectingRef) return;
-    
-    napi_value callback, global, result;
-    napi_get_reference_value(g_env, g_onDisconnectingRef, &callback);
-    napi_get_global(g_env, &global);
-    
-    napi_value args[1];
-    napi_create_int64(g_env, instance, &args[0]);
-    
-    napi_call_function(g_env, global, callback, 1, args, &result);
+    std::lock_guard<std::mutex> lock(g_tsfnMutex);
+    if (!g_tsfnDisconnecting) return;
+    CallbackData* data = new CallbackData{instance};
+    napi_call_threadsafe_function(g_tsfnDisconnecting, data, napi_tsfn_blocking);
 }
 
 static void OnDisconnectedImpl(int64_t instance) {
-    std::lock_guard<std::mutex> lock(g_callbackMutex);
-    if (!g_env || !g_onDisconnectedRef) return;
+    std::lock_guard<std::mutex> lock(g_tsfnMutex);
+    if (!g_tsfnDisconnected) return;
+    CallbackData* data = new CallbackData{instance};
+    napi_call_threadsafe_function(g_tsfnDisconnected, data, napi_tsfn_blocking);
     
-    napi_value callback, global, result;
-    napi_get_reference_value(g_env, g_onDisconnectedRef, &callback);
-    napi_get_global(g_env, &global);
-    
-    napi_value args[1];
-    napi_create_int64(g_env, instance, &args[0]);
-    
-    napi_call_function(g_env, global, callback, 1, args, &result);
-    
-    // Update instance state
     std::lock_guard<std::mutex> instLock(g_instanceMutex);
     g_instanceConnected[instance] = false;
 }
 
 static void OnSettingsChangedImpl(int64_t instance, int width, int height, int bpp) {
-    std::lock_guard<std::mutex> lock(g_callbackMutex);
-    if (!g_env || !g_onSettingsChangedRef) return;
-    
-    napi_value callback, global, result;
-    napi_get_reference_value(g_env, g_onSettingsChangedRef, &callback);
-    napi_get_global(g_env, &global);
-    
-    napi_value args[4];
-    napi_create_int64(g_env, instance, &args[0]);
-    napi_create_int32(g_env, width, &args[1]);
-    napi_create_int32(g_env, height, &args[2]);
-    napi_create_int32(g_env, bpp, &args[3]);
-    
-    napi_call_function(g_env, global, callback, 4, args, &result);
+    std::lock_guard<std::mutex> lock(g_tsfnMutex);
+    if (!g_tsfnSettingsChanged) return;
+    CallbackData* data = new CallbackData{instance};
+    data->width = width;
+    data->height = height;
+    data->bpp = bpp;
+    napi_call_threadsafe_function(g_tsfnSettingsChanged, data, napi_tsfn_blocking);
 }
 
 static void OnGraphicsUpdateImpl(int64_t instance, int x, int y, int width, int height) {
-    std::lock_guard<std::mutex> lock(g_callbackMutex);
-    if (!g_env || !g_onGraphicsUpdateRef) return;
-    
-    napi_value callback, global, result;
-    napi_get_reference_value(g_env, g_onGraphicsUpdateRef, &callback);
-    napi_get_global(g_env, &global);
-    
-    napi_value args[5];
-    napi_create_int64(g_env, instance, &args[0]);
-    napi_create_int32(g_env, x, &args[1]);
-    napi_create_int32(g_env, y, &args[2]);
-    napi_create_int32(g_env, width, &args[3]);
-    napi_create_int32(g_env, height, &args[4]);
-    
-    napi_call_function(g_env, global, callback, 5, args, &result);
+    std::lock_guard<std::mutex> lock(g_tsfnMutex);
+    if (!g_tsfnGraphicsUpdate) return;
+    CallbackData* data = new CallbackData{instance};
+    data->x = x;
+    data->y = y;
+    data->width = width;
+    data->height = height;
+    napi_call_threadsafe_function(g_tsfnGraphicsUpdate, data, napi_tsfn_blocking);
 }
 
 static void OnGraphicsResizeImpl(int64_t instance, int width, int height, int bpp) {
-    std::lock_guard<std::mutex> lock(g_callbackMutex);
-    if (!g_env || !g_onGraphicsResizeRef) return;
-    
-    napi_value callback, global, result;
-    napi_get_reference_value(g_env, g_onGraphicsResizeRef, &callback);
-    napi_get_global(g_env, &global);
-    
-    napi_value args[4];
-    napi_create_int64(g_env, instance, &args[0]);
-    napi_create_int32(g_env, width, &args[1]);
-    napi_create_int32(g_env, height, &args[2]);
-    napi_create_int32(g_env, bpp, &args[3]);
-    
-    napi_call_function(g_env, global, callback, 4, args, &result);
+    std::lock_guard<std::mutex> lock(g_tsfnMutex);
+    if (!g_tsfnGraphicsResize) return;
+    CallbackData* data = new CallbackData{instance};
+    data->width = width;
+    data->height = height;
+    data->bpp = bpp;
+    napi_call_threadsafe_function(g_tsfnGraphicsResize, data, napi_tsfn_blocking);
 }
 
 static void OnCursorTypeChangedImpl(int64_t instance, int cursorType) {
-    std::lock_guard<std::mutex> lock(g_callbackMutex);
-    if (!g_env || !g_onCursorTypeChangedRef) return;
-    
-    napi_value callback, global, result;
-    napi_get_reference_value(g_env, g_onCursorTypeChangedRef, &callback);
-    napi_get_global(g_env, &global);
-    
-    napi_value args[2];
-    napi_create_int64(g_env, instance, &args[0]);
-    napi_create_int32(g_env, cursorType, &args[1]);
-    
-    napi_call_function(g_env, global, callback, 2, args, &result);
+    std::lock_guard<std::mutex> lock(g_tsfnMutex);
+    if (!g_tsfnCursorTypeChanged) return;
+    CallbackData* data = new CallbackData{instance};
+    data->cursorType = cursorType;
+    napi_call_threadsafe_function(g_tsfnCursorTypeChanged, data, napi_tsfn_blocking);
 }
 
 // ==================== N-API Exported Functions ====================
@@ -660,22 +679,46 @@ static napi_value FreerdpIsConnected(napi_env env, napi_callback_info info) {
 }
 
 // Callback setters
+static napi_value CreateTSFN(napi_env env, napi_value callback, const char* name, 
+                            napi_threadsafe_function_call_js call_js, 
+                            napi_threadsafe_function* result_tsfn) {
+    napi_value resource_name;
+    napi_create_string_utf8(env, name, NAPI_AUTO_LENGTH, &resource_name);
+    
+    if (*result_tsfn) {
+        napi_release_threadsafe_function(*result_tsfn, napi_tsfn_release);
+    }
+    
+    napi_status status = napi_create_threadsafe_function(
+        env,
+        callback,
+        nullptr,
+        resource_name,
+        0,
+        1,
+        nullptr,
+        nullptr,
+        nullptr,
+        call_js,
+        result_tsfn
+    );
+    
+    if (status != napi_ok) {
+        LOGE("Failed to create threadsafe function for %s: %d", name, (int)status);
+    }
+    
+    napi_value undefined;
+    napi_get_undefined(env, &undefined);
+    return undefined;
+}
+
 static napi_value SetOnConnectionSuccess(napi_env env, napi_callback_info info) {
     size_t argc = 1;
     napi_value args[1];
     napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
     
-    if (g_onConnectionSuccessRef) {
-        napi_delete_reference(env, g_onConnectionSuccessRef);
-    }
-    napi_create_reference(env, args[0], 1, &g_onConnectionSuccessRef);
-    g_env = env;
-    
     harmonyos_set_connection_success_callback(OnConnectionSuccessImpl);
-    
-    napi_value undefined;
-    napi_get_undefined(env, &undefined);
-    return undefined;
+    return CreateTSFN(env, args[0], "OnConnectionSuccess", CallJS_InstanceOnly, &g_tsfnConnectionSuccess);
 }
 
 static napi_value SetOnConnectionFailure(napi_env env, napi_callback_info info) {
@@ -683,17 +726,8 @@ static napi_value SetOnConnectionFailure(napi_env env, napi_callback_info info) 
     napi_value args[1];
     napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
     
-    if (g_onConnectionFailureRef) {
-        napi_delete_reference(env, g_onConnectionFailureRef);
-    }
-    napi_create_reference(env, args[0], 1, &g_onConnectionFailureRef);
-    g_env = env;
-    
     harmonyos_set_connection_failure_callback(OnConnectionFailureImpl);
-    
-    napi_value undefined;
-    napi_get_undefined(env, &undefined);
-    return undefined;
+    return CreateTSFN(env, args[0], "OnConnectionFailure", CallJS_InstanceOnly, &g_tsfnConnectionFailure);
 }
 
 static napi_value SetOnPreConnect(napi_env env, napi_callback_info info) {
@@ -701,17 +735,8 @@ static napi_value SetOnPreConnect(napi_env env, napi_callback_info info) {
     napi_value args[1];
     napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
     
-    if (g_onPreConnectRef) {
-        napi_delete_reference(env, g_onPreConnectRef);
-    }
-    napi_create_reference(env, args[0], 1, &g_onPreConnectRef);
-    g_env = env;
-    
     harmonyos_set_pre_connect_callback(OnPreConnectImpl);
-    
-    napi_value undefined;
-    napi_get_undefined(env, &undefined);
-    return undefined;
+    return CreateTSFN(env, args[0], "OnPreConnect", CallJS_InstanceOnly, &g_tsfnPreConnect);
 }
 
 static napi_value SetOnDisconnecting(napi_env env, napi_callback_info info) {
@@ -719,17 +744,8 @@ static napi_value SetOnDisconnecting(napi_env env, napi_callback_info info) {
     napi_value args[1];
     napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
     
-    if (g_onDisconnectingRef) {
-        napi_delete_reference(env, g_onDisconnectingRef);
-    }
-    napi_create_reference(env, args[0], 1, &g_onDisconnectingRef);
-    g_env = env;
-    
     harmonyos_set_disconnecting_callback(OnDisconnectingImpl);
-    
-    napi_value undefined;
-    napi_get_undefined(env, &undefined);
-    return undefined;
+    return CreateTSFN(env, args[0], "OnDisconnecting", CallJS_InstanceOnly, &g_tsfnDisconnecting);
 }
 
 static napi_value SetOnDisconnected(napi_env env, napi_callback_info info) {
@@ -737,17 +753,8 @@ static napi_value SetOnDisconnected(napi_env env, napi_callback_info info) {
     napi_value args[1];
     napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
     
-    if (g_onDisconnectedRef) {
-        napi_delete_reference(env, g_onDisconnectedRef);
-    }
-    napi_create_reference(env, args[0], 1, &g_onDisconnectedRef);
-    g_env = env;
-    
     harmonyos_set_disconnected_callback(OnDisconnectedImpl);
-    
-    napi_value undefined;
-    napi_get_undefined(env, &undefined);
-    return undefined;
+    return CreateTSFN(env, args[0], "OnDisconnected", CallJS_InstanceOnly, &g_tsfnDisconnected);
 }
 
 static napi_value SetOnSettingsChanged(napi_env env, napi_callback_info info) {
@@ -755,17 +762,8 @@ static napi_value SetOnSettingsChanged(napi_env env, napi_callback_info info) {
     napi_value args[1];
     napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
     
-    if (g_onSettingsChangedRef) {
-        napi_delete_reference(env, g_onSettingsChangedRef);
-    }
-    napi_create_reference(env, args[0], 1, &g_onSettingsChangedRef);
-    g_env = env;
-    
     harmonyos_set_settings_changed_callback(OnSettingsChangedImpl);
-    
-    napi_value undefined;
-    napi_get_undefined(env, &undefined);
-    return undefined;
+    return CreateTSFN(env, args[0], "OnSettingsChanged", CallJS_ResizeOrSettings, &g_tsfnSettingsChanged);
 }
 
 static napi_value SetOnGraphicsUpdate(napi_env env, napi_callback_info info) {
@@ -773,17 +771,8 @@ static napi_value SetOnGraphicsUpdate(napi_env env, napi_callback_info info) {
     napi_value args[1];
     napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
     
-    if (g_onGraphicsUpdateRef) {
-        napi_delete_reference(env, g_onGraphicsUpdateRef);
-    }
-    napi_create_reference(env, args[0], 1, &g_onGraphicsUpdateRef);
-    g_env = env;
-    
     harmonyos_set_graphics_update_callback(OnGraphicsUpdateImpl);
-    
-    napi_value undefined;
-    napi_get_undefined(env, &undefined);
-    return undefined;
+    return CreateTSFN(env, args[0], "OnGraphicsUpdate", CallJS_GraphicsUpdate, &g_tsfnGraphicsUpdate);
 }
 
 static napi_value SetOnGraphicsResize(napi_env env, napi_callback_info info) {
@@ -791,17 +780,8 @@ static napi_value SetOnGraphicsResize(napi_env env, napi_callback_info info) {
     napi_value args[1];
     napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
     
-    if (g_onGraphicsResizeRef) {
-        napi_delete_reference(env, g_onGraphicsResizeRef);
-    }
-    napi_create_reference(env, args[0], 1, &g_onGraphicsResizeRef);
-    g_env = env;
-    
     harmonyos_set_graphics_resize_callback(OnGraphicsResizeImpl);
-    
-    napi_value undefined;
-    napi_get_undefined(env, &undefined);
-    return undefined;
+    return CreateTSFN(env, args[0], "OnGraphicsResize", CallJS_ResizeOrSettings, &g_tsfnGraphicsResize);
 }
 
 static napi_value SetOnCursorTypeChanged(napi_env env, napi_callback_info info) {
@@ -809,17 +789,8 @@ static napi_value SetOnCursorTypeChanged(napi_env env, napi_callback_info info) 
     napi_value args[1];
     napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
     
-    if (g_onCursorTypeChangedRef) {
-        napi_delete_reference(env, g_onCursorTypeChangedRef);
-    }
-    napi_create_reference(env, args[0], 1, &g_onCursorTypeChangedRef);
-    g_env = env;
-    
     harmonyos_set_cursor_type_changed_callback(OnCursorTypeChangedImpl);
-    
-    napi_value undefined;
-    napi_get_undefined(env, &undefined);
-    return undefined;
+    return CreateTSFN(env, args[0], "OnCursorTypeChanged", CallJS_CursorType, &g_tsfnCursorTypeChanged);
 }
 
 // ==================== Module Registration ====================
