@@ -398,17 +398,23 @@ jobs:
           
       - name: Build NAPI Wrapper (libfreerdp_harmonyos.so)
         run: |
-          echo "=== Building NAPI Wrapper with Compatibility Layer ==="
+          echo "=== Building NAPI Wrapper with Integrated Client Common ==="
           
           mkdir -p ${{ github.workspace }}/napi_build
           cd ${{ github.workspace }}/napi_build
           
-          # Copy source files
+          # Copy NAPI wrapper source files
           cp ${{ github.workspace }}/entry/src/main/cpp/*.c . 2>/dev/null || true
           cp ${{ github.workspace }}/entry/src/main/cpp/*.cpp . 2>/dev/null || true
           cp ${{ github.workspace }}/entry/src/main/cpp/*.h . 2>/dev/null || true
           
-          echo "Source files:"
+          # INTEGRATION: Copy FreeRDP Client Common sources directly
+          # This bypasses the issue of the separate .so being empty
+          echo "Integrating client common sources..."
+          cp ${{ github.workspace }}/FreeRDP/client/common/*.c . 2>/dev/null || true
+          cp ${{ github.workspace }}/FreeRDP/client/common/*.h . 2>/dev/null || true
+          
+          echo "Source files after integration:"
           ls -la
           
           if [ -d "${{ github.workspace }}/install/openssl/lib64" ]; then
@@ -417,21 +423,26 @@ jobs:
             OPENSSL_LIB="${{ github.workspace }}/install/openssl/lib"
           fi
           
+          # Add FreeRDP source include paths for integrated build
           INCLUDE_DIRS="-I${{ github.workspace }}/install/freerdp/include \
             -I${{ github.workspace }}/install/freerdp/include/freerdp3 \
             -I${{ github.workspace }}/install/freerdp/include/winpr3 \
+            -I${{ github.workspace }}/FreeRDP/include \
+            -I${{ github.workspace }}/FreeRDP/client/common \
             -I${{ github.workspace }}/install/openssl/include \
             -I${OHOS_NDK_HOME}/sysroot/usr/include"
           
-          CFLAGS="-fPIC -O2 -D__OHOS__=1 -DOHOS_PLATFORM -DWITH_OPENSSL"
+          CFLAGS="-fPIC -O2 -D__OHOS__=1 -DOHOS_PLATFORM -DWITH_OPENSSL -D__LINUX__"
           
-          # Compile C files
+          # Compile C files (including integrated client common)
           echo "Compiling C files..."
           for f in *.c; do
             if [ -f "$f" ]; then
               echo "  $f"
               $OHOS_CC -c "$f" -o "${f%.c}.o" $CFLAGS $INCLUDE_DIRS 2>&1 || {
                 echo "Error: Failed to compile $f"
+                # If a specific client file fails, we might need to skip it if it's not essential
+                # but for now we exit
                 exit 1
               }
             fi
@@ -458,11 +469,10 @@ jobs:
           
           if [ -n "$OBJS" ]; then
             echo "Linking libfreerdp_harmonyos.so..."
-            # Link against all required libs including OpenSLES
+            # Link against core libs and OpenSLES
             $OHOS_CXX -shared -o libfreerdp_harmonyos.so $OBJS \
               -fPIC \
               -L${{ github.workspace }}/install/freerdp/lib \
-              -lfreerdp-client3 \
               -lfreerdp3 \
               -lwinpr3 \
               -lOpenSLES \
@@ -472,23 +482,8 @@ jobs:
               -Wl,--allow-shlib-undefined \
               -Wl,-rpath,'$ORIGIN' \
               2>&1 || {
-                echo "Link failed, trying with libfreerdp-client..."
-                $OHOS_CXX -shared -o libfreerdp_harmonyos.so $OBJS \
-                  -fPIC \
-                  -L${{ github.workspace }}/install/freerdp/lib \
-                  -lfreerdp-client \
-                  -lfreerdp3 \
-                  -lwinpr3 \
-                  -lOpenSLES \
-                  ${OPENSSL_LIB}/libssl.a \
-                  ${OPENSSL_LIB}/libcrypto.a \
-                  ${{ github.workspace }}/install/zlib/lib/libz.a \
-                  -Wl,--allow-shlib-undefined \
-                  -Wl,-rpath,'$ORIGIN' \
-                  2>&1 || {
-                    echo "Link still failed"
-                    exit 1
-                  }
+                echo "Link failed"
+                exit 1
               }
           fi
           
