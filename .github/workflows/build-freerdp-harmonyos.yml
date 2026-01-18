@@ -156,18 +156,45 @@ jobs:
           tar xzf openssl-${OPENSSL_VERSION}.tar.gz
           cd openssl-${OPENSSL_VERSION}
           
-          # CRITICAL FIX: Use HarmonyOS sandbox path for openssldir to prevent
-          # "absolute path check ns accessible failed" errors at runtime.
-          # Also disable modules/engines to prevent dynamic loading issues.
+          # CRITICAL FIX v1.2.5: Completely disable OpenSSL config/module loading
+          # The previous build still had hardcoded paths causing SIGABRT on HarmonyOS.
+          # 
+          # Key changes:
+          # 1. Use empty string for openssldir to prevent any path embedding
+          # 2. Add multiple NO_* defines to disable all dynamic loading
+          # 3. Disable legacy provider which tries to load modules
+          # 4. Disable autoload and default config file loading
           CC="$OHOS_CC" CXX="$OHOS_CXX" AR="$OHOS_AR" RANLIB="$OHOS_RANLIB" \
           ./Configure linux-aarch64 \
             --prefix=${{ github.workspace }}/install/openssl \
-            --openssldir=/data/storage/el2/base/files/ssl \
-            no-shared no-tests no-asm no-engine no-module -fPIC -O2 \
-            -DOPENSSL_NO_AUTOLOAD_CONFIG
+            --openssldir="" \
+            --libdir=lib \
+            no-shared no-tests no-asm \
+            no-engine no-module no-legacy \
+            no-autoload-config no-autoerrinit \
+            no-dso no-dynamic-engine \
+            -fPIC -O2 \
+            -DOPENSSL_NO_AUTOLOAD_CONFIG=1 \
+            -DOPENSSL_NO_AUTOERRINIT=1 \
+            -DOPENSSL_NO_DSO=1 \
+            -DOPENSSL_NO_DYNAMIC_ENGINE=1 \
+            -DOPENSSL_NO_ENGINE=1 \
+            -DOPENSSL_NO_MODULE=1 \
+            -DENGINESDIR='""' \
+            -DMODULESDIR='""' \
+            -DOPENSSLDIR='""'
           
           make -j$(nproc) || make -j2
           make install_sw
+          
+          # Verify no hardcoded paths in the built library
+          echo "=== Checking for hardcoded paths in libcrypto.a ==="
+          if strings ${{ github.workspace }}/install/openssl/lib/libcrypto.a | grep -q "/home/runner"; then
+            echo "WARNING: Found /home/runner path in libcrypto.a"
+            strings ${{ github.workspace }}/install/openssl/lib/libcrypto.a | grep "/home/runner" | head -5
+          else
+            echo "Good: No /home/runner paths found"
+          fi
 
       - name: Clone FreeRDP
         run: |
@@ -510,18 +537,20 @@ jobs:
           
           # Create README
           cat > README.txt << EOF
-          FreeRDP HarmonyOS Libraries (v1.2.4)
+          FreeRDP HarmonyOS Libraries (v1.2.5)
           Built: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
           FreeRDP: $FREERDP_VERSION
-          OpenSSL: $OPENSSL_VERSION (static, no-engine, no-module)
+          OpenSSL: $OPENSSL_VERSION (static, fully sandboxed)
           zlib: $ZLIB_VERSION (static)
           Toolchain: OpenHarmony NDK (musl libc)
           Target: arm64-v8a
           
-          Changes in v1.2.4:
-          - Fixed OpenSSL openssldir path (was hardcoding build machine path)
-          - Disabled OpenSSL engine/module loading to prevent runtime errors
-          - Added OPENSSL_NO_AUTOLOAD_CONFIG to prevent config file issues
+          Changes in v1.2.5:
+          - CRITICAL: Completely disabled OpenSSL dynamic loading (no-dso, no-dynamic-engine)
+          - Set openssldir to empty string to prevent ANY path embedding
+          - Disabled legacy provider which was attempting module loads
+          - Added multiple compile-time defines to ensure no runtime path access
+          - This should completely fix the SIGABRT crash on HarmonyOS
           EOF
           
           echo "=== Artifacts ==="
@@ -579,7 +608,7 @@ jobs:
         with:
           files: release/*
           body: |
-            ## FreeRDP HarmonyOS Native Libraries (v1.2.4)
+            ## FreeRDP HarmonyOS Native Libraries (v1.2.5)
             
             Built with OpenHarmony NDK (musl libc compatible)
             
@@ -589,11 +618,16 @@ jobs:
             - libfreerdp-client3.so - Client core
             - libfreerdp_harmonyos.so - NAPI wrapper
             
-            ### Changes in v1.2.4
-            - **CRITICAL FIX**: Fixed OpenSSL openssldir hardcoded path issue
-            - Disabled OpenSSL engine/module loading (no-engine, no-module)
-            - Added OPENSSL_NO_AUTOLOAD_CONFIG to prevent runtime config errors
-            - This should fix the "absolute path check ns accessible failed" error
+            ### Changes in v1.2.5 (CRITICAL)
+            - **Completely disabled OpenSSL dynamic loading** (no-dso, no-dynamic-engine)
+            - Set openssldir to empty string to prevent ANY path embedding
+            - Disabled legacy provider which was attempting module loads
+            - Added multiple compile-time defines to ensure no runtime path access
+            - **This should completely fix the SIGABRT crash on HarmonyOS**
+            
+            ### Previous Issues Fixed
+            - v1.2.4: Attempted to fix openssldir but paths were still embedded
+            - v1.2.5: Completely removes all path dependencies from OpenSSL
             
             ### Usage
             Copy to `entry/libs/arm64-v8a/` and build

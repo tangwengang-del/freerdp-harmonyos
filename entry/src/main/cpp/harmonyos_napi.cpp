@@ -29,6 +29,7 @@
 
 extern "C" {
 #include "harmonyos_freerdp.h"
+#include <stdlib.h>  // for setenv/unsetenv
 }
 
 // Global environment for callbacks
@@ -854,7 +855,22 @@ static napi_value Init(napi_env env, napi_value exports) {
     
     napi_define_properties(env, exports, sizeof(desc) / sizeof(desc[0]), desc);
     
-    LOGI("FreeRDP HarmonyOS N-API module initialized");
+    /*
+     * CRITICAL FIX for OpenSSL SIGABRT crash:
+     * Set environment variables BEFORE any OpenSSL function is called.
+     * This prevents OpenSSL from trying to load modules from hardcoded build paths.
+     * 
+     * The library was built with paths like:
+     *   /home/runner/work/freerdp-harmonyos/freerdp-harmonyos/install/openssl/lib/ossl-modules
+     * which don't exist in the HarmonyOS sandbox, causing dlopen failures and SIGABRT.
+     */
+    setenv("HOME", "/data/storage/el2/base/files", 1);
+    setenv("OPENSSL_CONF", "/dev/null", 1);  // Point to non-existent/empty config
+    unsetenv("OPENSSL_MODULES");
+    unsetenv("OPENSSL_ENGINES");
+    unsetenv("OPENSSL_DIR");
+    
+    LOGI("FreeRDP HarmonyOS N-API module initialized (OpenSSL env configured)");
     return exports;
 }
 
