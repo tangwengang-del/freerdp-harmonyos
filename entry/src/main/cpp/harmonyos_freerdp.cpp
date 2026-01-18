@@ -946,10 +946,14 @@ int64_t freerdp_harmonyos_new(void) {
         LOGI("freerdp_harmonyos_new: Initializing SSL...");
         
         /* 
-         * 注意：移除了 setenv("OPENSSL_MODULES", ...)
-         * 我们使用静态链接的 OpenSSL，不需要且不应该加载系统模块，
-         * 否则在 HarmonyOS 沙箱环境下可能导致 dlopen 失败从而引起崩溃。
+         * 针对 HarmonyOS 的重要修复：
+         * 1. 设置 HOME 环境变量到应用沙箱目录，防止 FreeRDP 尝试在沙箱外创建配置目录。
+         * 2. 显式清除 OpenSSL 模块路径环境变量，防止其尝试访问编译机路径 (/home/runner/work/...)
          */
+        setenv("HOME", "/data/storage/el2/base/files", 1);
+        unsetenv("OPENSSL_MODULES");
+        unsetenv("OPENSSL_CONF");
+        unsetenv("OPENSSL_ENGINES");
         
         /* 使用 winpr 的 SSL 初始化函数 */
         if (winpr_InitializeSSL(WINPR_SSL_INIT_DEFAULT)) {
@@ -1033,14 +1037,16 @@ bool freerdp_harmonyos_parse_arguments(int64_t instance, const char** args, int 
     
     /* 
      * 针对连接 0x0002000D 错误的修复：
-     * 默认启用多种安全协议协商 (RDP + TLS + NLA)，以提高服务器兼容性。
-     * 
-     * 注意：FreeRDP 3.x 中的常量定义可能在某些头文件组合下不可见。
-     * 这里使用标准 RDP 协议值以确保编译通过并实现最大兼容性：
-     * RDP = 0x1, SSL/TLS = 0x2, NLA/Hybrid = 0x4
+     * 1. 默认启用多种安全协议协商 (RDP + TLS + NLA)，以提高服务器兼容性。
+     * 2. 显式启用各种安全层。
+     * 3. 忽略证书验证错误，防止因 UI 缺失导致的验证失败或崩溃。
      */
     freerdp_settings_set_uint32(inst->context->settings, FreeRDP_RequestedProtocols, 
                                 0x00000001 | 0x00000002 | 0x00000004);
+    freerdp_settings_set_bool(inst->context->settings, FreeRDP_TlsSecurity, TRUE);
+    freerdp_settings_set_bool(inst->context->settings, FreeRDP_NlaSecurity, TRUE);
+    freerdp_settings_set_bool(inst->context->settings, FreeRDP_RdpSecurity, TRUE);
+    freerdp_settings_set_bool(inst->context->settings, FreeRDP_IgnoreCertificate, TRUE);
     
     /* 
      * 关键修复：设置插件加载路径为当前目录，并禁用外部插件自动搜索。
@@ -1049,9 +1055,9 @@ bool freerdp_harmonyos_parse_arguments(int64_t instance, const char** args, int 
     freerdp_settings_set_string(inst->context->settings, FreeRDP_ConfigPath, ".");
     
     /* 
-     * 关键修复：禁用各种可能尝试加载绝对路径的选项
+     * 关键修复：禁用各种可能尝试加载绝对路径或引起移动端不稳定的选项
      */
-    freerdp_settings_set_bool(inst->context->settings, FreeRDP_SupportMonitorLayoutPdu, TRUE);
+    freerdp_settings_set_bool(inst->context->settings, FreeRDP_SupportMonitorLayoutPdu, FALSE);
     freerdp_settings_set_bool(inst->context->settings, FreeRDP_SupportGraphicsPipeline, TRUE);
     
     LOGI("parse_arguments: Calling freerdp_client_settings_parse_command_line...");
@@ -1289,9 +1295,7 @@ int freerdp_harmonyos_set_client_decoding(int64_t instance, bool enable) {
      * 我们改用标准键 FreeRDP_SuppressOutput。
      */
     BOOL suppress = enable ? FALSE : TRUE;
-    if (!freerdp_settings_set_bool(settings, FreeRDP_SuppressOutput, suppress)) {
-        LOGW("Failed to set SuppressOutput setting");
-    }
+    freerdp_settings_set_bool(settings, FreeRDP_SuppressOutput, suppress);
 
     BOOL allowDisplayUpdates = enable ? TRUE : FALSE;
     

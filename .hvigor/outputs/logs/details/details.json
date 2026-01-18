@@ -25,25 +25,37 @@
     "IS_HVIGORFILE_TYPE_CHECK": false,
     "TASK_TIME": {
       "923fe53966c6cd9343e11af776cd4b05be315ea4b200b02e4d5dfb0f929b73bf": {
-        "CreateModuleInfo": 1416400,
-        "GenerateMetadata": 7150000,
-        "ConfigureCmake": 52954000,
-        "MergeProfile": 8915300,
-        "CreateBuildProfile": 5503600,
-        "PreCheckSyscap": 691000,
-        "ProcessIntegratedHsp": 4569500,
-        "BuildNativeWithCmake": 18392200,
-        "MakePackInfo": 12995300,
-        "SyscapTransform": 3303100,
-        "GeneratePkgContextInfo": 89321600,
-        "ProcessProfile": 149141900,
-        "ProcessRouterMap": 7495700,
-        "ProcessShareConfig": 6052200,
-        "ProcessStartupConfig": 3525200,
-        "ProcessResource": 7472800,
-        "GenerateLoaderJson": 15568900,
-        "CompileResource": 535249700,
-        "BuildJS": 3364200
+        "CreateModuleInfo": 1556300,
+        "GenerateMetadata": 6582900,
+        "ConfigureCmake": 44705100,
+        "MergeProfile": 6477800,
+        "CreateBuildProfile": 3792000,
+        "PreCheckSyscap": 705100,
+        "ProcessIntegratedHsp": 1421700,
+        "BuildNativeWithCmake": 18475000,
+        "MakePackInfo": 9230800,
+        "SyscapTransform": 3964700,
+        "GeneratePkgContextInfo": 125286700,
+        "ProcessProfile": 158159300,
+        "ProcessRouterMap": 11044600,
+        "ProcessShareConfig": 7009400,
+        "ProcessStartupConfig": 3920400,
+        "ProcessResource": 10074900,
+        "GenerateLoaderJson": 17265200,
+        "CompileResource": 525057700,
+        "BuildJS": 5404800,
+        "BuildNativeWithNinja": 3236195900,
+        "ProcessLibs": 854925100,
+        "DoNativeStrip": 423879200,
+        "CacheNativeLibs": 33314900,
+        "CompileArkTS": 18290245400,
+        "GeneratePkgModuleJson": 8283000,
+        "ProcessCompiledResources": 1855700,
+        "PackageHap": 192491500,
+        "PackingCheck": 6069900,
+        "SignHap": 607147100,
+        "CollectDebugSymbol": 9965400,
+        "assembleHap": 829500
       }
     },
     "APIS": [
@@ -54,13 +66,7 @@
       "ENABLE_CPP_FUNCTION_LEVEL_INCREMENTAL": false
     },
     "CONFIG_PROPERTIES": {},
-    "TOTAL_TIME": 3715645800,
-    "BUILD_ID": "202601181848190360",
-    "ERROR_MESSAGE": [
-      {
-        "CODE": "00000000",
-        "TIMESTAMP": "1768733302698"
-      }
-    ]
+    "TOTAL_TIME": 20830114000,
+    "BUILD_ID": "202601181908552060"
   }
 }
