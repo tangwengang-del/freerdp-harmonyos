@@ -330,22 +330,19 @@ jobs:
           echo "=== Searching for client libraries ==="
           # Clear any potential old results
           ACTUAL_LIB=""
-          # Look specifically in the client/common directory first
-          ACTUAL_LIB=$(find client/common -name "libfreerdp-client.so*" -o -name "libfreerdp-client3.so*" -o -name "libfreerdp-client.a" -o -name "libfreerdp-client3.a" | head -1 || true)
-          
-          # Fallback to searching everywhere if not found in client/common
+          # Robust search for a non-dummy library (at least 100KB)
+          # We search for .so first, then .a
+          ACTUAL_LIB=$(find . -type f -name "libfreerdp-client*.so*" -size +100k | head -1 || true)
           if [ -z "${ACTUAL_LIB}" ]; then
-            ACTUAL_LIB=$(find . -name "libfreerdp-client.so*" -o -name "libfreerdp-client3.so*" -o -name "libfreerdp-client.a" -o -name "libfreerdp-client3.a" | head -1 || true)
+            ACTUAL_LIB=$(find . -type f -name "libfreerdp-client*.a" -size +100k | head -1 || true)
           fi
           
           echo "Debug: ACTUAL_LIB=${ACTUAL_LIB}"
-          ls -R client/ || true
-          
-          # If we found a library and it's suspiciously small, keep searching
-          if [ -n "${ACTUAL_LIB}" ] && [ -f "${ACTUAL_LIB}" ] && [ $(stat -c%s "${ACTUAL_LIB}") -lt 10000 ]; then
-             echo "Found a library but it is too small (${ACTUAL_LIB}), searching for a better one..."
-             ACTUAL_LIB=$(find . -type f \( -name "libfreerdp-client*.so*" -o -name "libfreerdp-client*.a" \) -size +10k | head -1 || true)
-             echo "Debug: Better ACTUAL_LIB=${ACTUAL_LIB}"
+          if [ -n "${ACTUAL_LIB}" ]; then
+            echo "Found a valid library: ${ACTUAL_LIB} ($(stat -c%s "${ACTUAL_LIB}") bytes)"
+          else
+            echo "WARNING: No valid client library found (>100KB)!"
+            ls -R . | grep -E "libfreerdp-client" || true
           fi
           
           CLIENT_DIR="client/common"
