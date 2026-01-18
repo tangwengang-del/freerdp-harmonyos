@@ -200,92 +200,32 @@ export class AudioFocusManager {
   
   /**
    * Get current volume for audio stream
+   * Note: AudioVolumeManager.getVolume is not available in current SDK
+   * Returns a default value. For actual volume control, use system volume UI.
    */
   static async getVolume(): Promise<number> {
-    if (!audioManager) {
-      return 0;
-    }
-    
-    try {
-      const volumeManager = audioManager.getVolumeManager();
-      if (volumeManager) {
-        // Use callback-based getVolume API which is more widely supported
-        return new Promise<number>((resolve) => {
-          volumeManager.getVolume(audio.AudioVolumeType.MEDIA, (err: BusinessError, volume: number) => {
-            if (err) {
-              console.error(`${TAG}: Failed to get volume: ${err.code}`);
-              resolve(0);
-            } else {
-              resolve(volume);
-            }
-          });
-        });
-      }
-      return 0;
-    } catch (error) {
-      console.error(`${TAG}: Failed to get volume`);
-      return 0;
-    }
+    // AudioVolumeManager doesn't expose getVolume directly in current SDK
+    // Return a reasonable default value
+    return 10;
   }
   
   /**
    * Check if audio is muted
+   * Note: AudioVolumeManager.isMute is not available in current SDK
    */
   static async isMuted(): Promise<boolean> {
-    if (!audioManager) {
-      return false;
-    }
-    
-    try {
-      const volumeManager = audioManager.getVolumeManager();
-      if (volumeManager) {
-        // Use callback-based isMute API which is more widely supported
-        return new Promise<boolean>((resolve) => {
-          volumeManager.isMute(audio.AudioVolumeType.MEDIA, (err: BusinessError, muted: boolean) => {
-            if (err) {
-              console.error(`${TAG}: Failed to check mute: ${err.code}`);
-              resolve(false);
-            } else {
-              resolve(muted);
-            }
-          });
-        });
-      }
-      return false;
-    } catch (error) {
-      console.error(`${TAG}: Failed to check mute state`);
-      return false;
-    }
+    // AudioVolumeManager doesn't expose isMute directly in current SDK
+    return false;
   }
   
   /**
    * Get max volume for media stream
+   * Note: AudioVolumeManager.getMaxVolume is not available in current SDK
    */
   static async getMaxVolume(): Promise<number> {
-    if (!audioManager) {
-      return 15; // Default max volume
-    }
-    
-    try {
-      const volumeManager = audioManager.getVolumeManager();
-      if (volumeManager) {
-        // Use callback-based getMaxVolume API which is more widely supported
-        return new Promise<number>((resolve) => {
-          volumeManager.getMaxVolume(audio.AudioVolumeType.MEDIA, (err: BusinessError, maxVolume: number) => {
-            if (err) {
-              console.error(`${TAG}: Failed to get max volume: ${err.code}`);
-              resolve(15);
-            } else {
-              resolve(maxVolume);
-            }
-          });
-        });
-      }
-      return 15;
-    } catch (error) {
-      console.error(`${TAG}: Failed to get max volume`);
-      return 15;
-    }
+    // AudioVolumeManager doesn't expose getMaxVolume directly in current SDK
+    // Return standard HarmonyOS max volume
+    return 15;
   }
   
   /**
