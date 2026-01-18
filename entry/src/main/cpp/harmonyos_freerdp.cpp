@@ -21,6 +21,9 @@
 #include <hilog/log.h>
 #include <time.h>
 #include <winpr/sysinfo.h>
+#ifdef LOG_TAG
+#undef LOG_TAG
+#endif
 #define LOG_TAG "FreeRDP"
 #define LOGI(...) OH_LOG_INFO(LOG_APP, __VA_ARGS__)
 #define LOGW(...) OH_LOG_WARN(LOG_APP, __VA_ARGS__)
@@ -582,7 +585,7 @@ static int harmonyos_freerdp_run(freerdp* instance) {
         status = WaitForMultipleObjects(count, handles, FALSE, waitTimeout);
 
         if (status == WAIT_FAILED) {
-            LOGE("WaitForMultipleObjects failed with %u [%08lX]", status, GetLastError());
+            LOGE("WaitForMultipleObjects failed with %u [%08X]", status, (unsigned int)GetLastError());
             break;
         }
         
@@ -1249,9 +1252,10 @@ int freerdp_harmonyos_set_client_decoding(int64_t instance, bool enable) {
     
     /* 
      * 关键安全检查：如果连接尚未完全建立或已断开，不应调用 update pdus。
+     * FreeRDP 3.x 使用 freerdp_shall_disconnect_context 检查状态。
      */
-    if (!freerdp_client_get_connected(context)) {
-        LOGW("set_client_decoding: session not connected, skipping PDU");
+    if (freerdp_shall_disconnect_context(context)) {
+        LOGW("set_client_decoding: session not connected or disconnecting, skipping PDU");
         return -8;
     }
 
